@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Document   : Test.xml
+    Created on : 17. Dezember 2015, 13:25
+    Author     : achristian
+    Description: Test XML
+-->
+
+<KONNEKTING  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+             xmlns='http://xml.konnekting.de/schema/KONNEKTING'
+             xsi:schemaLocation='http://xml.konnekting.de/schema/KONNEKTING.xsd' version="255">
+    <Device ManufacturerId="57005" DeviceId="190" Revision="175">
+        <ManufacturerName>KONNEKTING</ManufacturerName>
+        <DeviceName>Testdevice</DeviceName>
+        
+        <Parameters>
+            <Parameter Id="1">
+                <Description>Verhalten nach Busspannungsausfall</Description>
+                <Value Type="uint8" Default="02" Options="0=Aus|1=An|2=letzter Wert|3=Helligkeitswert"></Value>
+            </Parameter>
+            <Group name="Allgemein">
+                <Parameter Id="2">
+                    <Description>Startverzögerung bei Busspannungswiederkehr (0..255sek)</Description>
+                    <Value Type="uint8" Default="01" Options=""></Value>
+                </Parameter>
+            </Group>
+        </Parameters>
+        <CommObjects>
+            <CommObject Id="1">
+                <Name>Test-KO #1</Name>
+                <Function>Test-Funtion #1</Function>
+                <DataPoint>1</DataPoint>
+            </CommObject>
+            <CommObject Id="2">
+                <Name>Test-KO #2</Name>
+                <Function>Test-Funtion #2</Function>
+                <DataPoint>2</DataPoint>
+            </CommObject>
+            <CommObject Id="3">
+                <Name>Test-KO #3</Name>
+                <Function>Test-Funtion #3</Function>
+                <DataPoint>3</DataPoint>
+            </CommObject>
+        </CommObjects>
+    </Device>
+    <Configuration ManufacturerId="57005" DeviceId="190" Revision="175">
+        <IndividualAddress Address="1.2.3" Description="KONNEKTING Testgerät"/>
+        <CommObjectConfigurations>
+            <CommObjectConfiguration Id="1" GroupAddress="1/1/1" Description="Test GA #1" Flags="0"/>
+            <CommObjectConfiguration Id="2" GroupAddress="1/1/2" Description="Test GA #1" Flags="0"/>
+            <CommObjectConfiguration Id="3" GroupAddress="1/1/3" Description="Test GA #1" Flags="0"/>
+        </CommObjectConfigurations>
+        <ParameterConfigurations>
+            <ParameterConfiguration Id="1" Value="01"/>
+            <ParameterConfiguration Id="2" Value="02"/>
+        </ParameterConfigurations>
+    </Configuration>
+
+</KONNEKTING>
