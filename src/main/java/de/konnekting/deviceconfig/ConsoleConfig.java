@@ -28,8 +28,8 @@ import de.konnekting.xmlschema.KonnektingXmlService;
 import de.root1.logging.JulFormatter;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
-import de.root1.slicknx.karduino.ComObject;
-import de.root1.slicknx.karduino.KarduinoManagement;
+import de.root1.slicknx.konnekting.ComObject;
+import de.root1.slicknx.konnekting.KonnektingManagement;
 import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -48,6 +48,10 @@ public class ConsoleConfig {
     private static final boolean TEST = false;
 
     public static void main(String[] args) throws UnknownHostException, KNXException, IOException, XMLFormatException, ConfigurationException, InterruptedException, KnxException, JAXBException, SAXException {
+        
+        
+//        System.setProperty("de.root1.slicknx.konnekting.debug", "true");
+        
         JulFormatter.set();
         printHeader();
 
@@ -66,18 +70,18 @@ public class ConsoleConfig {
         individualAddress = args[2];
         f = new File(args[3]);
 
-        System.out.println("Reading config file '" + f.getName() + "' >>>");
+        System.out.print("Reading config file '" + f.getName());
         KONNEKTING c = KonnektingXmlService.readConfiguration(f);
-        System.out.println("<<<");
+        System.out.println(" *done*");
 
-        System.out.println("Connecting to KNX via " + host + ":" + port + " >>>");
+        System.out.print("Connecting to KNX via " + host + ":" + port);
         Knx knx = new Knx();
-        KarduinoManagement karduino = knx.createKarduinoManagement();
-        System.out.println("<<<");
+        KonnektingManagement konnekting = knx.createKarduinoManagement();
+        System.out.println(" *done*");
 
-        System.out.println("About to write physical address '" + individualAddress + "'. Please press 'program' button on target device >>>");
+        System.out.println("About to write physical address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
         if (!TEST) {
-            boolean b = karduino.writeIndividualAddress(individualAddress);
+            boolean b = konnekting.writeIndividualAddress(individualAddress);
             if (!b) {
                 System.out.println("Addressconflict with existing device");
                 System.exit(1);
@@ -87,45 +91,43 @@ public class ConsoleConfig {
             short deviceId = c.getDevice().getDeviceId();
             short revision = c.getDevice().getRevision();
             
-            karduino.startProgramming(individualAddress, manufacturerId, deviceId, revision);
+            konnekting.startProgramming(individualAddress, manufacturerId, deviceId, revision);
         }
-        System.out.println("<<<");
+        System.out.println("Writing physical address *done*");
 
-        System.out.println("Writing commobject >>>");
+        System.out.println("Writing commobjects ...");
         List<ComObject> list = new ArrayList<>();
         for (CommObjectConfiguration commObject : c.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration()) {
-            System.out.println("Processing commobject: " + commObject);
+            System.out.println("\tProcessing commobject: " + commObject);
 
             list.add( new ComObject((byte) commObject.getId(), commObject.getGroupAddress()));
         }
-        System.out.println("Writing GAs ... ");
+        System.out.println("\tWriting GAs ... ");
         if (!TEST) {
-            karduino.writeComObject(list);
+            konnekting.writeComObject(list);
         }
-        
-        System.out.println("<<<");
+        System.out.println("*DONE*");
 
-        System.out.println("Writing parameter memory >>>");
+        System.out.println("Writing parameter memory ...");
         for (ParameterConfiguration parameter : c.getConfiguration().getParameterConfigurations().getParameterConfiguration()) {
-            System.out.println("Processing parameter: " + parameter);
+            System.out.println("\tProcessing parameter: " + parameter);
             byte[] data = parameter.getValue();
 
-            System.out.println("Writing " + Helper.bytesToHex(data) + " to param with id " + parameter.getId());
+            System.out.println("\tWriting " + Helper.bytesToHex(data) + " to param with id " + parameter.getId());
             if (!TEST) {
-                karduino.writeParameter((byte) parameter.getId(), data);
+                konnekting.writeParameter(parameter.getId(), data);
             }
         }
-        System.out.println("<<<");
+        System.out.println("*DONE*");
         
         if (!TEST) {
-            karduino.stopProgramming();
-            karduino.restart(individualAddress);
+            System.out.println("Stopping programming");
+            konnekting.stopProgramming();
+            System.out.println("Trigger device restart");
+            konnekting.restart(individualAddress);
         }
 
-        System.out.println("Disconnecting from KNX >>>");
-
-        System.out.println("<<<");
-        System.out.println("Successfully terminated.");
+        System.out.println("All done.");
 
     }
 
