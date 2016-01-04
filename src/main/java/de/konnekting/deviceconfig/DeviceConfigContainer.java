@@ -12,6 +12,7 @@ import de.konnekting.xml.schema.konnekting.ParameterGroup;
 import de.konnekting.xmlschema.KonnektingXmlService;
 import java.io.File;
 import java.util.List;
+import java.util.Objects;
 import javax.xml.bind.JAXBException;
 import org.xml.sax.SAXException;
 
@@ -21,8 +22,8 @@ import org.xml.sax.SAXException;
  */
 public class DeviceConfigContainer {
 
-    private KONNEKTING konnekt;
-    private final File f;
+    private final KONNEKTING konnekt;
+    private File f;
     
     public DeviceConfigContainer(File f) throws JAXBException, SAXException {
         this.f = f;
@@ -35,11 +36,17 @@ public class DeviceConfigContainer {
     
     
     public void writeConfig(File file) throws JAXBException, SAXException {
+        this.f = file;
         KonnektingXmlService.writeConfiguration(file, konnekt);
     }
 
     public String getIndividualAddress() {
         return konnekt.getConfiguration().getIndividualAddress().getAddress();
+    }
+    
+    public void setIndividualAddress(String address) {
+        // FIXME validate!
+        konnekt.getConfiguration().getIndividualAddress().setAddress(address);
     }
     
     public String getDescription() {
@@ -69,6 +76,47 @@ public class DeviceConfigContainer {
     public String getManufacturerName() {
         return konnekt.getDevice().getManufacturerName();
     }
+
+    public int getManufacturerId() {
+        return konnekt.getDevice().getManufacturerId();
+    }
+
+    public short getDeviceId() {
+        return konnekt.getDevice().getDeviceId();
+    }
+
+    public short getRevision() {
+        return konnekt.getDevice().getRevision();
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 59 * hash + Objects.hashCode(this.konnekt);
+        hash = 59 * hash + Objects.hashCode(this.f);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final DeviceConfigContainer other = (DeviceConfigContainer) obj;
+        if (!Objects.equals(this.konnekt, other.konnekt)) {
+            return false;
+        }
+        if (!Objects.equals(this.f, other.f)) {
+            return false;
+        }
+        return true;
+    }
+
+
+    
 
 
 }
