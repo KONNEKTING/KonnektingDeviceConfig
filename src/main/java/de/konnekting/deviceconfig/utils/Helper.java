@@ -40,8 +40,8 @@ public class Helper {
         return new String(hexChars);
     }
     
-    private static final Pattern paPattern = Pattern.compile("\\d{1,2}\\.\\d{1,2}\\.\\d{1,3}");
-    private static final Pattern gaPattern = Pattern.compile("\\d{1,2}/\\d{1,2}/\\d{1,3}");
+    private static final Pattern paPattern = Pattern.compile("\\A\\d{1,2}\\.\\d{1,2}\\.\\d{1,3}\\z");
+    private static final Pattern gaPattern = Pattern.compile("\\A\\d{1,2}/\\d{1,2}/\\d{1,3}\\z");
     
     public static byte[] addrToBytes(int a, int b, int c) {
         byte[] buffer = new byte[2];
@@ -58,7 +58,7 @@ public class Helper {
         while (matcher.find()) {
             found=true;
         }
-        if (!found) throw new IllegalArgumentException("Given pa '"+pa+"' is not valid.");
+        if (!found) throw new InvalidAddressFormatException("Given pa '"+pa+"' is not valid.");
         String[] split = pa.split("\\.");
         int area = Integer.parseInt(split[0]);
         int line = Integer.parseInt(split[1]);
@@ -67,6 +67,23 @@ public class Helper {
         if (area < 1 || area >15) throw new InvalidAddressFormatException("Area of given pa '"+pa+"' is not in range 1..15");
         if (line < 1 || line >15) throw new InvalidAddressFormatException("Line of given pa '"+pa+"' is not in range 1..15");
         if (member < 0 || member >255) throw new InvalidAddressFormatException("Member of given pa '"+pa+"' is not in range 0..255");
+    }
+    
+    public static void checkValidGa(String ga) throws InvalidAddressFormatException {
+        Matcher matcher = gaPattern.matcher(ga);
+        boolean found = false;
+        while (matcher.find()) {
+            found=true;
+        }
+        if (!found) throw new InvalidAddressFormatException("Given ga '"+ga+"' is not valid.");
+        String[] split = ga.split("/");
+        int main = Integer.parseInt(split[0]); // 0..15
+        int middle = Integer.parseInt(split[1]); //0..7
+        int sub = Integer.parseInt(split[2]); //0..255
+        
+        if (main < 0 || main >15) throw new InvalidAddressFormatException("Main of given ga '"+ga+"' is not in range 0..15");
+        if (middle < 0 || middle >7) throw new InvalidAddressFormatException("Middle of given ga '"+ga+"' is not in range 0..7");
+        if (sub < 0 || sub >255) throw new InvalidAddressFormatException("Sub of given ga '"+ga+"' is not in range 0..255");
     }
     
     

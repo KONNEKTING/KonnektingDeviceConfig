@@ -5,7 +5,10 @@
  */
 package de.konnekting.deviceconfig;
 
+import de.konnekting.deviceconfig.exception.InvalidAddressFormatException;
+import de.konnekting.deviceconfig.utils.Helper;
 import de.konnekting.xml.schema.konnekting.CommObject;
+import de.konnekting.xml.schema.konnekting.CommObjectConfiguration;
 import de.konnekting.xml.schema.konnekting.KONNEKTING;
 import de.konnekting.xml.schema.konnekting.Parameter;
 import de.konnekting.xml.schema.konnekting.ParameterGroup;
@@ -61,14 +64,10 @@ public class DeviceConfigContainer {
         return konnekt.getDevice().getCommObjects().getCommObject();
     }
 
-    public List<ParameterGroup> getGroupedParameters() {
+    public List<ParameterGroup> getParameters() {
         return konnekt.getDevice().getParameters().getGroup();
     }
     
-    public List<Parameter> getUngroupedParameters() {
-        return konnekt.getDevice().getParameters().getParameter();
-    }
-
     public String getDeviceName() {
         return konnekt.getDevice().getDeviceName();
     }
@@ -115,8 +114,70 @@ public class DeviceConfigContainer {
         return true;
     }
 
+    public String getCommObjectDescription(Short id) {
+        
+        List<CommObjectConfiguration> commObjectConfigurations = konnekt.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration();
+        for (CommObjectConfiguration conf : commObjectConfigurations) {
+            if (conf.getId()==id){
+                return Helper.convertNullString(conf.getDescription());
+            }
+        }
+        return "";
+    }
 
+    public String getCommObjectGroupAddress(Short id) {
+        List<CommObjectConfiguration> commObjectConfigurations = konnekt.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration();
+        for (CommObjectConfiguration conf : commObjectConfigurations) {
+            if (conf.getId()==id){
+                return Helper.convertNullString(conf.getGroupAddress());
+            }
+        }
+        return "";
+    }
+
+    public void setCommObjectGroupAddress(Short id, String address) throws InvalidAddressFormatException {
+        Helper.checkValidGa(address);
+        CommObjectConfiguration conf = findCommObjConf(id);
+        conf.setGroupAddress(address);
+    }
+
+    // helper method
+    private CommObjectConfiguration findCommObjConf(short id) {
+        
+        // check if ID is valid
+        List<CommObject> commObjects = konnekt.getDevice().getCommObjects().getCommObject();
+        
+        boolean idValid = false;
+        for (CommObject co : commObjects) {
+            if (co.getId()==id)  {
+                idValid=true;
+                break;
+            }
+        }
+        if (!idValid) throw new IllegalArgumentException("CommObject ID "+id+" not known/valid");
+        
+        List<CommObjectConfiguration> commObjectConfigurations = konnekt.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration();
+        for (CommObjectConfiguration conf : commObjectConfigurations) {
+            if (conf.getId()==id){
+                return conf;
+            }
+        }
+        CommObjectConfiguration conf = new CommObjectConfiguration();
+        conf.setId(id);
+        konnekt.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration().add(conf);
+        return conf;
+    }
+
+    public void setCommObjectDescription(Short id, String description) {
+        CommObjectConfiguration conf = findCommObjConf(id);
+        conf.setDescription(description);
+    }
+
+    @Override
+    public String toString() {
+    return getIndividualAddress()+" "+getDescription()+"@"+f.getAbsolutePath();
+    }
     
-
+    
 
 }
