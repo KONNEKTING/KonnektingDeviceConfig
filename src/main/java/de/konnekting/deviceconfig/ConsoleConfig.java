@@ -21,10 +21,10 @@ package de.konnekting.deviceconfig;
 import de.konnekting.deviceconfig.exception.ConfigurationException;
 import de.konnekting.deviceconfig.exception.XMLFormatException;
 import de.konnekting.deviceconfig.utils.Helper;
-import de.konnekting.xml.schema.konnekting.CommObjectConfiguration;
-import de.konnekting.xml.schema.konnekting.KONNEKTING;
-import de.konnekting.xml.schema.konnekting.ParameterConfiguration;
-import de.konnekting.xmlschema.KonnektingXmlService;
+import de.konnekting.xml.konnektingdevice.v0.CommObjectConfiguration;
+import de.konnekting.xml.konnektingdevice.v0.KonnektingDevice;
+import de.konnekting.xml.konnektingdevice.v0.ParameterConfiguration;
+import de.konnekting.xml.KonnektingXmlService;
 import de.root1.logging.JulFormatter;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
@@ -71,7 +71,7 @@ public class ConsoleConfig {
         f = new File(args[3]);
 
         System.out.print("Reading config file '" + f.getName());
-        KONNEKTING c = KonnektingXmlService.readConfiguration(f);
+        KonnektingDevice c = KonnektingXmlService.readConfiguration(f);
         System.out.println(" *done*");
 
         System.out.print("Connecting to KNX via " + host + ":" + port);
