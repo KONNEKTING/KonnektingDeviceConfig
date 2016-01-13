@@ -21,6 +21,8 @@ package de.konnekting.deviceconfig.utils;
 import de.konnekting.deviceconfig.exception.InvalidAddressFormatException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -28,6 +30,7 @@ import java.util.regex.Pattern;
  */
 public class Helper {
 
+    private static final Logger log = LoggerFactory.getLogger(Helper.class);
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
     public static String bytesToHex(byte[] bytes) {
@@ -63,14 +66,15 @@ public class Helper {
         return buffer;
     }
 
-    public static void checkValidPa(String pa) throws InvalidAddressFormatException {
+    public static boolean checkValidPa(String pa) {
         Matcher matcher = paPattern.matcher(pa);
         boolean found = false;
         while (matcher.find()) {
             found = true;
         }
         if (!found) {
-            throw new InvalidAddressFormatException("Given pa '" + pa + "' is not valid.");
+            log.error("Given pa '" + pa + "' is not valid.");
+            return false;
         }
         String[] split = pa.split("\\.");
         int area = Integer.parseInt(split[0]);
@@ -78,24 +82,29 @@ public class Helper {
         int member = Integer.parseInt(split[2]);
 
         if (area < 1 || area > 15) {
-            throw new InvalidAddressFormatException("Area of given pa '" + pa + "' is not in range 1..15");
+            log.error("Area of given pa '" + pa + "' is not in range 1..15");
+            return false;
         }
         if (line < 1 || line > 15) {
-            throw new InvalidAddressFormatException("Line of given pa '" + pa + "' is not in range 1..15");
+            log.error("Line of given pa '" + pa + "' is not in range 1..15");
+            return false;
         }
         if (member < 0 || member > 255) {
-            throw new InvalidAddressFormatException("Member of given pa '" + pa + "' is not in range 0..255");
+            log.error("Member of given pa '" + pa + "' is not in range 0..255");
+            return false;
         }
+        return true;
     }
 
-    public static void checkValidGa(String ga) throws InvalidAddressFormatException {
+    public static boolean checkValidGa(String ga) {
         Matcher matcher = gaPattern.matcher(ga);
         boolean found = false;
         while (matcher.find()) {
             found = true;
         }
         if (!found) {
-            throw new InvalidAddressFormatException("Given ga '" + ga + "' is not valid.");
+            log.error("Given ga '" + ga + "' is not valid.");
+            return false;
         }
         String[] split = ga.split("/");
         int main = Integer.parseInt(split[0]); // 0..15
@@ -103,14 +112,18 @@ public class Helper {
         int sub = Integer.parseInt(split[2]); //0..255
 
         if (main < 0 || main > 15) {
-            throw new InvalidAddressFormatException("Main of given ga '" + ga + "' is not in range 0..15");
+            log.error("Main of given ga '" + ga + "' is not in range 0..15");
+            return false;
         }
         if (middle < 0 || middle > 7) {
-            throw new InvalidAddressFormatException("Middle of given ga '" + ga + "' is not in range 0..7");
+            log.error("Middle of given ga '" + ga + "' is not in range 0..7");
+            return false;
         }
         if (sub < 0 || sub > 255) {
-            throw new InvalidAddressFormatException("Sub of given ga '" + ga + "' is not in range 0..255");
+            log.error("Sub of given ga '" + ga + "' is not in range 0..255");
+            return false;
         }
+        return true;
     }
 
     /**

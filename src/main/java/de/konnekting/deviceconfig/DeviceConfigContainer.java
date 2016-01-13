@@ -17,7 +17,7 @@ import de.konnekting.xml.konnektingdevice.v0.Parameter;
 import de.konnekting.xml.konnektingdevice.v0.ParameterConfiguration;
 import de.konnekting.xml.konnektingdevice.v0.ParameterConfigurations;
 import de.konnekting.xml.konnektingdevice.v0.ParameterGroup;
-import de.konnekting.xml.KonnektingXmlService;
+import de.konnekting.xmlkonnektingdevice.v0.KonnektingDeviceXmlService;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,32 +31,33 @@ import org.xml.sax.SAXException;
  */
 public class DeviceConfigContainer {
 
-    private final KonnektingDevice konnekt;
+    private final KonnektingDevice device;
     private File f;
     
     public DeviceConfigContainer(File f) throws JAXBException, SAXException {
         this.f = f;
-        konnekt = KonnektingXmlService.readConfiguration(f);
+        device = KonnektingDeviceXmlService.readConfiguration(f);
     }
     
     public void writeConfig() throws JAXBException, SAXException {
-        KonnektingXmlService.writeConfiguration(f, konnekt);
+        writeConfig(f);
     }
     
     
     public void writeConfig(File file) throws JAXBException, SAXException {
         this.f = file;
-        KonnektingXmlService.writeConfiguration(file, konnekt);
+        KonnektingDeviceXmlService.validateWrite(device);
+        KonnektingDeviceXmlService.writeConfiguration(file, device);
     }
     
     private Configuration getOrCreateConfiguration(){
-        Configuration configuration = konnekt.getConfiguration();
+        Configuration configuration = device.getConfiguration();
         if (configuration==null) {
             configuration = new Configuration();
             configuration.setDeviceId(getDeviceId());
             configuration.setManufacturerId(getManufacturerId());
             configuration.setRevision(getRevision());
-            konnekt.setConfiguration(configuration);
+            device.setConfiguration(configuration);
         }
         return configuration;
     }
@@ -66,7 +67,7 @@ public class DeviceConfigContainer {
         IndividualAddress individualAddress = configuration.getIndividualAddress();
         if (individualAddress==null) {
             individualAddress = new IndividualAddress();
-            konnekt.getConfiguration().setIndividualAddress(individualAddress);
+            device.getConfiguration().setIndividualAddress(individualAddress);
         }
         return individualAddress;
     }
@@ -85,7 +86,7 @@ public class DeviceConfigContainer {
         }
         if (!idValid) throw new IllegalArgumentException("Parameter ID "+id+" not known/valid");
         
-        List<ParameterConfiguration> paramConfigs = konnekt.getConfiguration().getParameterConfigurations().getParameterConfiguration();
+        List<ParameterConfiguration> paramConfigs = device.getConfiguration().getParameterConfigurations().getParameterConfiguration();
         for (ParameterConfiguration conf : paramConfigs) {
             if (conf.getId()==id){
                 return conf;
@@ -93,14 +94,14 @@ public class DeviceConfigContainer {
         }
         ParameterConfiguration conf = new ParameterConfiguration();
         conf.setId(id);
-        konnekt.getConfiguration().getParameterConfigurations().getParameterConfiguration().add(conf);
+        device.getConfiguration().getParameterConfigurations().getParameterConfiguration().add(conf);
         return conf;
     }
     
     private CommObjectConfiguration getOrCreateCommObjConf(short id) {
         
         // check if ID is valid
-        List<CommObject> commObjects = konnekt.getDevice().getCommObjects().getCommObject();
+        List<CommObject> commObjects = device.getDevice().getCommObjects().getCommObject();
         
         boolean idValid = false;
         for (CommObject co : commObjects) {
@@ -167,15 +168,15 @@ public class DeviceConfigContainer {
     }
 
     public List<? extends CommObject> getCommObjects() {
-        return konnekt.getDevice().getCommObjects().getCommObject();
+        return device.getDevice().getCommObjects().getCommObject();
     }
 
     public List<ParameterGroup> getParameterGroups() {
-        return konnekt.getDevice().getParameters().getGroup();
+        return device.getDevice().getParameters().getGroup();
     }
     
     public String getDeviceName() {
-        String deviceName = konnekt.getDevice().getDeviceName();
+        String deviceName = device.getDevice().getDeviceName();
         if (deviceName==null) {
             deviceName = "Device("+String.format("0x%02x",getDeviceId())+")";
         }
@@ -184,7 +185,7 @@ public class DeviceConfigContainer {
     }
 
     public String getManufacturerName() {
-        String manufacturerName = konnekt.getDevice().getManufacturerName();
+        String manufacturerName = device.getDevice().getManufacturerName();
         if (manufacturerName==null) {
             manufacturerName = "Manufacturer("+String.format("0x%04x",getManufacturerId())+")";
         }
@@ -192,21 +193,21 @@ public class DeviceConfigContainer {
     }
 
     public int getManufacturerId() {
-        return konnekt.getDevice().getManufacturerId();
+        return device.getDevice().getManufacturerId();
     }
 
     public short getDeviceId() {
-        return konnekt.getDevice().getDeviceId();
+        return device.getDevice().getDeviceId();
     }
 
     public short getRevision() {
-        return konnekt.getDevice().getRevision();
+        return device.getDevice().getRevision();
     }
 
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 59 * hash + Objects.hashCode(this.konnekt);
+        hash = 59 * hash + Objects.hashCode(this.device);
         hash = 59 * hash + Objects.hashCode(this.f);
         return hash;
     }
@@ -220,7 +221,7 @@ public class DeviceConfigContainer {
             return false;
         }
         final DeviceConfigContainer other = (DeviceConfigContainer) obj;
-        if (!Objects.equals(this.konnekt, other.konnekt)) {
+        if (!Objects.equals(this.device, other.device)) {
             return false;
         }
         if (!Objects.equals(this.f, other.f)) {
@@ -241,7 +242,7 @@ public class DeviceConfigContainer {
     }
 
     public String getCommObjectGroupAddress(Short id) {
-        List<CommObjectConfiguration> commObjectConfigurations = konnekt.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration();
+        List<CommObjectConfiguration> commObjectConfigurations = device.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration();
         for (CommObjectConfiguration conf : commObjectConfigurations) {
             if (conf.getId()==id){
                 return Helper.convertNullString(conf.getGroupAddress());
@@ -261,7 +262,7 @@ public class DeviceConfigContainer {
     
     private List<Parameter> getAllParameters() {
         List<Parameter> params = new ArrayList<>();
-        List<ParameterGroup> paramGroups = konnekt.getDevice().getParameters().getGroup();
+        List<ParameterGroup> paramGroups = device.getDevice().getParameters().getGroup();
         for (ParameterGroup paramGroup : paramGroups) {
             params.addAll(paramGroup.getParameter());
         }
@@ -274,7 +275,7 @@ public class DeviceConfigContainer {
     }
 
     public Parameter getParameter(short id) {
-        List<ParameterGroup> groups = konnekt.getDevice().getParameters().getGroup();
+        List<ParameterGroup> groups = device.getDevice().getParameters().getGroup();
         for (ParameterGroup group : groups) {
             List<Parameter> params = group.getParameter();
             for (Parameter param : params) {
@@ -299,7 +300,7 @@ public class DeviceConfigContainer {
         
         ParameterConfiguration conf = new ParameterConfiguration();
         conf.setId(id);
-        konnekt.getConfiguration().getParameterConfigurations().getParameterConfiguration().add(conf);
+        device.getConfiguration().getParameterConfigurations().getParameterConfiguration().add(conf);
         return conf;
     }
 
@@ -313,7 +314,7 @@ public class DeviceConfigContainer {
 
     public List<Parameter> getParameterGroup(String selectedGroup) {
         
-        List<ParameterGroup> groups = konnekt.getDevice().getParameters().getGroup();
+        List<ParameterGroup> groups = device.getDevice().getParameters().getGroup();
         for (ParameterGroup group : groups) {
             if (group.getName().equals(selectedGroup)) {
                 return group.getParameter();
@@ -323,7 +324,7 @@ public class DeviceConfigContainer {
     }
 
     public boolean hasConfiguration() {
-        Configuration configuration = konnekt.getConfiguration();
+        Configuration configuration = device.getConfiguration();
         return configuration!=null && configuration.getIndividualAddress()!=null;
     }
     

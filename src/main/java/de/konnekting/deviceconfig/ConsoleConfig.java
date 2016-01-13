@@ -24,7 +24,7 @@ import de.konnekting.deviceconfig.utils.Helper;
 import de.konnekting.xml.konnektingdevice.v0.CommObjectConfiguration;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDevice;
 import de.konnekting.xml.konnektingdevice.v0.ParameterConfiguration;
-import de.konnekting.xml.KonnektingXmlService;
+import de.konnekting.xmlkonnektingdevice.v0.KonnektingDeviceXmlService;
 import de.root1.logging.JulFormatter;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
@@ -71,7 +71,7 @@ public class ConsoleConfig {
         f = new File(args[3]);
 
         System.out.print("Reading config file '" + f.getName());
-        KonnektingDevice c = KonnektingXmlService.readConfiguration(f);
+        KonnektingDevice c = KonnektingDeviceXmlService.readConfiguration(f);
         System.out.println(" *done*");
 
         System.out.print("Connecting to KNX via " + host + ":" + port);
