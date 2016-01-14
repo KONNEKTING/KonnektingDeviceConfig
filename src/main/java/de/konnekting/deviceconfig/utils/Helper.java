@@ -18,7 +18,6 @@
  */
 package de.konnekting.deviceconfig.utils;
 
-import de.konnekting.deviceconfig.exception.InvalidAddressFormatException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -148,5 +147,7 @@ public class Helper {
         }
         return false;
     }
+    
+    
 
 }

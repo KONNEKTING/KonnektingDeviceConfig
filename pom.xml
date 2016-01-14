@@ -28,6 +28,11 @@
             <artifactId>konnekting-xml-schema</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>de.root1</groupId>
+            <artifactId>rooteventbus</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
     
     <build>

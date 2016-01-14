@@ -24,7 +24,7 @@ import de.konnekting.deviceconfig.utils.Helper;
 import de.konnekting.xml.konnektingdevice.v0.CommObjectConfiguration;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDevice;
 import de.konnekting.xml.konnektingdevice.v0.ParameterConfiguration;
-import de.konnekting.xmlkonnektingdevice.v0.KonnektingDeviceXmlService;
+import de.konnekting.xml.konnektingdevice.v0.KonnektingDeviceXmlService;
 import de.root1.logging.JulFormatter;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
@@ -92,6 +92,8 @@ public class ConsoleConfig {
             short revision = c.getDevice().getRevision();
             
             konnekting.startProgramming(individualAddress, manufacturerId, deviceId, revision);
+            
+            // FIXME need to write IndividualAddress NOW!
         }
         System.out.println("Writing physical address *done*");
 
