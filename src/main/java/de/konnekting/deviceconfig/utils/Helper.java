@@ -18,6 +18,7 @@
  */
 package de.konnekting.deviceconfig.utils;
 
+import de.konnekting.xml.konnektingdevice.v0.ParameterType;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -146,6 +147,24 @@ public class Helper {
             return true;
         }
         return false;
+    }
+
+    public static boolean isNumberType(ParameterType paramType) {
+        switch(paramType) {
+            case INT8:
+            case UINT8:
+            case INT16:
+            case UINT16:
+            case INT32:
+            case UINT32:
+                return true;
+            default:
+                return false;
+        }
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(isNumberType(ParameterType.INT8));
     }
     
     
