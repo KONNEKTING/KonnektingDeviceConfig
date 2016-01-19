@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Alexander Christian <alex(at)root1.de>. All rights reserved.
+ * Copyright (C) 2016 Alexander Christian <alex(at)root1.de>. All rights reserved.
  * 
  * This file is part of KONNEKTING DeviceConfig.
  *
@@ -81,11 +81,11 @@ public class Helper {
         int line = Integer.parseInt(split[1]);
         int member = Integer.parseInt(split[2]);
 
-        if (area < 1 || area > 15) {
+        if (area < 0 || area > 15) {
             log.error("Area of given pa '" + pa + "' is not in range 1..15");
             return false;
         }
-        if (line < 1 || line > 15) {
+        if (line < 0 || line > 15) {
             log.error("Line of given pa '" + pa + "' is not in range 1..15");
             return false;
         }

@@ -1,7 +1,20 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (C) 2016 Alexander Christian <alex(at)root1.de>. All rights reserved.
+ * 
+ * This file is part of KONNEKTING DeviceConfig.
+ *
+ *   KONNEKTING DeviceConfig is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   KONNEKTING DeviceConfig is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with KONNEKTING DeviceConfig.  If not, see <http://www.gnu.org/licenses/>.
  */
 package de.konnekting.deviceconfig;
 
@@ -18,7 +31,6 @@ import de.konnekting.xml.konnektingdevice.v0.ParameterConfiguration;
 import de.konnekting.xml.konnektingdevice.v0.ParameterConfigurations;
 import de.konnekting.xml.konnektingdevice.v0.ParameterGroup;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDeviceXmlService;
-import de.konnekting.xml.konnektingdevice.v0.ParameterType;
 import de.root1.rooteventbus.RootEventBus;
 import java.io.File;
 import java.util.ArrayList;
@@ -26,6 +38,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import javax.xml.bind.JAXBException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 /**
@@ -33,6 +47,8 @@ import org.xml.sax.SAXException;
  * @author achristian
  */
 public class DeviceConfigContainer {
+    
+    private Logger log = LoggerFactory.getLogger(getClass());
 
     private static final RootEventBus eventbus = RootEventBus.getDefault();
     private final KonnektingDevice device;
@@ -182,7 +198,6 @@ public class DeviceConfigContainer {
         String oldDescription = getDescription();
         getOrCreateIndividualAddress().setDescription(description);
         if (!description.equals(oldDescription)) {
-//            renameFile();
             eventbus.post(new EventDeviceChanged(this));
         }
     }
@@ -342,32 +357,11 @@ public class DeviceConfigContainer {
         }
         byte[] oldValue = getParameterConfig(id).getValue();
         ParameterConfiguration conf = getOrCreateParameterConf(id);
-        Parameter.Value paramValue = getParameter(id).getValue();
-        
-        byte[] minRaw = paramValue.getMin();
-        byte[] maxRaw = paramValue.getMax();
-        String typeRaw = paramValue.getType();
-
-//        ParameterType type = ParameterType.valueOf(typeRaw);
-//        
-//        switch(type) {
-//            case UINT8:
-//                Short minShort = Short.valueOf(Helper.bytesToHex(minRaw), 16);
-//                Short maxShort = Short.valueOf(Helper.bytesToHex(maxRaw), 16);
-//                Short newValue = Short.valueOf(Helper.bytesToHex(value), 16);
-//                
-//                if (newValue<minShort || newValue>maxShort){
-//                    throw new IllegalArgumentException("Value is not in range");
-//                }
-//                break;
-//            default:
-//                break;
-//        }
-        
         
         conf.setValue(value);
         if (!Arrays.equals(oldValue, value)) {
             eventbus.post(new EventDeviceChanged(this));
+            log.info("New param value: id="+id+" value="+Arrays.toString(value));
         }
     }
 
@@ -421,5 +415,7 @@ public class DeviceConfigContainer {
         f.renameTo(newFile);
         f = newFile;
     }
+    
+    
 
 }

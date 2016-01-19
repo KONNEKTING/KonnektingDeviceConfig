@@ -18,11 +18,11 @@
             <Group name="Allgemein">
                 <Parameter Id="1">
                     <Description>Verhalten nach Busspannungsausfall</Description>
-                    <Value Type="uint8" Default="02" Options="0=Aus|1=An|2=letzter Wert|3=Helligkeitswert"></Value>
+                    <Value Type="uint8" Default="02" Options="00=Aus|01=An|02=letzter Wert|03=Helligkeitswert"></Value>
                 </Parameter>
                 <Parameter Id="2">
-                    <Description>Startverzögerung bei Busspannungswiederkehr (0..255sek)</Description>
-                    <Value Type="uint8" Default="01" Options=""/>
+                    <Description>Startverzögerung bei Busspannungswiederkehr (0..10sek)</Description>
+                    <Value Type="uint8" Default="01" Options="" Min="00" Max="0A"/>
                 </Parameter>
             </Group>
         </Parameters>
