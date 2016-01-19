@@ -321,7 +321,7 @@ public class DeviceConfigContainer {
 
     @Override
     public String toString() {
-        return getIndividualAddress() + " " + getDescription() + "@" + f.getAbsolutePath();
+        return getIndividualAddress() + " " + getDescription() + (f==null?"":"@" + f.getAbsolutePath());
     }
 
     public Parameter getParameter(short id) {

@@ -29,6 +29,7 @@ public class Program {
     private final List<ProgramProgressListener> listeners = new ArrayList<>();
     private final Knx knx;
     private final KonnektingManagement mgt;
+    private boolean abort;
 
     public Program(Knx knx) {
         this.knx = knx;
@@ -41,6 +42,10 @@ public class Program {
 
     public void removeProgressListener(ProgramProgressListener listener) {
         listeners.remove(listener);
+    }
+
+    public void abort() {
+        abort = true;
     }
 
     /**
@@ -68,47 +73,83 @@ public class Program {
             List<ParameterConfiguration> parameterConfiguration = c.getConfiguration().getParameterConfigurations().getParameterConfiguration();
 
             int i = 0;
-            int maxSteps = 1 + 1 + list.size() + parameterConfiguration.size() + 1 + 1;
+
+            int maxSteps = 5;
+            
+            maxSteps += list.size();
+            maxSteps += parameterConfiguration.size();
+            
             fireProgressUpdate(++i, maxSteps);
 
             String individualAddress = device.getIndividualAddress();
-            log.info("About to write physical address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
-            fireProgressStatusMessage("Please press 'program' button...");
-            fireProgressUpdate(++i, maxSteps);
+            
+            if (!abort) {
+                
+                log.info("About to write physical address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
+                fireProgressStatusMessage("Please press 'program' button...");
 
-            boolean b = mgt.writeIndividualAddress(individualAddress);
-            if (!b) {
-                log.error("Addressconflict with existing device");
-                throw new ProgramException("Addressconflict with existing device");
+                boolean b = mgt.writeIndividualAddress(individualAddress);
+                fireProgressUpdate(++i, maxSteps);
+                if (!b) {
+                    log.error("Addressconflict with existing device");
+                    throw new ProgramException("Addressconflict with existing device");
+                }
+            } else {
+                fireProgressStatusMessage("Aborted!");
+                fireProgressUpdate(maxSteps, maxSteps);
+                abort = false;
+            }
+            
+            if (abort) {
+                fireProgressStatusMessage("Aborted!");
+                fireProgressUpdate(maxSteps, maxSteps);
+                abort = false;
+                return;
             }
 
             int manufacturerId = c.getDevice().getManufacturerId();
             short deviceId = c.getDevice().getDeviceId();
             short revision = c.getDevice().getRevision();
 
-            fireProgressStatusMessage("Starting programming...");
-            mgt.startProgramming(individualAddress, manufacturerId, deviceId, revision);
-            fireProgressUpdate(++i, maxSteps);
-
-            log.info("Writing commobjects ...");
-            fireProgressStatusMessage("Writing groupaddresses for commobjects...");
-            mgt.writeComObject(list);
-            fireProgressUpdate(i+=list.size(), maxSteps);
-
-            log.info("Writing parameter ...");
-            for (ParameterConfiguration parameter : c.getConfiguration().getParameterConfigurations().getParameterConfiguration()) {
-                byte[] data = parameter.getValue();
-                log.debug("Writing " + Helper.bytesToHex(data) + " to param with id " + parameter.getId());
-                fireProgressStatusMessage("Writing parameter "+parameter.getId());
-                mgt.writeParameter(parameter.getId(), data);
+            if (!abort) {
+                fireProgressStatusMessage("Starting programming...");
+                mgt.startProgramming(individualAddress, manufacturerId, deviceId, revision);
                 fireProgressUpdate(++i, maxSteps);
+            } else {
+                fireProgressStatusMessage("Aborted!");
+                abort = false;
+                return;
+            }
+
+            if (!abort) {
+                log.info("Writing commobjects ...");
+                fireProgressStatusMessage("Writing groupaddresses for commobjects...");
+                mgt.writeComObject(list);
+                fireProgressUpdate(i += list.size(), maxSteps);
+            } else {
+                fireProgressStatusMessage("Aborted!");
+                abort = false;
+            }
+
+            if (!abort) {
+                log.info("Writing parameter ...");
+                for (ParameterConfiguration parameter : c.getConfiguration().getParameterConfigurations().getParameterConfiguration()) {
+                    byte[] data = parameter.getValue();
+                    log.debug("Writing " + Helper.bytesToHex(data) + " to param with id " + parameter.getId());
+                    fireProgressStatusMessage("Writing parameter " + parameter.getId());
+                    mgt.writeParameter(parameter.getId(), data);
+                    fireProgressUpdate(++i, maxSteps);
+                }
+            } else {
+                fireProgressStatusMessage("Aborted!");
+                abort = false;
             }
 
             log.info("Stopping programming");
             fireProgressStatusMessage("Stopping programming...");
             mgt.stopProgramming();
             fireProgressUpdate(++i, maxSteps);
-            log.info("Stopping programming");
+            log.info("Restart device");
             fireProgressStatusMessage("Trigger device restart...");
             mgt.restart(individualAddress);
             fireProgressUpdate(++i, maxSteps);
