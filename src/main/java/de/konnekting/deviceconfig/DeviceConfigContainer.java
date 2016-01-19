@@ -59,6 +59,10 @@ public class DeviceConfigContainer {
         device = KonnektingDeviceXmlService.readConfiguration(f);
     }
 
+    public KonnektingDevice getDevice() {
+        return device;
+    }
+    
     public void writeConfig() throws JAXBException, SAXException {
         writeConfig(f);
     }

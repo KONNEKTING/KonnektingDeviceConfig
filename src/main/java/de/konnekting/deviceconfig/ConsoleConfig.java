@@ -92,8 +92,6 @@ public class ConsoleConfig {
             short revision = c.getDevice().getRevision();
             
             konnekting.startProgramming(individualAddress, manufacturerId, deviceId, revision);
-            
-            // FIXME need to write IndividualAddress NOW!
         }
         System.out.println("Writing physical address *done*");
 
