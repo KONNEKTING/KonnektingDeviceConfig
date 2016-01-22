@@ -88,11 +88,12 @@ public class Program {
                 log.info("About to write physical address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
                 fireProgressStatusMessage("Please press 'program' button...");
 
-                boolean b = mgt.writeIndividualAddress(individualAddress);
-                fireProgressUpdate(++i, maxSteps);
-                if (!b) {
-                    log.error("Addressconflict with existing device");
-                    throw new ProgramException("Addressconflict with existing device");
+                try {
+                    mgt.writeIndividualAddress(individualAddress);
+                    fireProgressUpdate(++i, maxSteps);
+                } catch (KnxException ex) {
+                    log.error("Problem writing individual address", ex);
+                    throw new ProgramException("Problem writing individual address", ex);
                 }
             } else {
                 fireProgressStatusMessage("Aborted!");

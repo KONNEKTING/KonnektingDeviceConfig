@@ -81,8 +81,9 @@ public class ConsoleConfig {
 
         System.out.println("About to write physical address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
         if (!TEST) {
-            boolean b = konnekting.writeIndividualAddress(individualAddress);
-            if (!b) {
+            try {
+                konnekting.writeIndividualAddress(individualAddress);
+            } catch (KnxException ex) {
                 System.out.println("Addressconflict with existing device");
                 System.exit(1);
             }
