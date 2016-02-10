@@ -32,13 +32,23 @@ public class Helper {
 
     private static final Logger log = LoggerFactory.getLogger(Helper.class);
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
-
+    
     public static String bytesToHex(byte[] bytes) {
-        char[] hexChars = new char[bytes.length * 2];
+        return bytesToHex(bytes, false);
+    }
+
+    public static String bytesToHex(byte[] bytes, boolean withWhitespace) {
+        char[] hexChars = new char[bytes.length * 2 + (withWhitespace ? bytes.length : 0)];
         for (int j = 0; j < bytes.length; j++) {
             int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = hexArray[v >>> 4];
-            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+            if (withWhitespace) {
+                hexChars[j * 2 +j ] = hexArray[v >>> 4];
+                hexChars[j * 2 +j + 1] = hexArray[v & 0x0F];
+                hexChars[j * 2 +j + 2] = " ".charAt(0);
+            } else {
+                hexChars[j * 2] = hexArray[v >>> 4];
+                hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+            }
         }
         return new String(hexChars);
     }
@@ -48,7 +58,7 @@ public class Helper {
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
             data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                    + Character.digit(s.charAt(i + 1), 16));
+                + Character.digit(s.charAt(i + 1), 16));
         }
         return data;
     }
@@ -150,7 +160,7 @@ public class Helper {
     }
 
     public static boolean isNumberType(ParameterType paramType) {
-        switch(paramType) {
+        switch (paramType) {
             case INT8:
             case UINT8:
             case INT16:
@@ -162,11 +172,5 @@ public class Helper {
                 return false;
         }
     }
-    
-    public static void main(String[] args) {
-        System.out.println(isNumberType(ParameterType.INT8));
-    }
-    
-    
 
 }
