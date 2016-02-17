@@ -33,6 +33,9 @@ import de.konnekting.xml.konnektingdevice.v0.ParameterGroup;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDeviceXmlService;
 import de.root1.rooteventbus.RootEventBus;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -67,10 +70,11 @@ public class DeviceConfigContainer {
         writeConfig(f);
     }
 
-    public void writeConfig(File file) throws JAXBException, SAXException {
+    public synchronized void writeConfig(File file) throws JAXBException, SAXException {
         this.f = file;
         KonnektingDeviceXmlService.validateWrite(device);
         KonnektingDeviceXmlService.writeConfiguration(file, device);
+        renameFile();
     }
 
     private Configuration getOrCreateConfiguration() {
@@ -396,7 +400,6 @@ public class DeviceConfigContainer {
     }
 
     private void renameFile() throws JAXBException, SAXException {
-        writeConfig();
         String name = getDescription();
         
         if (name==null || name.isEmpty()) {
@@ -409,15 +412,19 @@ public class DeviceConfigContainer {
         
         File parentFolder = f.getParentFile();
         
-        File newFile = new File(parentFolder, name + ".kdevice.xml");
+        File newFile = new File(parentFolder, name + ".kconfig.xml");
         int i = 0;
         while (newFile.exists()) {
             i++;
-            newFile = new File(parentFolder, name + "_"+i+".kdevice.xml");
+            newFile = new File(parentFolder, name + "_"+i+".kconfig.xml");
         }
         
         f.renameTo(newFile);
         f = newFile;
+    }
+
+    public void cloneFile(File newFile) throws IOException {
+        Files.copy(f.toPath(), newFile.toPath(), REPLACE_EXISTING);
     }
     
     
