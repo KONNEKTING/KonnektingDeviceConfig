@@ -423,8 +423,21 @@ public class DeviceConfigContainer {
         f = newFile;
     }
 
-    public void cloneFile(File newFile) throws IOException {
+    /**
+     * Clone the underlying XML file
+     * @param projectDir
+     * @return resulting clone file
+     * @throws IOException 
+     */
+    public File cloneFile(File projectDir) throws IOException {
+        try {
+            writeConfig();
+        } catch (SAXException | JAXBException ex) {
+            throw new IOException("Error writing data before cloning.", ex);
+        }
+        File newFile = new File(projectDir, Helper.getTempFilename());
         Files.copy(f.toPath(), newFile.toPath(), REPLACE_EXISTING);
+        return newFile;
     }
     
     

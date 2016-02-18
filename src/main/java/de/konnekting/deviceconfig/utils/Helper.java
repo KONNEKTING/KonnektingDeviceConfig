@@ -19,6 +19,8 @@
 package de.konnekting.deviceconfig.utils;
 
 import de.konnekting.xml.konnektingdevice.v0.ParameterType;
+import java.io.File;
+import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -32,7 +34,7 @@ public class Helper {
 
     private static final Logger log = LoggerFactory.getLogger(Helper.class);
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
-    
+
     public static String bytesToHex(byte[] bytes) {
         return bytesToHex(bytes, false);
     }
@@ -42,9 +44,9 @@ public class Helper {
         for (int j = 0; j < bytes.length; j++) {
             int v = bytes[j] & 0xFF;
             if (withWhitespace) {
-                hexChars[j * 2 +j ] = hexArray[v >>> 4];
-                hexChars[j * 2 +j + 1] = hexArray[v & 0x0F];
-                hexChars[j * 2 +j + 2] = " ".charAt(0);
+                hexChars[j * 2 + j] = hexArray[v >>> 4];
+                hexChars[j * 2 + j + 1] = hexArray[v & 0x0F];
+                hexChars[j * 2 + j + 2] = " ".charAt(0);
             } else {
                 hexChars[j * 2] = hexArray[v >>> 4];
                 hexChars[j * 2 + 1] = hexArray[v & 0x0F];
@@ -171,6 +173,13 @@ public class Helper {
             default:
                 return false;
         }
+    }
+
+    public static String getTempFilename() throws IOException {
+        File createTempFile = File.createTempFile("KONNEKTING", "Temp");
+        createTempFile.delete();
+        createTempFile.deleteOnExit();
+        return createTempFile.getName();
     }
 
 }
