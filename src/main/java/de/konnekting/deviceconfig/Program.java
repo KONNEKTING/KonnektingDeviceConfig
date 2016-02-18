@@ -49,14 +49,16 @@ public class Program {
     }
 
     /**
-     * This will block until all is done or exception occured
+     * This will block until all is done or exception occured Programs: - IA -
+     * KO - Params
      *
      *
      * @param device
      */
-    public void programAll(DeviceConfigContainer device) throws ProgramException {
+    public void program(DeviceConfigContainer device, boolean doIndividualAddress, boolean doComObjects, boolean doParams) throws ProgramException {
 
         try {
+            fireProgressStatusMessage("Initialize...");
             if (!device.hasConfiguration()) {
                 throw new IllegalArgumentException("Device " + device + " has no programmable configuration");
             }
@@ -64,43 +66,56 @@ public class Program {
             KonnektingDevice c = device.getDevice();
 
             // prepare
-            List<ComObject> list = new ArrayList<>();
-            for (CommObjectConfiguration commObject : c.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration()) {
-                fireProgressStatusMessage("Reading commobject: " + commObject.getId());
-                list.add(new ComObject((byte) commObject.getId(), commObject.getGroupAddress()));
-            }
+            List<ComObject> comObjectList = new ArrayList<>();
 
-            List<ParameterConfiguration> parameterConfiguration = c.getConfiguration().getParameterConfigurations().getParameterConfiguration();
+            List<ParameterConfiguration> parameterConfiguration;
 
             int i = 0;
 
-            int maxSteps = 5;
-            
-            maxSteps += list.size();
-            maxSteps += parameterConfiguration.size();
-            
+            int maxSteps = 4;
+
+            if (doIndividualAddress) {
+                maxSteps++;
+            }
+
+            if (doComObjects) {
+                for (CommObjectConfiguration commObject : c.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration()) {
+                    fireProgressStatusMessage("Reading commobject: " + commObject.getId());
+                    comObjectList.add(new ComObject((byte) commObject.getId(), commObject.getGroupAddress()));
+                }
+                maxSteps += comObjectList.size();
+            }
+
+            if (doParams) {
+                fireProgressStatusMessage("Reading parameters...");
+                parameterConfiguration = c.getConfiguration().getParameterConfigurations().getParameterConfiguration();
+                maxSteps += parameterConfiguration.size();
+            }
+
             fireProgressUpdate(++i, maxSteps);
 
             String individualAddress = device.getIndividualAddress();
-            
-            if (!abort) {
-                
-                log.info("About to write physical address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
-                fireProgressStatusMessage("Please press 'program' button...");
 
-                try {
-                    mgt.writeIndividualAddress(individualAddress);
-                    fireProgressUpdate(++i, maxSteps);
-                } catch (KnxException ex) {
-                    log.error("Problem writing individual address", ex);
-                    throw new ProgramException("Problem writing individual address", ex);
+            if (doIndividualAddress) {
+                if (!abort) {
+
+                    log.info("About to write physical address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
+                    fireProgressStatusMessage("Please press 'program' button...");
+
+                    try {
+                        mgt.writeIndividualAddress(individualAddress);
+                        fireProgressUpdate(++i, maxSteps);
+                    } catch (KnxException ex) {
+                        log.error("Problem writing individual address", ex);
+                        throw new ProgramException("Problem writing individual address", ex);
+                    }
+                } else {
+                    fireProgressStatusMessage("Aborted!");
+                    fireProgressUpdate(maxSteps, maxSteps);
+                    abort = false;
                 }
-            } else {
-                fireProgressStatusMessage("Aborted!");
-                fireProgressUpdate(maxSteps, maxSteps);
-                abort = false;
             }
-            
+
             if (abort) {
                 fireProgressStatusMessage("Aborted!");
                 fireProgressUpdate(maxSteps, maxSteps);
@@ -122,28 +137,32 @@ public class Program {
                 return;
             }
 
-            if (!abort) {
-                log.info("Writing commobjects ...");
-                fireProgressStatusMessage("Writing groupaddresses for commobjects...");
-                mgt.writeComObject(list);
-                fireProgressUpdate(i += list.size(), maxSteps);
-            } else {
-                fireProgressStatusMessage("Aborted!");
-                abort = false;
+            if (doComObjects) {
+                if (!abort) {
+                    log.info("Writing commobjects ...");
+                    fireProgressStatusMessage("Writing groupaddresses for commobjects...");
+                    mgt.writeComObject(comObjectList);
+                    fireProgressUpdate(i += comObjectList.size(), maxSteps);
+                } else {
+                    fireProgressStatusMessage("Aborted!");
+                    abort = false;
+                }
             }
 
-            if (!abort) {
-                log.info("Writing parameter ...");
-                for (ParameterConfiguration parameter : c.getConfiguration().getParameterConfigurations().getParameterConfiguration()) {
-                    byte[] data = parameter.getValue();
-                    log.debug("Writing " + Helper.bytesToHex(data) + " to param with id " + parameter.getId());
-                    fireProgressStatusMessage("Writing parameter " + parameter.getId());
-                    mgt.writeParameter(parameter.getId(), data);
-                    fireProgressUpdate(++i, maxSteps);
+            if (doParams) {
+                if (!abort) {
+                    log.info("Writing parameter ...");
+                    for (ParameterConfiguration parameter : c.getConfiguration().getParameterConfigurations().getParameterConfiguration()) {
+                        byte[] data = parameter.getValue();
+                        log.debug("Writing " + Helper.bytesToHex(data) + " to param with id " + parameter.getId());
+                        fireProgressStatusMessage("Writing parameter " + parameter.getId());
+                        mgt.writeParameter(parameter.getId(), data);
+                        fireProgressUpdate(++i, maxSteps);
+                    }
+                } else {
+                    fireProgressStatusMessage("Aborted!");
+                    abort = false;
                 }
-            } else {
-                fireProgressStatusMessage("Aborted!");
-                abort = false;
             }
 
             log.info("Stopping programming");
@@ -162,10 +181,6 @@ public class Program {
         } catch (KnxException ex) {
             throw new ProgramException("Programming failed", ex);
         }
-    }
-
-    public void programParams(DeviceConfigContainer device) {
-
     }
 
     private void fireProgressStatusMessage(String statusMsg) {
