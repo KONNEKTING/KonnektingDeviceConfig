@@ -174,6 +174,15 @@ public class Helper {
                 return false;
         }
     }
+    
+//    public static boolean isFloatType(ParameterType paramType) {
+//        switch (paramType) {
+//            case FLOAT32:
+//                return true;
+//            default:
+//                return false;
+//        }
+//    }
 
     public static String getTempFilename() throws IOException {
         File createTempFile = File.createTempFile("KONNEKTING", "Temp");
