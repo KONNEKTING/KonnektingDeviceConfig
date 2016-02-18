@@ -59,10 +59,20 @@ public class Bytes2ReadableValue {
     }
 
     public synchronized long convertUINT32(byte[] b) {
-        return (((long)(b[0] & 255) << 24) +
-                        ((b[1] & 255) << 16) +
-                        ((b[2] & 255) <<  8) +
-                        ((b[3] & 255) <<  0));
+        return (((long)(b[0] & 0XFF) << 24) +
+                        ((b[1] & 0XFF) << 16) +
+                        ((b[2] & 0XFF) <<  8) +
+                        ((b[3] & 0XFF) <<  0));
+    }
+    
+    public synchronized float convertFLOAT32(byte[] b) {
+        
+        int i = (((int)(b[0] & 0XFF) << 24) +
+                        ((b[1] & 0XFF) << 16) +
+                        ((b[2] & 0XFF) <<  8) +
+                        ((b[3] & 0XFF) <<  0));
+        
+        return Float.intBitsToFloat(i);
     }
 
 }

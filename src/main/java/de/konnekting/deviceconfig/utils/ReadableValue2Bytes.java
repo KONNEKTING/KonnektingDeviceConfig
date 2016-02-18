@@ -60,4 +60,15 @@ public class ReadableValue2Bytes {
         return new byte[]{b0, b1, b2, b3};
     }
     
+    public synchronized byte[] convertFLOAT32(float v) {
+        
+        int floatToIntBits = Float.floatToIntBits(v);
+        
+        byte b0 = (byte)(floatToIntBits >>> 24);
+        byte b1 = (byte)(floatToIntBits >>> 16);
+        byte b2 = (byte)(floatToIntBits >>>  8);
+        byte b3 = (byte)(floatToIntBits >>>  0);
+        return new byte[]{b0, b1, b2, b3};
+    }
+    
 }

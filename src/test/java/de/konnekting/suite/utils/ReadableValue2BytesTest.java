@@ -148,5 +148,32 @@ public class ReadableValue2BytesTest {
         result = instance.convertUINT32(v);
         assertArrayEquals("INT32 MIN failed", expResult, result);
     }
+    
+    /**
+     * Test of convertFLOAT32 method, of class ReadableValue2Bytes.
+     */
+    @Test
+    public void testConvertFLOAT32() {
+        System.out.println("convertFLOAT32");
+        ReadableValue2Bytes instance = new ReadableValue2Bytes();
+        float v;
+        byte[] expResult;
+        byte[] result;
+        
+        v = Float.MAX_VALUE;
+        expResult = new byte[]{(byte)0x7f, (byte)0x7f, (byte) 0xff, (byte) 0xff};
+        result = instance.convertFLOAT32(v);
+        assertArrayEquals("FLOAT32 MAX failed", expResult, result);
+        
+        v = Float.MIN_VALUE;
+        expResult = new byte[]{(byte)0x00, 0x00, 0x00, 0x01};
+        result = instance.convertFLOAT32(v);
+        assertArrayEquals("FLOAT32 MIN failed", expResult, result);
+        
+        v = -11.7f;
+        expResult = new byte[]{(byte)0xc1, 0x3b, 0x33, (byte)0x33};
+        result = instance.convertFLOAT32(v);
+        assertArrayEquals("FLOAT32 -11.7 failed", expResult, result);
+    }
 
 }
