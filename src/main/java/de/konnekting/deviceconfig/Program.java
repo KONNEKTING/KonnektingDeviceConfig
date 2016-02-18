@@ -64,10 +64,10 @@ public class Program {
             }
 
             KonnektingDevice c = device.getDevice();
+            String individualAddress = device.getIndividualAddress();
 
             // prepare
             List<ComObject> comObjectList = new ArrayList<>();
-
             List<ParameterConfiguration> parameterConfiguration;
 
             int i = 0;
@@ -81,7 +81,12 @@ public class Program {
             if (doComObjects) {
                 for (CommObjectConfiguration commObject : c.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration()) {
                     fireProgressStatusMessage("Reading commobject: " + commObject.getId());
-                    comObjectList.add(new ComObject((byte) commObject.getId(), commObject.getGroupAddress()));
+                    if (commObject.getGroupAddress()!=null && Helper.checkValidGa(commObject.getGroupAddress())) {
+                        fireProgressStatusMessage("Using commobject: " + commObject.getId());
+                        comObjectList.add(new ComObject((byte) commObject.getId(), commObject.getGroupAddress()));
+                    } else {
+                        fireProgressStatusMessage("Skipping commobject with no GA: " + commObject.getId());
+                    }
                 }
                 maxSteps += comObjectList.size();
             }
@@ -94,7 +99,6 @@ public class Program {
 
             fireProgressUpdate(++i, maxSteps);
 
-            String individualAddress = device.getIndividualAddress();
 
             if (doIndividualAddress) {
                 if (!abort) {
