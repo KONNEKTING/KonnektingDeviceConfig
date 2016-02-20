@@ -400,6 +400,9 @@ public class DeviceConfigContainer {
     }
 
     private void renameFile() throws JAXBException, SAXException {
+        if (!hasConfiguration()) {
+            return;
+        }
         String name = getDescription();
         
         if (name==null || name.isEmpty()) {
