@@ -11,8 +11,8 @@ import de.konnekting.xml.konnektingdevice.v0.KonnektingDevice;
 import de.konnekting.xml.konnektingdevice.v0.ParameterConfiguration;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
-import de.root1.slicknx.konnekting.ComObject;
-import de.root1.slicknx.konnekting.KonnektingManagement;
+import de.konnekting.mgnt.ComObject;
+import de.konnekting.mgnt.KonnektingManagement;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -33,7 +33,7 @@ public class Program {
 
     public Program(Knx knx) {
         this.knx = knx;
-        mgt = knx.createKarduinoManagement();
+        mgt = new KonnektingManagement(knx);
     }
 
     public void addProgressListener(ProgramProgressListener listener) {

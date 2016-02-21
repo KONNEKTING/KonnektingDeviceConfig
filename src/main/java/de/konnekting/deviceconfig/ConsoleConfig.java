@@ -28,8 +28,8 @@ import de.konnekting.xml.konnektingdevice.v0.KonnektingDeviceXmlService;
 import de.root1.logging.JulFormatter;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
-import de.root1.slicknx.konnekting.ComObject;
-import de.root1.slicknx.konnekting.KonnektingManagement;
+import de.konnekting.mgnt.ComObject;
+import de.konnekting.mgnt.KonnektingManagement;
 import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -76,7 +76,7 @@ public class ConsoleConfig {
 
         System.out.print("Connecting to KNX via " + host + ":" + port);
         Knx knx = new Knx();
-        KonnektingManagement konnekting = knx.createKarduinoManagement();
+        KonnektingManagement konnekting = new KonnektingManagement(knx);
         System.out.println(" *done*");
 
         System.out.println("About to write physical address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
