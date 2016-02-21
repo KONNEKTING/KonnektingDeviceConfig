@@ -143,12 +143,12 @@ public class KonnektingManagement {
         protocol.writeParameter((byte) id, data);
     }
 
-    public void writeComObject(List<ComObject> list) throws KnxException {
+    public void writeComObject(ComObject comObject) throws KnxException {
         if (!isProgramming) {
             throw new IllegalStateException("Not in programming-state- Call startProgramming() first.");
         }
-        log.debug("Writing {} ComObjects #", list.size());
-        protocol.writeComObject(list);
+        log.debug("Writing ComObject ", comObject);
+        protocol.writeComObject(comObject);
     }
 
     public void restart(String address) throws KnxException {

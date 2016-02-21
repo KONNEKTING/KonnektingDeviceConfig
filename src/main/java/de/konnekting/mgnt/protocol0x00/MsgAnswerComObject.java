@@ -21,8 +21,6 @@ package de.konnekting.mgnt.protocol0x00;
 import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
 import de.konnekting.mgnt.ComObject;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  *
@@ -34,21 +32,8 @@ class MsgAnswerComObject extends ProgMessage {
         super(data);
     }
     
-    public List<ComObject> getComObjects() throws KnxException {
-        List<ComObject> list = new ArrayList<>();
-        
-        byte number = data[2];
-        switch(number) {
-            case 3:
-                list.add(new ComObject(data[9], Utils.getGroupAddress(data[10], data[11]).toString()));
-            case 2:
-                list.add(new ComObject(data[6], Utils.getGroupAddress(data[7], data[8]).toString()));
-            case 1:
-                list.add(new ComObject(data[3], Utils.getGroupAddress(data[4], data[5]).toString()));
-                break;
-        }
-        
-        return list;
+    public ComObject getComObject() throws KnxException {
+        return new ComObject(data[2], Utils.getGroupAddress(data[3], data[4]).toString());
     }
     
 }

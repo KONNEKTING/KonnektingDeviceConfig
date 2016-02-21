@@ -67,7 +67,7 @@ public class Program {
             String individualAddress = device.getIndividualAddress();
 
             // prepare
-            List<ComObject> comObjectList = new ArrayList<>();
+            List<CommObjectConfiguration> comObjectConfiguration = null;
             List<ParameterConfiguration> parameterConfiguration;
 
             int i = 0;
@@ -79,16 +79,9 @@ public class Program {
             }
 
             if (doComObjects) {
-                for (CommObjectConfiguration commObject : c.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration()) {
-                    fireProgressStatusMessage("Reading commobject: " + commObject.getId());
-                    if (commObject.getGroupAddress()!=null && Helper.checkValidGa(commObject.getGroupAddress())) {
-                        fireProgressStatusMessage("Using commobject: " + commObject.getId());
-                        comObjectList.add(new ComObject((byte) commObject.getId(), commObject.getGroupAddress()));
-                    } else {
-                        fireProgressStatusMessage("Skipping commobject with no GA: " + commObject.getId());
-                    }
-                }
-                maxSteps += comObjectList.size();
+                fireProgressStatusMessage("Reading commobjects...");
+                comObjectConfiguration = c.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration();
+                maxSteps += comObjectConfiguration.size();
             }
 
             if (doParams) {
@@ -144,9 +137,19 @@ public class Program {
             if (doComObjects) {
                 if (!abort) {
                     log.info("Writing commobjects ...");
-                    fireProgressStatusMessage("Writing groupaddresses for commobjects...");
-                    mgt.writeComObject(comObjectList);
-                    fireProgressUpdate(i += comObjectList.size(), maxSteps);
+                    
+                    
+                    for (CommObjectConfiguration comObj : comObjectConfiguration) {
+                        if (comObj.getGroupAddress()!= null && Helper.checkValidGa(comObj.getGroupAddress())) {
+                            fireProgressStatusMessage("Writing groupaddresses for commobject "+comObj.getId());
+                            mgt.writeComObject(new ComObject((byte) comObj.getId(), comObj.getGroupAddress()));
+                        } else {
+                            fireProgressStatusMessage("Skipping commobject with no GA: " + comObj.getId());
+                        }
+                        fireProgressUpdate(++i, maxSteps);
+                    }
+                    
+                    
                 } else {
                     fireProgressStatusMessage("Aborted!");
                     abort = false;

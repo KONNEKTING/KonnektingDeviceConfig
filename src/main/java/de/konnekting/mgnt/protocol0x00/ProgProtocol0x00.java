@@ -376,52 +376,15 @@ public class ProgProtocol0x00 {
         return parameter.getParamValue();
     }
 
-    public void writeComObject(List<ComObject> list) throws KnxException {
-
-        for (int i = 0; i < list.size(); i += 3) {
-
-            ComObject co1 = list.get(i);
-            ComObject co2 = null;
-            ComObject co3 = null;
-
-            if (i + 1 < list.size()) {
-                co2 = list.get(i + 1);
-            }
-            if (i + 2 < list.size()) {
-                co3 = list.get(i + 2);
-            }
-
-            sendMessage(new MsgWriteComObject(co1, co2, co3));
-            expectAck();
-
-        }
-
+    public void writeComObject(ComObject comObject) throws KnxException {
+        sendMessage(new MsgWriteComObject(comObject));
+        expectAck();
     }
 
-    public List<ComObject> readComObject(List<Byte> ids) throws KnxException {
-
-        List<ComObject> list = new ArrayList<>();
-
-        for (int i = 0; i < ids.size(); i += 3) {
-
-            Byte id1 = ids.get(i);
-            Byte id2 = null;
-            Byte id3 = null;
-
-            if (i + 1 < list.size()) {
-                id2 = ids.get(i + 1);
-            }
-            if (i + 2 < list.size()) {
-                id3 = ids.get(i + 2);
-            }
-
-            sendMessage(new MsgReadComObject(id1, id2, id3));
-
-            MsgAnswerComObject comObj = expectSingleMessage(MsgAnswerComObject.class);
-            list.addAll(comObj.getComObjects());
-
-        }
-        return list;
+    public ComObject readComObject(byte id) throws KnxException {
+        sendMessage(new MsgReadComObject(id));
+        MsgAnswerComObject comObj = expectSingleMessage(MsgAnswerComObject.class);
+        return comObj.getComObject();
     }
 
     public void writeProgrammingMode(String individualAddress, boolean progMode) throws KnxException {

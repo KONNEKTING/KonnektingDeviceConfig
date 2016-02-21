@@ -16,37 +16,16 @@ import static de.konnekting.mgnt.protocol0x00.ProgProtocol0x00.MSGTYPE_WRITE_COM
  */
 class MsgWriteComObject extends ProgMessage {
 
-    public MsgWriteComObject(ComObject co1, ComObject co2, ComObject co3) throws KnxException {
+    public MsgWriteComObject(ComObject co1) throws KnxException {
         super(MSGTYPE_WRITE_COM_OBJECT);
 
         if (co1 == null) {
             throw new IllegalArgumentException("you must write at least one com object!");
         }
-        int num = 1;
 
-        if (co2 != null) {
-            num++;
-            if (co3 != null) {
-                num++;
-            }
-        }
-
-        // len
-        data[2] = (byte) (num & 0xFF);
-
-        data[3] = co1.getId();
-        System.arraycopy(Utils.getGroupAddress(co1.getGroupAddress()).toByteArray(), 0, data, 4, 2);
-
-        if (co2 != null) {
-            data[6] = co2.getId();
-            System.arraycopy(Utils.getGroupAddress(co2.getGroupAddress()).toByteArray(), 0, data, 7, 2);
-        }
-
-        if (co3 != null) {
-            data[9] = co3.getId();
-            System.arraycopy(Utils.getGroupAddress(co3.getGroupAddress()).toByteArray(), 0, data, 10, 2);
-        }
-
+        data[2] = co1.getId();
+        System.arraycopy(Utils.getGroupAddress(co1.getGroupAddress()).toByteArray(), 0, data, 3 /* index */, 2 /* num bytes */);
+        data[5] = 0x00; // settings
     }
 
     @Override
@@ -54,21 +33,11 @@ class MsgWriteComObject extends ProgMessage {
         try {
             int len = data[2];
             return "MsgWriteComObject{"
-                    + "len=" + data[2] + ", "
-                    + "id1=" + String.format("0x%02x", data[3]) + ", "
-                    + "ga1=" + Utils.getGroupAddress(data[4], data[5]) + ", "
-                    + "ga1(hex)=0x" + Utils.bytesToHex(new byte[]{data[4], data[5]}) + ", "
-                            + (len >= 2
-                                    ? "id2=" + String.format("0x%02x", data[6]) + ", "
-                                    + "ga2=" + Utils.getGroupAddress(data[7], data[8]) + ", "
-                                    + "ga2(hex)=0x" + Utils.bytesToHex(new byte[]{data[7], data[8]}) + ", "
-                                    + (len == 3
-                                            ? "id3=" + String.format("0x%02x", data[9]) + ", "
-                                            + "ga3=" + Utils.getGroupAddress(data[10], data[11]) + ", "
-                                            + "ga3(hex)=0x" + Utils.bytesToHex(new byte[]{data[10], data[11]}) + ", "
-                                            : "")
-                                    : "")
-                            + "}";
+                        + "id=" + String.format("0x%02x", data[3]) + ", "
+                        + "ga=" + Utils.getGroupAddress(data[3], data[4]) + ", "
+                        + "ga(hex)=0x" + Utils.bytesToHex(new byte[]{data[3], data[4]}) + ", "
+                        + "settings="+ String.format("0x%02x", data[5])
+                    + "}";
         } catch (KnxException ex) {
             ex.printStackTrace();
             return "MsgWriteComObject{toStringFailed! -> " + super.toString() + "}";
