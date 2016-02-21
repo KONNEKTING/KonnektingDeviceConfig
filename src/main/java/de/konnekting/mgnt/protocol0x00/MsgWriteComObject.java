@@ -32,7 +32,7 @@ class MsgWriteComObject extends ProgMessage {
     public String toString() {
         try {
             return "MsgWriteComObject{"
-                        + "id=" + String.format("0x%02x", data[3]) + ", "
+                        + "id=" + String.format("0x%02x", data[2]) + ", "
                         + "ga=" + Utils.getGroupAddress(data[3], data[4]) + ", "
                         + "ga(hex)=0x" + Utils.bytesToHex(new byte[]{data[3], data[4]}) + ", "
                         + "settings="+ String.format("0x%02x", data[5])
