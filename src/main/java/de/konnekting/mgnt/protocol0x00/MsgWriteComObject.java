@@ -31,7 +31,6 @@ class MsgWriteComObject extends ProgMessage {
     @Override
     public String toString() {
         try {
-            int len = data[2];
             return "MsgWriteComObject{"
                         + "id=" + String.format("0x%02x", data[3]) + ", "
                         + "ga=" + Utils.getGroupAddress(data[3], data[4]) + ", "

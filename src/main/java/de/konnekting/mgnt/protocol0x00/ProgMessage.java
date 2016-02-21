@@ -37,6 +37,7 @@ abstract class ProgMessage {
     
     public ProgMessage(byte type) {
         data = new byte[14];
+        data[0] = PROTOCOL_VERSION;
         data[1] = type;
         for (int i = 2; i < data.length; i++) {
             data[i] = 0x00;
