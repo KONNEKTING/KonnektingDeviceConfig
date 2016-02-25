@@ -54,8 +54,7 @@ public class KonnektingManagement {
      * Dont' use this constructor directly. Use {@link Knx#createKarduinoManagement()
      * } instead.
      *
-     * @param netlink
-     * @throws KNXLinkClosedException
+     * @param knx
      */
     public KonnektingManagement(Knx knx) {
         this.knx = knx;
