@@ -167,25 +167,26 @@ public class ProgProtocol0x00 {
     private List<ProgMessage> waitForMessage(int timeout, boolean returnOnFirstMsg) {
         log.debug("Waiting for message. timeout={} returnOnFirst={}", timeout, returnOnFirstMsg);
         long start = System.currentTimeMillis();
-        List<ProgMessage> list = null;
+        List<ProgMessage> list =  new ArrayList<>();
         while ((System.currentTimeMillis() - start) < timeout) {
             synchronized (receivedMessages) {
                 try {
+                    
                     receivedMessages.wait(timeout / 10);
-                    if (receivedMessages.size() > 0) {
-                        list = new ArrayList<>(receivedMessages);
-                        receivedMessages.clear();
+                    
+                    if (!receivedMessages.isEmpty()) {
+                        
+                        if (returnOnFirstMsg) {
+                            list.add(receivedMessages.remove(0));
+                        } else {
+                            list.addAll(receivedMessages);
+                            receivedMessages.clear();
+                        }
+                        
                     }
                 } catch (InterruptedException ex) {
                 }
             }
-            // return immediatelly if required
-            if (returnOnFirstMsg && list != null) {
-                return list;
-            }
-        }
-        if (list == null) {
-            list = new ArrayList<>();
         }
         return list;
     }
@@ -193,19 +194,32 @@ public class ProgProtocol0x00 {
     private <T extends ProgMessage> T expectSingleMessage(Class<T> msgClass) throws KnxException {
         log.debug("Waiting for single message [{}]", msgClass.getName());
         List<ProgMessage> list = waitForMessage(WAIT_TIMEOUT, true);
-        if (list.size() != 1) {
+        
+        if (list.isEmpty()) {
             
+            throw new KnxException("Waiting for anwser of type "+msgClass.getName()+" timed out.");
+            
+        } else if (list.size() == 1) {
+            
+            if (!(list.get(0).getClass().isAssignableFrom(msgClass))) {
+                throw new KnxException("Wrong message type received. Expected:" + msgClass + ". Got: " + list.get(0));
+            } else {
+                // all ok, return message
+                return (T) list.get(0);
+            }
+            
+        } else {
+            
+            // more then one message received
             StringBuilder sb = new StringBuilder();
             for (ProgMessage msg : list) {
                 sb.append("\n"+msg.toString());
             }
             
-            throw new KnxException("Received " + list.size() + " messages. Expected 1 of type " + msgClass.getName() + ". Aborting. List of messages: "+sb.toString());
+            throw new KnxException("Received " + list.size() + " messages. Expected 1 of type " + msgClass.getName() + ". List: "+sb.toString());
+            
         }
-        if (!(list.get(0).getClass().isAssignableFrom(msgClass))) {
-            throw new KnxException("Wrong message type received. Expected:" + msgClass + ". Got: " + list.get(0));
-        }
-        return (T) list.get(0);
+            
     }
 
     private void expectAck() throws KnxException {
