@@ -109,6 +109,7 @@ public class Helper {
     }
 
     public static boolean checkValidGa(String ga) {
+        if (ga.isEmpty()) return true;
         Matcher matcher = gaPattern.matcher(ga);
         boolean found = false;
         while (matcher.find()) {
@@ -184,8 +185,8 @@ public class Helper {
 //        }
 //    }
 
-    public static String getTempFilename() throws IOException {
-        File createTempFile = File.createTempFile("KONNEKTING", "Temp");
+    public static String getTempFilename(String suffix) throws IOException {
+        File createTempFile = File.createTempFile("KONNEKTING", "Temp"+suffix);
         createTempFile.delete();
         createTempFile.deleteOnExit();
         return createTempFile.getName();

@@ -92,7 +92,6 @@ public class Program {
 
             fireProgressUpdate(++i, maxSteps);
 
-
             if (doIndividualAddress) {
                 if (!abort) {
 
@@ -137,19 +136,21 @@ public class Program {
             if (doComObjects) {
                 if (!abort) {
                     log.info("Writing commobjects ...");
-                    
-                    
+
                     for (CommObjectConfiguration comObj : comObjectConfiguration) {
-                        if (comObj.getGroupAddress()!= null && Helper.checkValidGa(comObj.getGroupAddress())) {
-                            fireProgressStatusMessage("Writing groupaddresses for commobject "+comObj.getId());
-                            mgt.writeComObject(new ComObject((byte) comObj.getId(), comObj.getGroupAddress()));
+                        if (comObj.getGroupAddress() != null && Helper.checkValidGa(comObj.getGroupAddress())) {
+                            if (comObj.isActive()) {
+                                fireProgressStatusMessage("Writing groupaddresses for commobject " + comObj.getId());
+                                mgt.writeComObject(new ComObject((byte) comObj.getId(), comObj.getGroupAddress()));
+                            } else {
+                                fireProgressStatusMessage("Skipping inactive commobject: " + comObj.getId());
+                            }
                         } else {
                             fireProgressStatusMessage("Skipping commobject with no GA: " + comObj.getId());
                         }
                         fireProgressUpdate(++i, maxSteps);
                     }
-                    
-                    
+
                 } else {
                     fireProgressStatusMessage("Aborted!");
                     abort = false;

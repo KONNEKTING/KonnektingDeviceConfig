@@ -31,6 +31,7 @@ import de.konnekting.xml.konnektingdevice.v0.ParameterConfiguration;
 import de.konnekting.xml.konnektingdevice.v0.ParameterConfigurations;
 import de.konnekting.xml.konnektingdevice.v0.ParameterGroup;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDeviceXmlService;
+import de.konnekting.xml.konnektingdevice.v0.Parameters;
 import de.root1.rooteventbus.RootEventBus;
 import java.io.File;
 import java.io.IOException;
@@ -40,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
 import javax.xml.bind.JAXBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,28 +52,106 @@ import org.xml.sax.SAXException;
  * @author achristian
  */
 public class DeviceConfigContainer {
-    
+
     private Logger log = LoggerFactory.getLogger(getClass());
 
     private static final RootEventBus eventbus = RootEventBus.getDefault();
     private final KonnektingDevice device;
     private File f;
-
+    private boolean defaultsFilled = false;
+    
     public DeviceConfigContainer(File f) throws JAXBException, SAXException {
         this.f = f;
         device = KonnektingDeviceXmlService.readConfiguration(f);
+        fillDefaults();
+    }
+
+    /**
+     * Fills in default values for comobjects and params, if not already set and
+     * as long as this file is NOT a .kdevice.xml
+     *
+     * @throws SAXException
+     * @throws JAXBException
+     */
+    private void fillDefaults() throws SAXException, JAXBException {
+        if (!f.getName().endsWith(".kdevice.xml") && !defaultsFilled) {
+            log.info("Filling defaults in file {}", f);
+            defaultsFilled = true;
+            boolean dirty = false;
+
+            Configuration c = getOrCreateConfiguration();
+            
+            if (c.getIndividualAddress()==null) {
+                log.info("Setting default individual address");
+                IndividualAddress individualAddress = new IndividualAddress();
+                individualAddress.setAddress("1.1.");
+                c.setIndividualAddress(individualAddress);
+            }
+
+            CommObjectConfigurations comObjectConfigurations = c.getCommObjectConfigurations();
+
+            if (comObjectConfigurations == null) {
+                comObjectConfigurations = new CommObjectConfigurations();
+                c.setCommObjectConfigurations(comObjectConfigurations);
+                dirty = true;
+            }
+
+            if (comObjectConfigurations.getCommObjectConfiguration().isEmpty()) {
+                log.info("Setting defaults for com objects");
+                // set default values for comobjects
+                for (CommObject comObj : device.getDevice().getCommObjects().getCommObject()) {
+                    CommObjectConfiguration comObjConf = new CommObjectConfiguration();
+                    comObjConf.setActive(false);
+                    comObjConf.setId(comObj.getId());
+                    comObjectConfigurations.getCommObjectConfiguration().add(comObjConf);
+                    dirty = true;
+                }
+            }
+
+            ParameterConfigurations parameterConfigurations = c.getParameterConfigurations();
+
+            if (parameterConfigurations == null) {
+                parameterConfigurations = new ParameterConfigurations();
+                c.setParameterConfigurations(parameterConfigurations);
+                dirty = true;
+            }
+
+            if (parameterConfigurations.getParameterConfiguration().isEmpty()) {
+                log.info("Setting defaults for parameters");
+                // set default param values
+                Parameters parameters = device.getDevice().getParameters();
+                if (parameters != null) {
+                    List<ParameterGroup> paramGroups = parameters.getGroup();
+                    for (ParameterGroup paramGroup : paramGroups) {
+                        List<Parameter> params = paramGroup.getParameter();
+                        for (Parameter param : params) {
+                            ParameterConfiguration paramConf = new ParameterConfiguration();
+                            paramConf.setId(param.getId());
+                            paramConf.setValue(param.getValue().getDefault());
+                            parameterConfigurations.getParameterConfiguration().add(paramConf);
+                            dirty = true;
+                        }
+                    }
+                }
+            }
+            if (dirty) {
+                log.info("Writing configuration due to dirty flag");
+                writeConfig();
+            }
+        }
     }
 
     public KonnektingDevice getDevice() {
         return device;
     }
-    
+
     public void writeConfig() throws JAXBException, SAXException {
         writeConfig(f);
     }
 
     public synchronized void writeConfig(File file) throws JAXBException, SAXException {
         this.f = file;
+        fillDefaults();
         KonnektingDeviceXmlService.validateWrite(device);
         KonnektingDeviceXmlService.writeConfiguration(file, device);
         renameFile();
@@ -174,6 +254,12 @@ public class DeviceConfigContainer {
         if (commObjectConfigurations == null) {
             commObjectConfigurations = new CommObjectConfigurations();
             configuration.setCommObjectConfigurations(commObjectConfigurations);
+
+            for (CommObject co : getCommObjects()) {
+                CommObjectConfiguration coc = new CommObjectConfiguration();
+                coc.setActive(Boolean.FALSE);
+                coc.setId(co.getId());
+            }
         }
         return commObjectConfigurations;
     }
@@ -325,7 +411,7 @@ public class DeviceConfigContainer {
 
     @Override
     public String toString() {
-        return getIndividualAddress() + " " + getDescription() + (f==null?"":"@" + f.getAbsolutePath());
+        return getIndividualAddress() + " " + getDescription() + (f == null ? "" : "@" + f.getAbsolutePath());
     }
 
     public Parameter getParameter(short id) {
@@ -357,7 +443,6 @@ public class DeviceConfigContainer {
         device.getConfiguration().getParameterConfigurations().getParameterConfiguration().add(conf);
         return conf;
     }
-    
 
     public void setParameterValue(short id, byte[] value) {
         if (value == null) {
@@ -365,11 +450,11 @@ public class DeviceConfigContainer {
         }
         byte[] oldValue = getParameterConfig(id).getValue();
         ParameterConfiguration conf = getOrCreateParameterConf(id);
-        
+
         conf.setValue(value);
         if (!Arrays.equals(oldValue, value)) {
             eventbus.post(new EventDeviceChanged(this));
-            log.info("New param value: id="+id+" value="+Arrays.toString(value));
+            log.info("New param value: id=" + id + " value=" + Arrays.toString(value));
         }
     }
 
@@ -386,7 +471,7 @@ public class DeviceConfigContainer {
 
     public boolean hasConfiguration() {
         Configuration configuration = device.getConfiguration();
-        return configuration != null && configuration.getIndividualAddress() != null;
+        return configuration != null && configuration.getIndividualAddress() != null && configuration.getIndividualAddress().getDescription()!=null;
     }
 
     public void removeConfig() throws JAXBException, SAXException {
@@ -399,50 +484,55 @@ public class DeviceConfigContainer {
         f = null;
     }
 
+    /**
+     * Rename file matching to device name etc.
+     *
+     * @throws JAXBException
+     * @throws SAXException
+     */
     private void renameFile() throws JAXBException, SAXException {
-        if (!hasConfiguration()) {
+        if (!hasConfiguration() || f.getName().endsWith(".kdevice.xml")) {
             return;
         }
         String name = getDescription();
-        
-        if (name==null || name.isEmpty()) {
+
+        if (name == null || name.isEmpty()) {
             name = "notdefined";
         }
-        
+
         name = name.replace(" ", "_");
         name = name.replace("/", "_");
         name = name.replace("\\", "_");
-        
+
         File parentFolder = f.getParentFile();
-        
+
         File newFile = new File(parentFolder, name + ".kconfig.xml");
         int i = 0;
         while (newFile.exists()) {
             i++;
-            newFile = new File(parentFolder, name + "_"+i+".kconfig.xml");
+            newFile = new File(parentFolder, name + "_" + i + ".kconfig.xml");
         }
-        
+
         f.renameTo(newFile);
         f = newFile;
     }
 
     /**
      * Clone the underlying XML file
+     *
      * @param projectDir
      * @return resulting clone file
-     * @throws IOException 
+     * @throws IOException
      */
-    public File cloneFile(File projectDir) throws IOException {
+    public DeviceConfigContainer makeConfigFile(File projectDir) throws IOException {
         try {
             writeConfig();
+            File newFile = new File(projectDir, Helper.getTempFilename(".kconfig.xml"));
+            Files.copy(f.toPath(), newFile.toPath(), REPLACE_EXISTING);
+            return new DeviceConfigContainer(newFile);
         } catch (SAXException | JAXBException ex) {
             throw new IOException("Error writing data before cloning.", ex);
         }
-        File newFile = new File(projectDir, Helper.getTempFilename());
-        Files.copy(f.toPath(), newFile.toPath(), REPLACE_EXISTING);
-        return newFile;
     }
-    
-    
 
 }
