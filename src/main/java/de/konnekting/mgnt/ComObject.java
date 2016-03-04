@@ -33,6 +33,8 @@ public class ComObject {
         
         if (groupAddress==null || (groupAddress!=null && groupAddress.isEmpty())) {
             active = false;
+        } else {
+            active = true;
         }
     }
 

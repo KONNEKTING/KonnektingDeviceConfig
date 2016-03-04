@@ -46,6 +46,7 @@ public class Program {
 
     public void abort() {
         abort = true;
+        log.info("Abort triggered!");
     }
 
     /**
@@ -109,6 +110,7 @@ public class Program {
                     fireProgressStatusMessage("Aborted!");
                     fireProgressUpdate(maxSteps, maxSteps);
                     abort = false;
+                    return;
                 }
             }
 
@@ -138,16 +140,23 @@ public class Program {
                     log.info("Writing commobjects ...");
 
                     for (CommObjectConfiguration comObj : comObjectConfiguration) {
-                        ComObject comObjectToWrite = new ComObject((byte) comObj.getId(), comObj.getGroupAddress());
-                        log.debug("Writing ComObject: id={} ga={} active={}", new Object[]{comObjectToWrite.getId(), comObjectToWrite.getGroupAddress(), comObjectToWrite.isActive()});
-                        fireProgressStatusMessage("Writing comobject " + comObjectToWrite.getId() + " / active="+comObjectToWrite.isActive());
-                        mgt.writeComObject(comObjectToWrite);
-                        fireProgressUpdate(++i, maxSteps);
+                        if (!abort) {
+                            ComObject comObjectToWrite = new ComObject((byte) comObj.getId(), comObj.getGroupAddress());
+                            log.debug("Writing ComObject: id={} ga={} active={}", new Object[]{comObjectToWrite.getId(), comObjectToWrite.getGroupAddress(), comObjectToWrite.isActive()});
+                            fireProgressStatusMessage("Writing comobject " + comObjectToWrite.getId() + " / active=" + comObjectToWrite.isActive());
+                            mgt.writeComObject(comObjectToWrite);
+                            fireProgressUpdate(++i, maxSteps);
+                        } else {
+                            fireProgressStatusMessage("Aborted!");
+                            abort = false;
+                            return;
+                        }
                     }
 
                 } else {
                     fireProgressStatusMessage("Aborted!");
                     abort = false;
+                    return;
                 }
             }
 
@@ -155,15 +164,22 @@ public class Program {
                 if (!abort) {
                     log.info("Writing parameter ...");
                     for (ParameterConfiguration parameter : c.getConfiguration().getParameterConfigurations().getParameterConfiguration()) {
-                        byte[] data = parameter.getValue();
-                        log.debug("Writing " + Helper.bytesToHex(data) + " to param with id " + parameter.getId());
-                        fireProgressStatusMessage("Writing parameter " + parameter.getId());
-                        mgt.writeParameter(parameter.getId(), data);
-                        fireProgressUpdate(++i, maxSteps);
+                        if (!abort) {
+                            byte[] data = parameter.getValue();
+                            log.debug("Writing " + Helper.bytesToHex(data) + " to param with id " + parameter.getId());
+                            fireProgressStatusMessage("Writing parameter " + parameter.getId());
+                            mgt.writeParameter(parameter.getId(), data);
+                            fireProgressUpdate(++i, maxSteps);
+                        } else {
+                            fireProgressStatusMessage("Aborted!");
+                            abort = false;
+                            return;
+                        }
                     }
                 } else {
                     fireProgressStatusMessage("Aborted!");
                     abort = false;
+                    return;
                 }
             }
 
