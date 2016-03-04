@@ -16,16 +16,26 @@ import static de.konnekting.mgnt.protocol0x00.ProgProtocol0x00.MSGTYPE_WRITE_COM
  */
 class MsgWriteComObject extends ProgMessage {
 
-    public MsgWriteComObject(ComObject co1) throws KnxException {
+    public MsgWriteComObject(ComObject co) throws KnxException {
         super(MSGTYPE_WRITE_COM_OBJECT);
 
-        if (co1 == null) {
-            throw new IllegalArgumentException("you must write at least one com object!");
+        if (co == null) {
+            throw new IllegalArgumentException("ComObject must not be null!");
         }
 
-        data[2] = co1.getId();
-        System.arraycopy(Utils.getGroupAddress(co1.getGroupAddress()).toByteArray(), 0, data, 3 /* index */, 2 /* num bytes */);
-        data[5] = 0x00; // settings
+        data[2] = co.getId();
+        
+        
+        if (co.isActive()) {
+            System.arraycopy(Utils.getGroupAddress(co.getGroupAddress()).toByteArray(), 0, data, 3 /* index */, 2 /* num bytes */);
+        } else {
+            // CO is not active, use 0/0/0 as GA. This GA will not be used, as the CO is marked as inactive. It's just to have ANY value.
+            data[3] = 0x00;
+            data[4] = 0x00;
+        }
+        
+        // left most bit is set to 1 (--> 0x80) if CO is active. Otherwise bit is 0 (--> 0x00)
+        data[5] = co.isActive()?(byte)0x80:(byte)0x00; 
     }
 
     @Override

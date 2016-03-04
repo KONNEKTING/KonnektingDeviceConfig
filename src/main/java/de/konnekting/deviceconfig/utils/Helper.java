@@ -109,7 +109,10 @@ public class Helper {
     }
 
     public static boolean checkValidGa(String ga) {
+        
+        // allow empty GA --> unused ComObject
         if (ga.isEmpty()) return true;
+        
         Matcher matcher = gaPattern.matcher(ga);
         boolean found = false;
         while (matcher.find()) {

@@ -25,10 +25,15 @@ package de.konnekting.mgnt;
 public class ComObject {
     private byte id;
     private String groupAddress;
+    private boolean active = false;
 
     public ComObject(byte id, String groupAddress) {
         this.id = id;
         this.groupAddress = groupAddress;
+        
+        if (groupAddress==null || (groupAddress!=null && groupAddress.isEmpty())) {
+            active = false;
+        }
     }
 
     public byte getId() {
@@ -45,6 +50,14 @@ public class ComObject {
 
     public void setGroupAddress(String groupAddress) {
         this.groupAddress = groupAddress;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public boolean isActive() {
+        return active;
     }
     
 }

@@ -138,16 +138,10 @@ public class Program {
                     log.info("Writing commobjects ...");
 
                     for (CommObjectConfiguration comObj : comObjectConfiguration) {
-                        if (comObj.getGroupAddress() != null && Helper.checkValidGa(comObj.getGroupAddress())) {
-                            if (comObj.isActive()) {
-                                fireProgressStatusMessage("Writing groupaddresses for commobject " + comObj.getId());
-                                mgt.writeComObject(new ComObject((byte) comObj.getId(), comObj.getGroupAddress()));
-                            } else {
-                                fireProgressStatusMessage("Skipping inactive commobject: " + comObj.getId());
-                            }
-                        } else {
-                            fireProgressStatusMessage("Skipping commobject with no GA: " + comObj.getId());
-                        }
+                        ComObject comObjectToWrite = new ComObject((byte) comObj.getId(), comObj.getGroupAddress());
+                        log.debug("Writing ComObject: id={} ga={} active={}", new Object[]{comObjectToWrite.getId(), comObjectToWrite.getGroupAddress(), comObjectToWrite.isActive()});
+                        fireProgressStatusMessage("Writing comobject " + comObjectToWrite.getId() + " / active="+comObjectToWrite.isActive());
+                        mgt.writeComObject(comObjectToWrite);
                         fireProgressUpdate(++i, maxSteps);
                     }
 
