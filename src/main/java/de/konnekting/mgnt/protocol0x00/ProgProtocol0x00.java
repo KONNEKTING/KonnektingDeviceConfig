@@ -178,6 +178,7 @@ public class ProgProtocol0x00 {
                         
                         if (returnOnFirstMsg) {
                             list.add(receivedMessages.remove(0));
+                            return list;
                         } else {
                             list.addAll(receivedMessages);
                             receivedMessages.clear();
