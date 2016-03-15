@@ -101,7 +101,6 @@ public class DeviceConfigContainer {
                 // set default values for comobjects
                 for (CommObject comObj : device.getDevice().getCommObjects().getCommObject()) {
                     CommObjectConfiguration comObjConf = new CommObjectConfiguration();
-                    comObjConf.setActive(false);
                     comObjConf.setId(comObj.getId());
                     comObjectConfigurations.getCommObjectConfiguration().add(comObjConf);
                     dirty = true;
@@ -257,7 +256,6 @@ public class DeviceConfigContainer {
 
             for (CommObject co : getCommObjects()) {
                 CommObjectConfiguration coc = new CommObjectConfiguration();
-                coc.setActive(Boolean.FALSE);
                 coc.setId(co.getId());
             }
         }
