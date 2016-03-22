@@ -32,8 +32,8 @@ import org.slf4j.LoggerFactory;
  */
 public class Helper {
 
-    private static final Logger log = LoggerFactory.getLogger(Helper.class);
-    final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
+    private static final Logger LOG = LoggerFactory.getLogger(Helper.class);
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
     public static String bytesToHex(byte[] bytes) {
         return bytesToHex(bytes, false);
@@ -44,18 +44,23 @@ public class Helper {
         for (int j = 0; j < bytes.length; j++) {
             int v = bytes[j] & 0xFF;
             if (withWhitespace) {
-                hexChars[j * 2 + j] = hexArray[v >>> 4];
-                hexChars[j * 2 + j + 1] = hexArray[v & 0x0F];
+                hexChars[j * 2 + j] = HEX_ARRAY[v >>> 4];
+                hexChars[j * 2 + j + 1] = HEX_ARRAY[v & 0x0F];
                 hexChars[j * 2 + j + 2] = " ".charAt(0);
             } else {
-                hexChars[j * 2] = hexArray[v >>> 4];
-                hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+                hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+                hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
             }
         }
         return new String(hexChars);
     }
 
     public static byte[] hexToBytes(String s) {
+        
+        if (!s.matches("^[0-9a-fA-F]+$") || s.length()%2!=0) {
+            throw new NumberFormatException("Given value '"+s+"' is not a valid hex string");
+        };
+        
         int len = s.length();
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
@@ -65,9 +70,9 @@ public class Helper {
         return data;
     }
 
-    private static final Pattern paPattern = Pattern.compile("\\A\\d{1,2}\\.\\d{1,2}\\.\\d{1,3}\\z");
-    private static final Pattern paParkedPattern = Pattern.compile("\\A\\d{1,2}\\.\\d{1,2}\\.\\z");
-    private static final Pattern gaPattern = Pattern.compile("\\A\\d{1,2}/\\d{1,2}/\\d{1,3}\\z");
+    private static final Pattern PA_PATTERB = Pattern.compile("\\A\\d{1,2}\\.\\d{1,2}\\.\\d{1,3}\\z");
+    private static final Pattern PA_PARKED_PATTERN = Pattern.compile("\\A\\d{1,2}\\.\\d{1,2}\\.\\z");
+    private static final Pattern GA_PATTERN = Pattern.compile("\\A\\d{1,2}/\\d{1,2}/\\d{1,3}\\z");
 
     public static byte[] addrToBytes(int a, int b, int c) {
         byte[] buffer = new byte[2];
@@ -79,13 +84,13 @@ public class Helper {
     }
 
     public static boolean checkValidPa(String pa) {
-        Matcher matcher = paPattern.matcher(pa);
+        Matcher matcher = PA_PATTERB.matcher(pa);
         boolean found = false;
         while (matcher.find()) {
             found = true;
         }
         if (!found) {
-            log.error("Given pa '" + pa + "' is not valid.");
+            LOG.error("Given pa '" + pa + "' is not valid.");
             return false;
         }
         String[] split = pa.split("\\.");
@@ -94,15 +99,15 @@ public class Helper {
         int member = Integer.parseInt(split[2]);
 
         if (area < 0 || area > 15) {
-            log.error("Area of given pa '" + pa + "' is not in range 1..15");
+            LOG.error("Area of given pa '" + pa + "' is not in range 1..15");
             return false;
         }
         if (line < 0 || line > 15) {
-            log.error("Line of given pa '" + pa + "' is not in range 1..15");
+            LOG.error("Line of given pa '" + pa + "' is not in range 1..15");
             return false;
         }
         if (member < 0 || member > 255) {
-            log.error("Member of given pa '" + pa + "' is not in range 0..255");
+            LOG.error("Member of given pa '" + pa + "' is not in range 0..255");
             return false;
         }
         return true;
@@ -113,13 +118,13 @@ public class Helper {
         // allow empty GA --> unused ComObject
         if (ga.isEmpty()) return true;
         
-        Matcher matcher = gaPattern.matcher(ga);
+        Matcher matcher = GA_PATTERN.matcher(ga);
         boolean found = false;
         while (matcher.find()) {
             found = true;
         }
         if (!found) {
-            log.error("Given ga '" + ga + "' is not valid.");
+            LOG.error("Given ga '" + ga + "' is not valid.");
             return false;
         }
         String[] split = ga.split("/");
@@ -128,15 +133,15 @@ public class Helper {
         int sub = Integer.parseInt(split[2]); //0..255
 
         if (main < 0 || main > 15) {
-            log.error("Main of given ga '" + ga + "' is not in range 0..15");
+            LOG.error("Main of given ga '" + ga + "' is not in range 0..15");
             return false;
         }
         if (middle < 0 || middle > 7) {
-            log.error("Middle of given ga '" + ga + "' is not in range 0..7");
+            LOG.error("Middle of given ga '" + ga + "' is not in range 0..7");
             return false;
         }
         if (sub < 0 || sub > 255) {
-            log.error("Sub of given ga '" + ga + "' is not in range 0..255");
+            LOG.error("Sub of given ga '" + ga + "' is not in range 0..255");
             return false;
         }
         return true;
@@ -157,7 +162,7 @@ public class Helper {
     }
 
     public static boolean isParkedAddress(String individualAddress) {
-        Matcher matcher = paParkedPattern.matcher(individualAddress);
+        Matcher matcher = PA_PARKED_PATTERN.matcher(individualAddress);
         boolean found = false;
         while (matcher.find()) {
             return true;
@@ -179,6 +184,25 @@ public class Helper {
         }
     }
     
+    public static boolean isRawType(ParameterType paramType) {
+        switch (paramType) {
+            case RAW1:
+            case RAW2:
+            case RAW3:
+            case RAW4:
+            case RAW5:
+            case RAW6:
+            case RAW7:
+            case RAW8:
+            case RAW9:
+            case RAW10:
+            case RAW11:
+                return true;
+            default:
+                return false;
+        }
+    }
+    
 //    public static boolean isFloatType(ParameterType paramType) {
 //        switch (paramType) {
 //            case FLOAT32:
@@ -194,5 +218,5 @@ public class Helper {
         createTempFile.deleteOnExit();
         return createTempFile.getName();
     }
-
+    
 }
