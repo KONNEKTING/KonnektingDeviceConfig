@@ -18,6 +18,7 @@
  */
 package de.konnekting.deviceconfig;
 
+import com.rits.cloning.Cloner;
 import de.konnekting.deviceconfig.exception.InvalidAddressFormatException;
 import de.konnekting.deviceconfig.utils.Helper;
 import de.konnekting.xml.konnektingdevice.v0.CommObject;
@@ -33,18 +34,24 @@ import de.konnekting.xml.konnektingdevice.v0.ParameterGroup;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDeviceXmlService;
 import de.konnekting.xml.konnektingdevice.v0.Parameters;
 import de.root1.rooteventbus.RootEventBus;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
 import javax.xml.bind.JAXBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.unitils.reflectionassert.ReflectionComparator;
+import static org.unitils.reflectionassert.ReflectionComparatorFactory.createRefectionComparator;
+import org.unitils.reflectionassert.difference.Difference;
 import org.xml.sax.SAXException;
 
 /**
@@ -57,12 +64,14 @@ public class DeviceConfigContainer {
 
     private static final RootEventBus eventbus = RootEventBus.getDefault();
     private final KonnektingDevice device;
+    private KonnektingDevice deviceLastSave;
     private File f;
     private boolean defaultsFilled = false;
-    
+
     public DeviceConfigContainer(File f) throws JAXBException, SAXException {
         this.f = f;
         device = KonnektingDeviceXmlService.readConfiguration(f);
+        deviceLastSave = deepCloneDevice();
         fillDefaults();
     }
 
@@ -80,8 +89,8 @@ public class DeviceConfigContainer {
             boolean dirty = false;
 
             Configuration c = getOrCreateConfiguration();
-            
-            if (c.getIndividualAddress()==null) {
+
+            if (c.getIndividualAddress() == null) {
                 log.info("Setting default individual address");
                 IndividualAddress individualAddress = new IndividualAddress();
                 individualAddress.setAddress("1.1.");
@@ -150,10 +159,34 @@ public class DeviceConfigContainer {
 
     public synchronized void writeConfig(File file) throws JAXBException, SAXException {
         this.f = file;
+        log.debug("About to write config: "+f.getName());
         fillDefaults();
-        KonnektingDeviceXmlService.validateWrite(device);
-        KonnektingDeviceXmlService.writeConfiguration(file, device);
-        renameFile();
+        boolean equal;
+
+        ReflectionComparator reflectionComparator = createRefectionComparator();
+        Difference difference = reflectionComparator.getDifference(device, deviceLastSave);
+        if (difference != null) {
+            equal = false;
+        } else {
+            equal = true;
+        }
+
+        if (!equal) {
+            KonnektingDeviceXmlService.validateWrite(device);
+            KonnektingDeviceXmlService.writeConfiguration(file, device);
+            renameFile();
+            deviceLastSave = deepCloneDevice();
+            log.info("Saved changes for " + f.getName());
+        } else {
+            log.debug("No change detected for " + f.getName());
+        }
+
+    }
+
+    private KonnektingDevice deepCloneDevice() {
+        Cloner cloner = new Cloner();
+        KonnektingDevice clone = cloner.deepClone(device);
+        return clone;
     }
 
     private Configuration getOrCreateConfiguration() {
@@ -469,7 +502,7 @@ public class DeviceConfigContainer {
 
     public boolean hasConfiguration() {
         Configuration configuration = device.getConfiguration();
-        return configuration != null && configuration.getIndividualAddress() != null && configuration.getIndividualAddress().getDescription()!=null;
+        return configuration != null && configuration.getIndividualAddress() != null && configuration.getIndividualAddress().getDescription() != null;
     }
 
     public void removeConfig() throws JAXBException, SAXException {
@@ -483,7 +516,7 @@ public class DeviceConfigContainer {
     }
 
     /**
-     * Rename file matching to device name etc.
+     * Rename file matching to device name etc. if required, erlse just return
      *
      * @throws JAXBException
      * @throws SAXException
