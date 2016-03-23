@@ -159,7 +159,7 @@ public class DeviceConfigContainer {
 
     public synchronized void writeConfig(File file) throws JAXBException, SAXException {
         this.f = file;
-        log.debug("About to write config: "+f.getName());
+        log.debug("About to write config: " + f.getName());
         fillDefaults();
         boolean equal;
 
@@ -172,11 +172,11 @@ public class DeviceConfigContainer {
         }
 
         if (!equal) {
+            log.info("Saved changes for " + f.getName());
             KonnektingDeviceXmlService.validateWrite(device);
             KonnektingDeviceXmlService.writeConfiguration(file, device);
             renameFile();
             deviceLastSave = deepCloneDevice();
-            log.info("Saved changes for " + f.getName());
         } else {
             log.debug("No change detected for " + f.getName());
         }
@@ -538,14 +538,22 @@ public class DeviceConfigContainer {
         File parentFolder = f.getParentFile();
 
         File newFile = new File(parentFolder, name + ".kconfig.xml");
-        int i = 0;
-        while (newFile.exists()) {
-            i++;
-            newFile = new File(parentFolder, name + "_" + i + ".kconfig.xml");
-        }
 
-        f.renameTo(newFile);
-        f = newFile;
+        if (newFile.equals(f)) {
+            // nothing to rename
+            log.trace("File {} needs no renaming", f.getName());
+        } else {
+
+            int i = 0;
+            while (newFile.exists()) {
+                i++;
+                newFile = new File(parentFolder, name + "_" + i + ".kconfig.xml");
+            }
+
+            f.renameTo(newFile);
+            log.trace("File {} renamed to {}", f.getName(), newFile.getName());
+            f = newFile;
+        }
     }
 
     /**
