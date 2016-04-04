@@ -198,7 +198,7 @@ public class ProgProtocol0x00 {
         
         if (list.isEmpty()) {
             
-            throw new KnxException("Waiting for anwser of type "+msgClass.getName()+" timed out.");
+            throw new KnxException("Waiting for answer of type "+msgClass.getName()+" timed out.");
             
         } else if (list.size() == 1) {
             
