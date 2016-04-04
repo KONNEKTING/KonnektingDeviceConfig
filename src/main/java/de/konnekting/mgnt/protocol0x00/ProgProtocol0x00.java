@@ -38,7 +38,6 @@ public class ProgProtocol0x00 {
 
     private static final Logger log = LoggerFactory.getLogger(ProgProtocol0x00.class);
     private static final Logger plog = LoggerFactory.getLogger("ProgrammingLogger");
-    
 
     public static ProgProtocol0x00 getInstance(Knx knx) {
         boolean debug = Boolean.getBoolean("de.root1.slicknx.konnekting.debug");
@@ -101,7 +100,7 @@ public class ProgProtocol0x00 {
                 byte type = data[1];
 
                 switch (type) {
-                    
+
                     // handle answer messages
                     case MSGTYPE_ACK:
                         msg = new MsgAck(data);
@@ -121,7 +120,7 @@ public class ProgProtocol0x00 {
                     case MSGTYPE_ANSWER_PARAMETER:
                         msg = new MsgAnswerParameter(data);
                         break;
-                    
+
                     // do nothing, we sent those messages...
                     case MSGTYPE_READ_COM_OBJECT:
                     case MSGTYPE_READ_DEVICE_INFO:
@@ -134,7 +133,7 @@ public class ProgProtocol0x00 {
                     case MSGTYPE_WRITE_PARAMETER:
                     case MSGTYPE_WRITE_PROGRAMMING_MODE:
                         break;
-                        
+
                     // log everything else     
                     default:
                         plog.warn("Received unknown/invalid message: {}", new ProgMessage(data) {
@@ -167,15 +166,15 @@ public class ProgProtocol0x00 {
     private List<ProgMessage> waitForMessage(int timeout, boolean returnOnFirstMsg) {
         log.debug("Waiting for message. timeout={} returnOnFirst={}", timeout, returnOnFirstMsg);
         long start = System.currentTimeMillis();
-        List<ProgMessage> list =  new ArrayList<>();
+        List<ProgMessage> list = new ArrayList<>();
         while ((System.currentTimeMillis() - start) < timeout) {
             synchronized (receivedMessages) {
                 try {
-                    
+
                     receivedMessages.wait(timeout / 10);
-                    
+
                     if (!receivedMessages.isEmpty()) {
-                        
+
                         if (returnOnFirstMsg) {
                             list.add(receivedMessages.remove(0));
                             return list;
@@ -183,7 +182,7 @@ public class ProgProtocol0x00 {
                             list.addAll(receivedMessages);
                             receivedMessages.clear();
                         }
-                        
+
                     }
                 } catch (InterruptedException ex) {
                 }
@@ -192,35 +191,47 @@ public class ProgProtocol0x00 {
         return list;
     }
 
-    private <T extends ProgMessage> T expectSingleMessage(Class<T> msgClass) throws KnxException {
+    private <T extends ProgMessage> T expectSingleMessage(Class<T> msgClass, int timeout) throws KnxException {
+
         log.debug("Waiting for single message [{}]", msgClass.getName());
-        List<ProgMessage> list = waitForMessage(WAIT_TIMEOUT, true);
-        
+        List<ProgMessage> list = waitForMessage(timeout, true);
+
         if (list.isEmpty()) {
-            
-            throw new KnxException("Waiting for answer of type "+msgClass.getName()+" timed out.");
-            
+
+            throw new KnxException("Waiting for answer of type " + msgClass.getName() + " timed out.");
+
         } else if (list.size() == 1) {
-            
+
             if (!(list.get(0).getClass().isAssignableFrom(msgClass))) {
                 throw new KnxException("Wrong message type received. Expected:" + msgClass + ". Got: " + list.get(0));
             } else {
                 // all ok, return message
                 return (T) list.get(0);
             }
-            
+
         } else {
-            
+
             // more then one message received
             StringBuilder sb = new StringBuilder();
             for (ProgMessage msg : list) {
-                sb.append("\n"+msg.toString());
+                sb.append("\n" + msg.toString());
             }
-            
-            throw new KnxException("Received " + list.size() + " messages. Expected 1 of type " + msgClass.getName() + ". List: "+sb.toString());
-            
+
+            throw new KnxException("Received " + list.size() + " messages. Expected 1 of type " + msgClass.getName() + ". List: " + sb.toString());
+
         }
-            
+    }
+
+    private <T extends ProgMessage> T expectSingleMessage(Class<T> msgClass) throws KnxException {
+        return expectSingleMessage(msgClass, WAIT_TIMEOUT);
+    }
+
+    private void expectAck(int timeout) throws KnxException {
+        MsgAck ack = expectSingleMessage(MsgAck.class);
+        if (!ack.isAcknowledged()) {
+            String exMsg = "Not acknowledged. " + ack.toString();
+            throw new KnxException(exMsg);
+        }
     }
 
     private void expectAck() throws KnxException {
@@ -234,25 +245,25 @@ public class ProgProtocol0x00 {
     private void sendMessage(ProgMessage msg) throws KnxException {
         plog.info("Sending: {}", msg);
         byte[] msgData = msg.data;
-        
+
         log.trace("Sending message \n"
-            + "ProtocolVersion: {}\n"
-            + "MsgTypeId      : {}\n"
-            + "data[2..13]    : {} {} {} {} {} {} {} {} {} {} {} {}", new Object[]{
-                String.format("%02x", msgData[0]),
-                String.format("%02x", msgData[1]),
-                String.format("%02x", msgData[2]),
-                String.format("%02x", msgData[3]),
-                String.format("%02x", msgData[4]),
-                String.format("%02x", msgData[5]),
-                String.format("%02x", msgData[6]),
-                String.format("%02x", msgData[7]),
-                String.format("%02x", msgData[8]),
-                String.format("%02x", msgData[9]),
-                String.format("%02x", msgData[10]),
-                String.format("%02x", msgData[11]),
-                String.format("%02x", msgData[12]),
-                String.format("%02x", msgData[13]),});
+                + "ProtocolVersion: {}\n"
+                + "MsgTypeId      : {}\n"
+                + "data[2..13]    : {} {} {} {} {} {} {} {} {} {} {} {}", new Object[]{
+                    String.format("%02x", msgData[0]),
+                    String.format("%02x", msgData[1]),
+                    String.format("%02x", msgData[2]),
+                    String.format("%02x", msgData[3]),
+                    String.format("%02x", msgData[4]),
+                    String.format("%02x", msgData[5]),
+                    String.format("%02x", msgData[6]),
+                    String.format("%02x", msgData[7]),
+                    String.format("%02x", msgData[8]),
+                    String.format("%02x", msgData[9]),
+                    String.format("%02x", msgData[10]),
+                    String.format("%02x", msgData[11]),
+                    String.format("%02x", msgData[12]),
+                    String.format("%02x", msgData[13]),});
         knx.writeRaw(false, PROG_GA, msgData);
     }
 
@@ -344,20 +355,20 @@ public class ProgProtocol0x00 {
                 List<String> list = readIndividualAddress(false);
                 count = list.size();
 
-                log.info("responsed: {}",count);
-                
+                log.info("responsed: {}", count);
+
                 if (count == 0) {
                     log.info("No device responded.");
                     msg = "no device in prog mode";
                 } else if (count == 1 && !list.get(0).equals(address)) {
-                    msg = "one device with different address ("+list.get(0)+") responded.";
+                    msg = "one device with different address (" + list.get(0) + ") responded.";
                     setAddr = true;
                 } else if (count == 1 && list.get(0).equals(address)) {
                     log.debug("One device responded, but already has {}.", address);
                     msg = "One device responded, but already has " + address + ".";
                     setAddr = true;
                 } else {
-                    msg = "more than one device in prog mode: "+Arrays.toString(list.toArray());
+                    msg = "more than one device in prog mode: " + Arrays.toString(list.toArray());
                 }
             } catch (KnxException ex) {
                 ex.printStackTrace();
@@ -404,7 +415,7 @@ public class ProgProtocol0x00 {
 
     public void writeProgrammingMode(String individualAddress, boolean progMode) throws KnxException {
         sendMessage(new MsgWriteProgrammingMode(individualAddress, progMode));
-        expectAck();
+        expectAck(2 * WAIT_TIMEOUT); // give the sketch enough time to respond and set prog-mode (which should pause the device-logic)
     }
 
     public void restart(String individualAddress) throws KnxException {
