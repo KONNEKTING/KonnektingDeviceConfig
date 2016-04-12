@@ -50,9 +50,7 @@ public class Program {
     }
 
     /**
-     * This will block until all is done or exception occured Programs: - IA -
-     * KO - Params
-     *
+     * This will block until all is done or exception occured 
      *
      * @param device
      * @param doIndividualAddress
