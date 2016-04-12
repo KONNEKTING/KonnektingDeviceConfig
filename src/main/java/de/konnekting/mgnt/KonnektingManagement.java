@@ -24,7 +24,6 @@ import de.konnekting.mgnt.protocol0x00.ProgProtocol0x00;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tuwien.auto.calimero.link.KNXLinkClosedException;
 
 /**
  * Class to manage an "KNX-on-Arduino" (Karduino) device.

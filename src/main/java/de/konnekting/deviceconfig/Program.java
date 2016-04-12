@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 public class Program {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-
+    private final java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("de/konnekting/deviceconfig/Bundle"); // NOI18N
     private final List<ProgramProgressListener> listeners = new ArrayList<>();
     private final Knx knx;
     private final KonnektingManagement mgt;
@@ -55,11 +55,15 @@ public class Program {
      *
      *
      * @param device
+     * @param doIndividualAddress
+     * @param doComObjects
+     * @param doParams
+     * @throws de.konnekting.deviceconfig.ProgramException
      */
     public void program(DeviceConfigContainer device, boolean doIndividualAddress, boolean doComObjects, boolean doParams) throws ProgramException {
 
         try {
-            fireProgressStatusMessage("Initialize...");
+            fireProgressStatusMessage(getLangString("initialize")); // "Initialize..."
             if (!device.hasConfiguration()) {
                 throw new IllegalArgumentException("Device " + device + " has no programmable configuration");
             }
@@ -80,13 +84,13 @@ public class Program {
             }
 
             if (doComObjects) {
-                fireProgressStatusMessage("Reading commobjects...");
+                fireProgressStatusMessage(getLangString("readingComObjects"));// "Reading commobjects..."
                 comObjectConfiguration = c.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration();
                 maxSteps += comObjectConfiguration.size();
             }
 
             if (doParams) {
-                fireProgressStatusMessage("Reading parameters...");
+                fireProgressStatusMessage(getLangString("readingParameters")); //Reading parameters...
                 parameterConfiguration = c.getConfiguration().getParameterConfigurations().getParameterConfiguration();
                 maxSteps += parameterConfiguration.size();
             }
@@ -97,7 +101,7 @@ public class Program {
                 if (!abort) {
 
                     log.info("About to write physical address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
-                    fireProgressStatusMessage("Please press 'program' button...");
+                    fireProgressStatusMessage(getLangString("pleasePressProgButton"));//Please press 'program' button...
 
                     try {
                         mgt.writeIndividualAddress(individualAddress);
@@ -107,7 +111,7 @@ public class Program {
                         throw new ProgramException("Problem writing individual address", ex);
                     }
                 } else {
-                    fireProgressStatusMessage("Aborted!");
+                    fireProgressStatusMessage(getLangString("cancelled"));
                     fireProgressUpdate(maxSteps, maxSteps);
                     abort = false;
                     return;
@@ -115,7 +119,7 @@ public class Program {
             }
 
             if (abort) {
-                fireProgressStatusMessage("Aborted!");
+                fireProgressStatusMessage(getLangString("cancelled"));
                 fireProgressUpdate(maxSteps, maxSteps);
                 abort = false;
                 return;
@@ -126,11 +130,11 @@ public class Program {
             short revision = c.getDevice().getRevision();
 
             if (!abort) {
-                fireProgressStatusMessage("Starting programming...");
+                fireProgressStatusMessage(getLangString("startProgramming"));//Starting programming...
                 mgt.startProgramming(individualAddress, manufacturerId, deviceId, revision);
                 fireProgressUpdate(++i, maxSteps);
             } else {
-                fireProgressStatusMessage("Aborted!");
+                fireProgressStatusMessage(getLangString("cancelled"));
                 abort = false;
                 return;
             }
@@ -143,18 +147,18 @@ public class Program {
                         if (!abort) {
                             ComObject comObjectToWrite = new ComObject((byte) comObj.getId(), comObj.getGroupAddress());
                             log.debug("Writing ComObject: id={} ga={} active={}", new Object[]{comObjectToWrite.getId(), comObjectToWrite.getGroupAddress(), comObjectToWrite.isActive()});
-                            fireProgressStatusMessage("Writing comobject " + comObjectToWrite.getId() + " / active=" + comObjectToWrite.isActive());
+                            fireProgressStatusMessage(getLangString("writingComObject",comObjectToWrite.getId(), comObjectToWrite.isActive()));//Writing comobject " + comObjectToWrite.getId() + " / active=" + comObjectToWrite.isActive());
                             mgt.writeComObject(comObjectToWrite);
                             fireProgressUpdate(++i, maxSteps);
                         } else {
-                            fireProgressStatusMessage("Aborted!");
+                            fireProgressStatusMessage(getLangString("cancelled"));
                             abort = false;
                             return;
                         }
                     }
 
                 } else {
-                    fireProgressStatusMessage("Aborted!");
+                    fireProgressStatusMessage(getLangString("cancelled"));
                     abort = false;
                     return;
                 }
@@ -167,37 +171,58 @@ public class Program {
                         if (!abort) {
                             byte[] data = parameter.getValue();
                             log.debug("Writing " + Helper.bytesToHex(data) + " to param with id " + parameter.getId());
-                            fireProgressStatusMessage("Writing parameter " + parameter.getId());
+                            fireProgressStatusMessage(getLangString("writingParameter", parameter.getId()));
                             mgt.writeParameter(parameter.getId(), data);
                             fireProgressUpdate(++i, maxSteps);
                         } else {
-                            fireProgressStatusMessage("Aborted!");
+                            fireProgressStatusMessage(getLangString("cancelled"));
                             abort = false;
                             return;
                         }
                     }
                 } else {
-                    fireProgressStatusMessage("Aborted!");
+                    fireProgressStatusMessage(getLangString("cancelled"));
                     abort = false;
                     return;
                 }
             }
 
             log.info("Stopping programming");
-            fireProgressStatusMessage("Stopping programming...");
+            fireProgressStatusMessage(getLangString("stoppingProgramming"));//Stopping programming...");
             mgt.stopProgramming();
             fireProgressUpdate(++i, maxSteps);
             log.info("Restart device");
-            fireProgressStatusMessage("Trigger device restart...");
+            fireProgressStatusMessage(getLangString("triggerDeviceRestart"));//Trigger device restart...");
             mgt.restart(individualAddress);
             fireProgressUpdate(++i, maxSteps);
 
             log.info("All done.");
-            fireProgressStatusMessage("All done.");
+            fireProgressStatusMessage(getLangString("done"));//All done.");
             fireProgressUpdate(maxSteps, maxSteps);
 
         } catch (KnxException ex) {
             throw new ProgramException("Programming failed", ex);
+        }
+    }
+
+    private String getLangString(String key, Object... values) {
+        String completeKey = getClass().getSimpleName()+"."+key;
+        try {
+            String s = bundle.getString(completeKey);
+            return String.format(s, values);
+        } catch (Exception ex) {
+            log.error("Problem reading/using key '"+completeKey+"'", ex);
+            return "<"+completeKey+">";
+        }
+    }
+    
+    private String getLangString(String key) {
+        String completeKey = getClass().getSimpleName()+"."+key;
+        try {
+        return bundle.getString(completeKey);
+        } catch (Exception ex) {
+            log.error("Problem reading/using key '"+completeKey+"'", ex);
+            return "<"+completeKey+">";
         }
     }
 
