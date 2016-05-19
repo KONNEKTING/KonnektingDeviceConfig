@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 public class Program {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("de/konnekting/deviceconfig/Bundle"); // NOI18N
+    private final java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("de/konnekting/deviceconfig/i18n/language"); // NOI18N
     private final List<ProgramProgressListener> listeners = new ArrayList<>();
     private final Knx knx;
     private final KonnektingManagement mgt;
