@@ -18,6 +18,8 @@
  */
 package de.konnekting.deviceconfig.utils;
 
+import java.io.UnsupportedEncodingException;
+
 /**
  *
  * @author achristian
@@ -73,6 +75,10 @@ public class Bytes2ReadableValue {
                         ((b[3] & 0XFF) <<  0));
         
         return Float.intBitsToFloat(i);
+    }
+    
+    public synchronized String convertString11(byte[] b) throws UnsupportedEncodingException {
+        return new String(b, "ISO-8859-1");
     }
 
 }
