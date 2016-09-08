@@ -19,6 +19,7 @@
 package de.konnekting.deviceconfig.utils;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 
 /**
  *
@@ -31,21 +32,21 @@ public class Bytes2ReadableValue {
     }
 
     public synchronized short convertUINT8(byte[] b) {
-        int ch = b[0]&0xff;
-        return (short)ch;
+        int ch = b[0] & 0xff;
+        return (short) ch;
 
     }
 
     public synchronized short convertINT16(byte[] b) {
         int ch1 = b[0];
         int ch2 = b[1];
-        return (short)((ch1 << 8) + ((ch2 << 0)&0xFF));
+        return (short) ((ch1 << 8) + ((ch2 << 0) & 0xFF));
     }
 
     public synchronized int convertUINT16(byte[] b) {
         int ch1 = b[0];
         int ch2 = b[1];
-        return ((ch1 << 8)&0xff00) + ((ch2 << 0)&0xFF);
+        return ((ch1 << 8) & 0xff00) + ((ch2 << 0) & 0xFF);
     }
 
     public synchronized int convertINT32(byte[] b) {
@@ -53,32 +54,39 @@ public class Bytes2ReadableValue {
         int ch2 = b[1];
         int ch3 = b[2];
         int ch4 = b[3];
-        return (
-                ((ch1 << 24)&0xFF000000) + 
-                ((ch2 << 16)&0x00FF0000) + 
-                ((ch3 << 8) &0x0000FF00) + 
-                ((ch4 << 0) &0x000000FF));
+        return (((ch1 << 24) & 0xFF000000)
+            + ((ch2 << 16) & 0x00FF0000)
+            + ((ch3 << 8) & 0x0000FF00)
+            + ((ch4 << 0) & 0x000000FF));
     }
 
     public synchronized long convertUINT32(byte[] b) {
-        return (((long)(b[0] & 0XFF) << 24) +
-                        ((b[1] & 0XFF) << 16) +
-                        ((b[2] & 0XFF) <<  8) +
-                        ((b[3] & 0XFF) <<  0));
+        return (((long) (b[0] & 0XFF) << 24)
+            + ((b[1] & 0XFF) << 16)
+            + ((b[2] & 0XFF) << 8)
+            + ((b[3] & 0XFF) << 0));
     }
-    
+
     public synchronized float convertFLOAT32(byte[] b) {
-        
-        int i = (((int)(b[0] & 0XFF) << 24) +
-                        ((b[1] & 0XFF) << 16) +
-                        ((b[2] & 0XFF) <<  8) +
-                        ((b[3] & 0XFF) <<  0));
-        
+
+        int i = (((int) (b[0] & 0XFF) << 24)
+            + ((b[1] & 0XFF) << 16)
+            + ((b[2] & 0XFF) << 8)
+            + ((b[3] & 0XFF) << 0));
+
         return Float.intBitsToFloat(i);
     }
-    
+
     public synchronized String convertString11(byte[] b) throws UnsupportedEncodingException {
-        return new String(b, "ISO-8859-1");
+        // search for terminating 0x00 and cut string off
+        int indexOf = Arrays.asList(b).indexOf((int) 0x00);
+        if (indexOf != -1) {
+            byte[] s = new byte[indexOf /* = length of string */];
+            System.arraycopy(b, 0, s, 0, indexOf);
+            return new String(s, "ISO-8859-1");
+        } else {
+            return new String(b, "ISO-8859-1");
+        }
     }
 
 }

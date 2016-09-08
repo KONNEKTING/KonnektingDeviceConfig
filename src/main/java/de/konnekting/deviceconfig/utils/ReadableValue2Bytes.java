@@ -74,7 +74,18 @@ public class ReadableValue2Bytes {
     }
     
     public synchronized byte[] convertString11(String s) throws UnsupportedEncodingException {
-        return s.getBytes("ISO-8859-1");
+        /* 
+         * init resulting array with 0x00
+         * so that unused tailing chars of string11 are 0x00
+         */
+        byte[] b = new byte[]{
+            (int) 0x00, (int) 0x00, (int) 0x00, 
+            (int) 0x00, (int) 0x00, (int) 0x00, 
+            (int) 0x00, (int) 0x00, (int) 0x00, 
+            (int) 0x00, (int) 0x00};
+        byte[] strBytes = s.getBytes("ISO-8859-1");
+        System.arraycopy(strBytes, 0, b, 0, strBytes.length);
+        return b;
     }
     
 }
