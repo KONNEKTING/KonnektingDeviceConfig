@@ -5,7 +5,10 @@
  */
 package de.konnekting.suite.utils;
 
+import de.konnekting.deviceconfig.utils.Helper;
 import de.konnekting.deviceconfig.utils.ReadableValue2Bytes;
+import java.io.UnsupportedEncodingException;
+import org.junit.Assert;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -174,6 +177,24 @@ public class ReadableValue2BytesTest {
         expResult = new byte[]{(byte)0xc1, 0x3b, 0x33, (byte)0x33};
         result = instance.convertFLOAT32(v);
         assertArrayEquals("FLOAT32 -11.7 failed", expResult, result);
+    }
+    
+    /**
+     * Test of convertSTRING11 method, of class Bytes2ReadableValue.
+     * @throws java.io.UnsupportedEncodingException
+     */
+    @Test
+    public void testConvertSTRING11() throws UnsupportedEncodingException {
+        System.out.println("convertSTRING11");
+        ReadableValue2Bytes instance = new ReadableValue2Bytes();
+        
+        byte[] expResult = Helper.hexToBytes("48656c6c6f20576f726c64");
+        byte[] result = instance.convertString11("Hello World");
+        Assert.assertArrayEquals("STRING11 failed", expResult, result);
+        
+        expResult = Helper.hexToBytes("666f6f2062617200000000");
+        result = instance.convertString11("foo bar");
+        Assert.assertArrayEquals("STRING11 failed", expResult, result);
     }
 
 }

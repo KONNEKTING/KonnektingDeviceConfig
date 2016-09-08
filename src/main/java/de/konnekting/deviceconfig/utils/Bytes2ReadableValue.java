@@ -79,7 +79,13 @@ public class Bytes2ReadableValue {
 
     public synchronized String convertString11(byte[] b) throws UnsupportedEncodingException {
         // search for terminating 0x00 and cut string off
-        int indexOf = Arrays.asList(b).indexOf((int) 0x00);
+        int indexOf = -1;
+        for (int i = 0; i < b.length; i++) {
+            if (b[i] == (int) 0x00) {
+                indexOf = i;
+                break;
+            }
+        }
         if (indexOf != -1) {
             byte[] s = new byte[indexOf /* = length of string */];
             System.arraycopy(b, 0, s, 0, indexOf);
