@@ -18,7 +18,7 @@
  */
 package de.konnekting.deviceconfig.utils;
 
-import de.konnekting.xml.konnektingdevice.v0.ParameterType;
+import de.konnekting.xml.konnektingdevice.v0.ParamType;
 import java.io.File;
 import java.io.IOException;
 import java.util.regex.Matcher;
@@ -170,33 +170,33 @@ public class Helper {
         return false;
     }
 
-    public static boolean isNumberType(ParameterType paramType) {
+    public static boolean isNumberType(ParamType paramType) {
         switch (paramType) {
-            case INT8:
-            case UINT8:
-            case INT16:
-            case UINT16:
-            case INT32:
-            case UINT32:
+            case INT_8:
+            case UINT_8:
+            case INT_16:
+            case UINT_16:
+            case INT_32:
+            case UINT_32:
                 return true;
             default:
                 return false;
         }
     }
     
-    public static boolean isRawType(ParameterType paramType) {
+    public static boolean isRawType(ParamType paramType) {
         switch (paramType) {
-            case RAW1:
-            case RAW2:
-            case RAW3:
-            case RAW4:
-            case RAW5:
-            case RAW6:
-            case RAW7:
-            case RAW8:
-            case RAW9:
-            case RAW10:
-            case RAW11:
+            case RAW_1:
+            case RAW_2:
+            case RAW_3:
+            case RAW_4:
+            case RAW_5:
+            case RAW_6:
+            case RAW_7:
+            case RAW_8:
+            case RAW_9:
+            case RAW_10:
+            case RAW_11:
                 return true;
             default:
                 return false;
