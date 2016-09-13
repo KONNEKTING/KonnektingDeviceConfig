@@ -32,9 +32,20 @@ public class ComObject {
         this.groupAddress = groupAddress;
         
         if (groupAddress==null || (groupAddress!=null && groupAddress.isEmpty())) {
-            active = false;
+            this.active = false; // if no address, always inactive
         } else {
-            active = true;
+            this.active = true; // if address without external active-info --> true
+        }
+    }
+    
+    public ComObject(byte id, String groupAddress, boolean active) {
+        this.id = id;
+        this.groupAddress = groupAddress;
+        
+        if (groupAddress==null || (groupAddress!=null && groupAddress.isEmpty())) {
+            this.active = false; // if no address, always inactive
+        } else {
+            this.active = active; // if address, depends on active flag
         }
     }
 

@@ -156,7 +156,7 @@ public class Program {
 
                     for (CommObjectConfiguration comObj : comObjectConfiguration) {
                         if (!abort) {
-                            ComObject comObjectToWrite = new ComObject((byte) comObj.getId(), comObj.getGroupAddress());
+                            ComObject comObjectToWrite = new ComObject((byte) comObj.getId(), comObj.getGroupAddress(), comObj.isActive());
                             log.debug("Writing ComObject: id={} ga={} active={}", new Object[]{comObjectToWrite.getId(), comObjectToWrite.getGroupAddress(), comObjectToWrite.isActive()});
                             fireProgressStatusMessage(getLangString("writingComObject",comObjectToWrite.getId(), comObjectToWrite.isActive()));//Writing comobject " + comObjectToWrite.getId() + " / active=" + comObjectToWrite.isActive());
                             mgt.writeComObject(comObjectToWrite);

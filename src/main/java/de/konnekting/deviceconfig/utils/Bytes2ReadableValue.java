@@ -19,7 +19,6 @@
 package de.konnekting.deviceconfig.utils;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
 
 /**
  *

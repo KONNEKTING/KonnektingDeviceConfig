@@ -20,11 +20,15 @@ package de.konnekting.deviceconfig;
 
 import com.rits.cloning.Cloner;
 import de.konnekting.deviceconfig.exception.InvalidAddressFormatException;
+import de.konnekting.deviceconfig.utils.Bytes2ReadableValue;
 import de.konnekting.deviceconfig.utils.Helper;
+import de.konnekting.deviceconfig.utils.ReflectionIdComparator;
 import de.konnekting.xml.konnektingdevice.v0.CommObject;
 import de.konnekting.xml.konnektingdevice.v0.CommObjectConfiguration;
 import de.konnekting.xml.konnektingdevice.v0.CommObjectConfigurations;
+import de.konnekting.xml.konnektingdevice.v0.CommObjectDependency;
 import de.konnekting.xml.konnektingdevice.v0.Configuration;
+import de.konnekting.xml.konnektingdevice.v0.Dependencies;
 import de.konnekting.xml.konnektingdevice.v0.IndividualAddress;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDevice;
 import de.konnekting.xml.konnektingdevice.v0.Parameter;
@@ -32,7 +36,9 @@ import de.konnekting.xml.konnektingdevice.v0.ParameterConfiguration;
 import de.konnekting.xml.konnektingdevice.v0.ParameterConfigurations;
 import de.konnekting.xml.konnektingdevice.v0.ParameterGroup;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDeviceXmlService;
+import de.konnekting.xml.konnektingdevice.v0.ParamType;
 import de.konnekting.xml.konnektingdevice.v0.Parameters;
+import de.konnekting.xml.konnektingdevice.v0.TestType;
 import de.root1.rooteventbus.RootEventBus;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -44,6 +50,7 @@ import java.nio.file.Files;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import javax.xml.bind.JAXBException;
@@ -83,63 +90,80 @@ public class DeviceConfigContainer {
      * @throws JAXBException
      */
     private void fillDefaults() throws SAXException, JAXBException {
-        if (!f.getName().endsWith(".kdevice.xml") && !defaultsFilled) {
-            log.info("Filling defaults in file {}", f);
-            defaultsFilled = true;
+        if (!f.getName().endsWith(".kdevice.xml")) {
+
             boolean dirty = false;
+            if (!defaultsFilled) {
 
-            Configuration c = getOrCreateConfiguration();
+                log.info("Filling defaults in file {}", f);
+                defaultsFilled = true;
 
-            if (c.getIndividualAddress() == null) {
-                log.info("Setting default individual address");
-                IndividualAddress individualAddress = new IndividualAddress();
-                individualAddress.setAddress("1.1.");
-                c.setIndividualAddress(individualAddress);
-            }
+                Configuration c = getOrCreateConfiguration();
 
-            CommObjectConfigurations comObjectConfigurations = c.getCommObjectConfigurations();
+                if (c.getIndividualAddress() == null) {
+                    log.info("Setting default individual address");
+                    IndividualAddress individualAddress = new IndividualAddress();
+                    individualAddress.setAddress("1.1.");
+                    c.setIndividualAddress(individualAddress);
+                }
 
-            if (comObjectConfigurations == null) {
-                comObjectConfigurations = new CommObjectConfigurations();
-                c.setCommObjectConfigurations(comObjectConfigurations);
-                dirty = true;
-            }
+                CommObjectConfigurations comObjectConfigurations = c.getCommObjectConfigurations();
 
-            if (comObjectConfigurations.getCommObjectConfiguration().isEmpty()) {
-                log.info("Setting defaults for com objects");
-                // set default values for comobjects
-                for (CommObject comObj : device.getDevice().getCommObjects().getCommObject()) {
-                    CommObjectConfiguration comObjConf = new CommObjectConfiguration();
-                    comObjConf.setId(comObj.getId());
-                    comObjectConfigurations.getCommObjectConfiguration().add(comObjConf);
+                if (comObjectConfigurations == null) {
+                    comObjectConfigurations = new CommObjectConfigurations();
+                    c.setCommObjectConfigurations(comObjectConfigurations);
                     dirty = true;
+                }
+
+                if (comObjectConfigurations.getCommObjectConfiguration().isEmpty()) {
+                    log.info("Setting defaults for com objects");
+                    // set default values for comobjects
+                    for (CommObject comObj : device.getDevice().getCommObjects().getCommObject()) {
+                        CommObjectConfiguration comObjConf = new CommObjectConfiguration();
+                        comObjConf.setId(comObj.getId());
+                        comObjectConfigurations.getCommObjectConfiguration().add(comObjConf);
+                        dirty = true;
+                    }
+                }
+
+                ParameterConfigurations parameterConfigurations = c.getParameterConfigurations();
+
+                if (parameterConfigurations == null) {
+                    parameterConfigurations = new ParameterConfigurations();
+                    c.setParameterConfigurations(parameterConfigurations);
+                    dirty = true;
+                }
+
+                if (parameterConfigurations.getParameterConfiguration().isEmpty()) {
+                    log.info("Setting defaults for parameters");
+                    // set default param values
+                    Parameters parameters = device.getDevice().getParameters();
+                    if (parameters != null) {
+                        List<ParameterGroup> paramGroups = parameters.getGroup();
+                        for (ParameterGroup paramGroup : paramGroups) {
+                            List<Parameter> params = paramGroup.getParameter();
+                            for (Parameter param : params) {
+                                ParameterConfiguration paramConf = new ParameterConfiguration();
+                                paramConf.setId(param.getId());
+                                paramConf.setValue(param.getValue().getDefault());
+                                parameterConfigurations.getParameterConfiguration().add(paramConf);
+                                dirty = true;
+                            }
+                        }
+                    }
                 }
             }
 
-            ParameterConfigurations parameterConfigurations = c.getParameterConfigurations();
+            // update active/inactive dependencie check
+            log.info("Setting active/inactive flags for com objects");
+            for (CommObjectConfiguration comObjConf : device.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration()) {
+                boolean oldValue = comObjConf.isActive();
+                comObjConf.setActive(isCommObjectEnabled(comObjConf.getId()));
+                boolean newValue = comObjConf.isActive();
 
-            if (parameterConfigurations == null) {
-                parameterConfigurations = new ParameterConfigurations();
-                c.setParameterConfigurations(parameterConfigurations);
-                dirty = true;
-            }
-
-            if (parameterConfigurations.getParameterConfiguration().isEmpty()) {
-                log.info("Setting defaults for parameters");
-                // set default param values
-                Parameters parameters = device.getDevice().getParameters();
-                if (parameters != null) {
-                    List<ParameterGroup> paramGroups = parameters.getGroup();
-                    for (ParameterGroup paramGroup : paramGroups) {
-                        List<Parameter> params = paramGroup.getParameter();
-                        for (Parameter param : params) {
-                            ParameterConfiguration paramConf = new ParameterConfiguration();
-                            paramConf.setId(param.getId());
-                            paramConf.setValue(param.getValue().getDefault());
-                            parameterConfigurations.getParameterConfiguration().add(paramConf);
-                            dirty = true;
-                        }
-                    }
+                if (oldValue != newValue) {
+                    log.info("changed active/inactive of comobj #{} from {} to {}", comObjConf.getId(), oldValue, newValue);
+                    dirty = true;
                 }
             }
             if (dirty) {
@@ -287,7 +311,7 @@ public class DeviceConfigContainer {
             commObjectConfigurations = new CommObjectConfigurations();
             configuration.setCommObjectConfigurations(commObjectConfigurations);
 
-            for (CommObject co : getCommObjects()) {
+            for (CommObject co : getAllCommObjects()) {
                 CommObjectConfiguration coc = new CommObjectConfiguration();
                 coc.setId(co.getId());
             }
@@ -327,8 +351,70 @@ public class DeviceConfigContainer {
         }
     }
 
-    public List<? extends CommObject> getCommObjects() {
+    public List<? extends CommObject> getAllCommObjects() {
         return device.getDevice().getCommObjects().getCommObject();
+    }
+
+    public CommObject getCommObject(int id) {
+        for (CommObject co : getAllCommObjects()) {
+            if (co.getId() == id) {
+                return co;
+            }
+        }
+        return null;
+    }
+
+    public boolean isCommObjectEnabled(int id) {
+        CommObject co = getCommObject(id);
+        return isCommObjectEnabled(co);
+    }
+
+    /**
+     * Returns true if CommObjects is "enabled" through param-dependency (or
+     * missing dependency)
+     *
+     * @param co
+     * @return
+     */
+    public boolean isCommObjectEnabled(CommObject co) {
+
+        log.info("Testing co #{}", co);
+        Dependencies dependencies = device.getDevice().getDependencies();
+
+        // no dependency defined, return true
+        if (dependencies == null) {
+            return true;
+        }
+
+        List<CommObjectDependency> commObjectDependency = dependencies.getCommObjectDependency();
+
+        // no co dependency set, return true
+        if (commObjectDependency.isEmpty()) {
+            return true;
+        }
+
+        List<Parameter> allParameters = getAllParameters();
+        allParameters.sort(new ReflectionIdComparator());
+
+        for (CommObjectDependency dep : commObjectDependency) {
+            if (dep.getCommObjId() == co.getId()) {
+                // matching dependency found, do test
+                TestType test = dep.getTest();
+                Short testParamId = dep.getTestParamId();
+                byte[] testValue = dep.getTestValue();
+
+                ParameterConfiguration parameterConfig = getParameterConfig(testParamId);
+                byte[] value = parameterConfig.getValue();
+
+                ParamType type = allParameters.get(testParamId).getValue().getType();
+
+                boolean enabled = testValue(test, testValue, value, type);
+                setCommObjectActive(co.getId(), enabled);
+                return enabled;
+
+            }
+        }
+        return true;
     }
 
     public List<ParameterGroup> getParameterGroups() {
@@ -389,6 +475,16 @@ public class DeviceConfigContainer {
         }
         return true;
     }
+    
+    public boolean getCommObjectActive(Short id) {
+        List<CommObjectConfiguration> commObjectConfigurations = getOrCreateCommObjectConfigurations().getCommObjectConfiguration();
+        for (CommObjectConfiguration conf : commObjectConfigurations) {
+            if (conf.getId() == id) {
+                return conf.isActive();
+            }
+        }
+        return false;
+    }
 
     public String getCommObjectDescription(Short id) {
 
@@ -409,6 +505,14 @@ public class DeviceConfigContainer {
             }
         }
         return "";
+    }
+    
+    public void setCommObjectActive(Short id, boolean active) {
+        boolean oldValue = getCommObjectActive(id);
+        getOrCreateCommObjConf(id).setActive(active);
+        if (active!=oldValue) {
+            eventbus.post(new EventDeviceChanged(this));
+        }
     }
 
     public void setCommObjectDescription(Short id, String description) {
@@ -572,6 +676,48 @@ public class DeviceConfigContainer {
         } catch (SAXException | JAXBException ex) {
             throw new IOException("Error writing data before cloning.", ex);
         }
+    }
+
+    private boolean testValue(TestType test, byte[] testValue, byte[] value, ParamType valueType) {
+
+        if (valueType != ParamType.UINT_8) {
+            log.warn("INVALID DEPENDENCY: only uint8-typed params are supported as dependant param. Test will fail.");
+            return false;
+        }
+
+        Bytes2ReadableValue b2r = new Bytes2ReadableValue();
+        short shortValue = b2r.convertUINT8(value);
+        short shortTestValue = b2r.convertUINT8(testValue);
+
+        log.debug("Testing value {} against testvalue {} with test {}", shortValue, shortTestValue, test.toString());
+
+        boolean testresult = false;
+        switch (test) {
+            case EQ:
+                testresult = (shortValue == shortTestValue);
+                break;
+
+            case NE:
+                testresult = (shortValue == shortTestValue);
+                break;
+
+            case GT:
+                testresult = (shortValue > shortTestValue);
+                break;
+
+            case LT:
+                testresult = (shortValue < shortTestValue);
+                break;
+
+            case GE:
+                testresult = (shortValue >= shortTestValue);
+                break;
+
+            case LE:
+                testresult = (shortValue <= shortTestValue);
+                break;
+        }
+        return testresult;
     }
 
 }
