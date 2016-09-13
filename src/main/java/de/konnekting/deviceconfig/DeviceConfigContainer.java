@@ -38,6 +38,7 @@ import de.konnekting.xml.konnektingdevice.v0.ParameterGroup;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDeviceXmlService;
 import de.konnekting.xml.konnektingdevice.v0.ParamType;
 import de.konnekting.xml.konnektingdevice.v0.ParameterDependency;
+import de.konnekting.xml.konnektingdevice.v0.ParameterGroupDependency;
 import de.konnekting.xml.konnektingdevice.v0.Parameters;
 import de.konnekting.xml.konnektingdevice.v0.TestType;
 import de.root1.rooteventbus.RootEventBus;
@@ -140,7 +141,7 @@ public class DeviceConfigContainer {
                     // set default param values
                     Parameters parameters = device.getDevice().getParameters();
                     if (parameters != null) {
-                        List<ParameterGroup> paramGroups = parameters.getGroup();
+                        List<ParameterGroup> paramGroups = parameters.getParameterGroup();
                         for (ParameterGroup paramGroup : paramGroups) {
                             List<Parameter> params = paramGroup.getParameter();
                             for (Parameter param : params) {
@@ -425,7 +426,7 @@ public class DeviceConfigContainer {
     }
 
     public List<ParameterGroup> getParameterGroups() {
-        return device.getDevice().getParameters().getGroup();
+        return device.getDevice().getParameters().getParameterGroup();
     }
 
     public String getDeviceName() {
@@ -544,7 +545,7 @@ public class DeviceConfigContainer {
 
     private List<Parameter> getAllParameters() {
         List<Parameter> params = new ArrayList<>();
-        List<ParameterGroup> paramGroups = device.getDevice().getParameters().getGroup();
+        List<ParameterGroup> paramGroups = device.getDevice().getParameters().getParameterGroup();
         for (ParameterGroup paramGroup : paramGroups) {
             params.addAll(paramGroup.getParameter());
         }
@@ -557,7 +558,7 @@ public class DeviceConfigContainer {
     }
 
     public Parameter getParameter(short id) {
-        List<ParameterGroup> groups = device.getDevice().getParameters().getGroup();
+        List<ParameterGroup> groups = device.getDevice().getParameters().getParameterGroup();
         for (ParameterGroup group : groups) {
             List<Parameter> params = group.getParameter();
             for (Parameter param : params) {
@@ -602,7 +603,7 @@ public class DeviceConfigContainer {
 
     public List<Parameter> getParameterGroup(String selectedGroup) {
 
-        List<ParameterGroup> groups = device.getDevice().getParameters().getGroup();
+        List<ParameterGroup> groups = device.getDevice().getParameters().getParameterGroup();
         for (ParameterGroup group : groups) {
             if (group.getName().equals(selectedGroup)) {
                 return group.getParameter();
@@ -748,6 +749,49 @@ public class DeviceConfigContainer {
 
         for (ParameterDependency dep : paramDependencies) {
             if (dep.getParamId()== param.getId()) {
+                // matching dependency found, do test
+                TestType test = dep.getTest();
+                Short testParamId = dep.getTestParamId();
+                byte[] testValue = dep.getTestValue();
+
+                ParameterConfiguration parameterConfig = getParameterConfig(testParamId);
+                byte[] value = parameterConfig.getValue();
+
+                ParamType type = allParameters.get(testParamId).getValue().getType();
+
+                boolean enabled = testValue(test, testValue, value, type);
+                log.info("Dependency test result: {}", enabled);
+                return enabled;
+
+            }
+        }
+        
+        log.info("No dependency found. Forcing to true");
+        
+        return true;
+    }
+    
+    public boolean isParameterGroupEnabled(ParameterGroup group) {
+        log.info("Testing paramgroup #{}", group.getId());
+        Dependencies dependencies = device.getDevice().getDependencies();
+
+        // no dependency defined, return true
+        if (dependencies == null) {
+            return true;
+        }
+
+        List<ParameterGroupDependency> paramGroupDependencies = dependencies.getParameterGroupDependency();
+
+        // no co dependency set, return true
+        if (paramGroupDependencies.isEmpty()) {
+            return true;
+        }
+
+        List<Parameter> allParameters = getAllParameters();
+        allParameters.sort(new ReflectionIdComparator());
+
+        for (ParameterGroupDependency dep : paramGroupDependencies) {
+            if (dep.getParamGroupId()== group.getId()) {
                 // matching dependency found, do test
                 TestType test = dep.getTest();
                 Short testParamId = dep.getTestParamId();
