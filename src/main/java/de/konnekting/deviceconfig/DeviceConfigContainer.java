@@ -37,6 +37,7 @@ import de.konnekting.xml.konnektingdevice.v0.ParameterConfigurations;
 import de.konnekting.xml.konnektingdevice.v0.ParameterGroup;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDeviceXmlService;
 import de.konnekting.xml.konnektingdevice.v0.ParamType;
+import de.konnekting.xml.konnektingdevice.v0.ParameterDependency;
 import de.konnekting.xml.konnektingdevice.v0.Parameters;
 import de.konnekting.xml.konnektingdevice.v0.TestType;
 import de.root1.rooteventbus.RootEventBus;
@@ -724,6 +725,49 @@ public class DeviceConfigContainer {
                 break;
         }
         return testresult;
+    }
+
+    public boolean isParameterEnabled(Parameter param) {
+        log.info("Testing param #{}", param.getId());
+        Dependencies dependencies = device.getDevice().getDependencies();
+
+        // no dependency defined, return true
+        if (dependencies == null) {
+            return true;
+        }
+
+        List<ParameterDependency> paramDependencies = dependencies.getParameterDependency();
+
+        // no co dependency set, return true
+        if (paramDependencies.isEmpty()) {
+            return true;
+        }
+
+        List<Parameter> allParameters = getAllParameters();
+        allParameters.sort(new ReflectionIdComparator());
+
+        for (ParameterDependency dep : paramDependencies) {
+            if (dep.getParamId()== param.getId()) {
+                // matching dependency found, do test
+                TestType test = dep.getTest();
+                Short testParamId = dep.getTestParamId();
+                byte[] testValue = dep.getTestValue();
+
+                ParameterConfiguration parameterConfig = getParameterConfig(testParamId);
+                byte[] value = parameterConfig.getValue();
+
+                ParamType type = allParameters.get(testParamId).getValue().getType();
+
+                boolean enabled = testValue(test, testValue, value, type);
+                log.info("Dependency test result: {}", enabled);
+                return enabled;
+
+            }
+        }
+        
+        log.info("No dependency found. Forcing to true");
+        
+        return true;
     }
 
 }
