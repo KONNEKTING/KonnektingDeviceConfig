@@ -158,6 +158,7 @@ public class DeviceConfigContainer {
             log.info("Setting active/inactive flags for com objects");
             for (CommObjectConfiguration comObjConf : device.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration()) {
                 boolean oldValue = comObjConf.isActive();
+                
                 comObjConf.setActive(isCommObjectEnabled(comObjConf.getId()));
                 boolean newValue = comObjConf.isActive();
 
@@ -371,14 +372,14 @@ public class DeviceConfigContainer {
 
     /**
      * Returns true if CommObjects is "enabled" through param-dependency (or
-     * missing dependency)
+     * missing dependency). This will also update automatically the active-flag on the config for this comobj
      *
      * @param co
      * @return
      */
     public boolean isCommObjectEnabled(CommObject co) {
 
-        log.info("Testing co #{}", co);
+        log.info("Testing co #{}", co.getId());
         Dependencies dependencies = device.getDevice().getDependencies();
 
         // no dependency defined, return true
@@ -410,10 +411,15 @@ public class DeviceConfigContainer {
 
                 boolean enabled = testValue(test, testValue, value, type);
                 setCommObjectActive(co.getId(), enabled);
+                log.info("Dependency test result: {}", enabled);
                 return enabled;
 
             }
         }
+        
+        log.info("No dependency found. Forcing to true");
+        
+        setCommObjectActive(co.getId(), true);
         return true;
     }
 
