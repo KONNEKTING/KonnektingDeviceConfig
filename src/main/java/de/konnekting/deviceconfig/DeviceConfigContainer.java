@@ -180,8 +180,11 @@ public class DeviceConfigContainer {
     }
 
     public synchronized void writeConfig(File file) throws JAXBException, SAXException {
+        if (f==null) {
+            log.debug("About to write removed file for {}, skipping", this);    
+        }
         this.f = file;
-        log.debug("About to write config: " + f.getName());
+        log.debug("About to write config: {}", f.getName());
         fillDefaults();
         boolean equal;
 
@@ -456,10 +459,10 @@ public class DeviceConfigContainer {
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 59 * hash + Objects.hashCode(this.device);
-        hash = 59 * hash + Objects.hashCode(this.f);
+        hash = 71 * hash + Objects.hashCode(this.device);
         return hash;
     }
+
 
     @Override
     public boolean equals(Object obj) {
