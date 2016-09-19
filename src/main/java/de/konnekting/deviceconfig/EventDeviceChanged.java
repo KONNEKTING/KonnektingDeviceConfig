@@ -31,7 +31,7 @@ public class EventDeviceChanged {
         this.deviceconfig = deviceconfig;
     }
 
-    public DeviceConfigContainer getDeviceconfig() {
+    public DeviceConfigContainer getDeviceConfig() {
         return deviceconfig;
     }
     

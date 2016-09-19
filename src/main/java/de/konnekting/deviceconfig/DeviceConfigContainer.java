@@ -42,17 +42,12 @@ import de.konnekting.xml.konnektingdevice.v0.ParameterGroupDependency;
 import de.konnekting.xml.konnektingdevice.v0.Parameters;
 import de.konnekting.xml.konnektingdevice.v0.TestType;
 import de.root1.rooteventbus.RootEventBus;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import javax.xml.bind.JAXBException;
@@ -601,12 +596,12 @@ public class DeviceConfigContainer {
         }
     }
 
-    public List<Parameter> getParameterGroup(String selectedGroup) {
+    public ParameterGroup getParameterGroup(String selectedGroup) {
 
         List<ParameterGroup> groups = device.getDevice().getParameters().getParameterGroup();
         for (ParameterGroup group : groups) {
             if (group.getName().equals(selectedGroup)) {
-                return group.getParameter();
+                return group;
             }
         }
         throw new IllegalArgumentException("Group '" + selectedGroup + "' not known. XML faulty?");
