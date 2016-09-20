@@ -384,6 +384,7 @@ public class DeviceConfigContainer {
 
         // no dependency defined, return true
         if (dependencies == null) {
+            log.info("No dependencies. force to true.");
             return true;
         }
 
