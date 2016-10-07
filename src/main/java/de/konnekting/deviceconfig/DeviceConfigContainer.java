@@ -705,7 +705,7 @@ public class DeviceConfigContainer {
                 break;
 
             case NE:
-                testresult = (shortValue == shortTestValue);
+                testresult = (shortValue != shortTestValue);
                 break;
 
             case GT:
