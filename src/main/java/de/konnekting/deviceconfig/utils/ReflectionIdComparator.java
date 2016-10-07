@@ -34,11 +34,31 @@ public class ReflectionIdComparator implements Comparator<Object> {
     @Override
     public int compare(Object o1, Object o2) {
         try {
-            Method m1 = o1.getClass().getDeclaredMethod("getId", (Class<?>) null);
-            Method m2 = o2.getClass().getDeclaredMethod("getId", (Class<?>) null);
+            Method m1 = o1.getClass().getDeclaredMethod("getId", new Class[]{});
+            Method m2 = o2.getClass().getDeclaredMethod("getId", new Class[]{});
             
-            byte id1 = (byte) m1.invoke(o1, (Object) null);
-            byte id2 = (byte) m2.invoke(o2, (Object) null);
+            Object oid1 = m1.invoke(o1);
+            Object oid2 = m2.invoke(o2);
+            
+            long id1 = 0;
+            long id2 = 0;
+            
+            if (oid1 instanceof Byte && oid2 instanceof Byte) {
+                id1 = (Byte) oid1;
+                id2 = (Byte) oid2;
+            } else if (oid1 instanceof Short && oid2 instanceof Short) {
+                id1 = (Short) oid1;
+                id2 = (Short) oid2;
+            } else if (oid1 instanceof Integer && oid2 instanceof Integer) {
+                id1 = (Integer) oid1;
+                id2 = (Integer) oid2;
+            } else if (oid1 instanceof Long && oid2 instanceof Long) {
+                id1 = (Long) oid1;
+                id2 = (Long) oid2;
+            } else {
+                return 0;
+            }
+            
             
             if (id1 < id2) {
                     return -1;
