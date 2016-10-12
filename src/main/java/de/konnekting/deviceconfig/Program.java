@@ -155,17 +155,18 @@ public class Program {
                     log.info("Writing commobjects ...");
 
                     for (CommObjectConfiguration comObj : comObjectConfiguration) {
-                        if (!abort) {
-                            ComObject comObjectToWrite = new ComObject((byte) comObj.getId(), comObj.getGroupAddress(), comObj.isActive());
-                            log.debug("Writing ComObject: id={} ga={} active={}", new Object[]{comObjectToWrite.getId(), comObjectToWrite.getGroupAddress(), comObjectToWrite.isActive()});
-                            fireProgressStatusMessage(getLangString("writingComObject",comObjectToWrite.getId(), comObjectToWrite.isActive()));//Writing comobject " + comObjectToWrite.getId() + " / active=" + comObjectToWrite.isActive());
-                            mgt.writeComObject(comObjectToWrite);
-                            fireProgressUpdate(++i, maxSteps);
-                        } else {
-                            fireProgressStatusMessage(getLangString("cancelled"));
-                            abort = false;
-                            return;
-                        }
+                        log.error("MISSING IMPLEMENTATION!!!!");
+//                        if (!abort) {
+//                            ComObject comObjectToWrite = new ComObject((byte) comObj.getId(), comObj.getGroupAddress(), comObj.isActive());
+//                            log.debug("Writing ComObject: id={} ga={} active={}", new Object[]{comObjectToWrite.getId(), comObjectToWrite.getGroupAddress(), comObjectToWrite.isActive()});
+//                            fireProgressStatusMessage(getLangString("writingComObject",comObjectToWrite.getId(), comObjectToWrite.isActive()));//Writing comobject " + comObjectToWrite.getId() + " / active=" + comObjectToWrite.isActive());
+//                            mgt.writeComObject(comObjectToWrite);
+//                            fireProgressUpdate(++i, maxSteps);
+//                        } else {
+//                            fireProgressStatusMessage(getLangString("cancelled"));
+//                            abort = false;
+//                            return;
+//                        }
                     }
 
                 } else {

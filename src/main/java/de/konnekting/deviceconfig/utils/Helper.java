@@ -19,8 +19,12 @@
 package de.konnekting.deviceconfig.utils;
 
 import de.konnekting.xml.konnektingdevice.v0.ParamType;
+import de.root1.slicknx.KnxException;
+import de.root1.slicknx.Utils;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -34,6 +38,32 @@ public class Helper {
 
     private static final Logger LOG = LoggerFactory.getLogger(Helper.class);
     private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+    private static Map<ParamType, Integer> PARAM_SIZE_MAP = new HashMap<>();
+    
+    static {
+        PARAM_SIZE_MAP.put(ParamType.INT_8, 1);
+        PARAM_SIZE_MAP.put(ParamType.UINT_8, 1);
+        
+        PARAM_SIZE_MAP.put(ParamType.INT_16, 2);
+        PARAM_SIZE_MAP.put(ParamType.UINT_16, 2);
+        
+        PARAM_SIZE_MAP.put(ParamType.INT_32, 4);
+        PARAM_SIZE_MAP.put(ParamType.UINT_32, 4);
+        
+        PARAM_SIZE_MAP.put(ParamType.RAW_1, 1);
+        PARAM_SIZE_MAP.put(ParamType.RAW_2, 2);
+        PARAM_SIZE_MAP.put(ParamType.RAW_3, 3);
+        PARAM_SIZE_MAP.put(ParamType.RAW_4, 4);
+        PARAM_SIZE_MAP.put(ParamType.RAW_5, 5);
+        PARAM_SIZE_MAP.put(ParamType.RAW_6, 6);
+        PARAM_SIZE_MAP.put(ParamType.RAW_7, 7);
+        PARAM_SIZE_MAP.put(ParamType.RAW_8, 8);
+        PARAM_SIZE_MAP.put(ParamType.RAW_9, 9);
+        PARAM_SIZE_MAP.put(ParamType.RAW_10, 10);
+        PARAM_SIZE_MAP.put(ParamType.RAW_11, 11);
+        
+        PARAM_SIZE_MAP.put(ParamType.STRING_11, 11);
+    }
 
     public static String bytesToHex(byte[] bytes) {
         return bytesToHex(bytes, false);
@@ -74,13 +104,31 @@ public class Helper {
     private static final Pattern PA_PARKED_PATTERN = Pattern.compile("\\A\\d{1,2}\\.\\d{1,2}\\.\\z");
     private static final Pattern GA_PATTERN = Pattern.compile("\\A\\d{1,2}/\\d{1,2}/\\d{1,3}\\z");
 
-    public static byte[] addrToBytes(int a, int b, int c) {
-        byte[] buffer = new byte[2];
-
-        buffer[0] = (byte) ((byte) (a << 4) | b);
-        buffer[1] = (byte) c;
-
-        return buffer;
+//    public static byte[] addrToBytes(int a, int b, int c) {
+//        byte[] buffer = new byte[2];
+//
+//        buffer[0] = (byte) ((byte) (a << 4) | b);
+//        buffer[1] = (byte) c;
+//
+//        return buffer;
+//    }
+    
+    public static byte[] convertGaToBytes(String ga) {
+        try {
+            return Utils.getGroupAddress(ga).toByteArray();
+        } catch (KnxException ex) {
+            LOG.error("Error converting GA to bytes", ex);
+            return null;
+        }
+    }
+    
+    public static byte[] convertIaToBytes(String ia) {
+        try {
+            return Utils.getIndividualAddress(ia).toByteArray();
+        } catch (KnxException ex) {
+            LOG.error("Error converting IA to bytes", ex);
+            return null;
+        }
     }
 
     public static boolean checkValidPa(String pa) {
@@ -168,6 +216,13 @@ public class Helper {
             return true;
         }
         return false;
+    }
+    
+    public static int getParameterSize(ParamType paramType) {
+        if (!PARAM_SIZE_MAP.containsKey(paramType)) {
+            throw new RuntimeException("Someone forgot to add the size of "+paramType.name()+" to PARAM_SIZE_MAP!");
+        }
+        return PARAM_SIZE_MAP.get(paramType);
     }
 
     public static boolean isNumberType(ParamType paramType) {

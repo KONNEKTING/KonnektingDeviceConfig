@@ -29,6 +29,7 @@ import de.konnekting.xml.konnektingdevice.v0.CommObjectConfigurations;
 import de.konnekting.xml.konnektingdevice.v0.CommObjectDependency;
 import de.konnekting.xml.konnektingdevice.v0.Configuration;
 import de.konnekting.xml.konnektingdevice.v0.Dependencies;
+import de.konnekting.xml.konnektingdevice.v0.DeviceMemory;
 import de.konnekting.xml.konnektingdevice.v0.IndividualAddress;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDevice;
 import de.konnekting.xml.konnektingdevice.v0.Parameter;
@@ -41,6 +42,7 @@ import de.konnekting.xml.konnektingdevice.v0.ParameterDependency;
 import de.konnekting.xml.konnektingdevice.v0.ParameterGroupDependency;
 import de.konnekting.xml.konnektingdevice.v0.Parameters;
 import de.konnekting.xml.konnektingdevice.v0.TestType;
+import de.root1.logging.JulFormatter;
 import de.root1.rooteventbus.RootEventBus;
 import java.io.File;
 import java.io.IOException;
@@ -48,8 +50,11 @@ import java.nio.file.Files;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import javax.xml.bind.JAXBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +76,10 @@ public class DeviceConfigContainer {
     private KonnektingDevice deviceLastSave;
     private File f;
     private boolean defaultsFilled = false;
+
+    public static final int LIMIT_ADDRESSTABLEENTRIES = 127;
+    public static final int LIMIT_ASSOCIATIONTABLEENTRIES = 255;
+    public static final int LIMIT_COMMOBJECTTABLEENTRIES = 85;
 
     public DeviceConfigContainer(File f) throws JAXBException, SAXException {
         this.f = f;
@@ -155,7 +164,7 @@ public class DeviceConfigContainer {
             log.info("Setting active/inactive flags for com objects");
             for (CommObjectConfiguration comObjConf : device.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration()) {
                 boolean oldValue = comObjConf.isActive();
-                
+
                 comObjConf.setActive(isCommObjectEnabled(comObjConf.getId()));
                 boolean newValue = comObjConf.isActive();
 
@@ -176,31 +185,33 @@ public class DeviceConfigContainer {
     }
 
     public void writeConfig() throws JAXBException, SAXException {
-        writeConfig(f);
+        writeConfig(f, true);
     }
 
-    public synchronized void writeConfig(File file) throws JAXBException, SAXException {
-        if (f==null) {
-            log.debug("About to write removed file for {}, skipping", this);    
+    public synchronized void writeConfig(File file, boolean rename) throws JAXBException, SAXException {
+        if (f == null) {
+            log.debug("About to write removed file for {}, skipping", this);
         }
         this.f = file;
         log.debug("About to write config: {}", f.getName());
         fillDefaults();
-        boolean equal;
+        boolean equal=false;
 
-        ReflectionComparator reflectionComparator = createRefectionComparator();
-        Difference difference = reflectionComparator.getDifference(device, deviceLastSave);
-        if (difference != null) {
-            equal = false;
-        } else {
-            equal = true;
-        }
+//        ReflectionComparator reflectionComparator = createRefectionComparator();
+//        Difference difference = reflectionComparator.getDifference(device, deviceLastSave);
+//        if (difference != null) {
+//            equal = false;
+//        } else {
+//            equal = true;
+//        }
 
         if (!equal) {
             log.info("Saved changes for " + f.getName());
             KonnektingDeviceXmlService.validateWrite(device);
             KonnektingDeviceXmlService.writeConfiguration(file, device);
-            renameFile();
+            if (rename) {
+                renameFile();
+            }
             deviceLastSave = deepCloneDevice();
         } else {
             log.debug("No change detected for " + f.getName());
@@ -365,6 +376,17 @@ public class DeviceConfigContainer {
         return null;
     }
 
+    public CommObjectConfiguration getCommObjectConfiguration(int id) {
+
+        List<CommObjectConfiguration> list = device.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration();
+        for (CommObjectConfiguration co : list) {
+            if (co.getId() == id) {
+                return co;
+            }
+        }
+        return null;
+    }
+
     public boolean isCommObjectEnabled(int id) {
         CommObject co = getCommObject(id);
         return isCommObjectEnabled(co);
@@ -372,7 +394,8 @@ public class DeviceConfigContainer {
 
     /**
      * Returns true if CommObjects is "enabled" through param-dependency (or
-     * missing dependency). This will also update automatically the active-flag on the config for this comobj
+     * missing dependency). This will also update automatically the active-flag
+     * on the config for this comobj
      *
      * @param co
      * @return
@@ -417,9 +440,9 @@ public class DeviceConfigContainer {
 
             }
         }
-        
+
         log.info("No dependency found. Forcing to true");
-        
+
         setCommObjectActive(co.getId(), true);
         return true;
     }
@@ -464,7 +487,6 @@ public class DeviceConfigContainer {
         return hash;
     }
 
-
     @Override
     public boolean equals(Object obj) {
         if (obj == null) {
@@ -482,7 +504,7 @@ public class DeviceConfigContainer {
         }
         return true;
     }
-    
+
     public boolean getCommObjectActive(Short id) {
         List<CommObjectConfiguration> commObjectConfigurations = getOrCreateCommObjectConfigurations().getCommObjectConfiguration();
         for (CommObjectConfiguration conf : commObjectConfigurations) {
@@ -504,20 +526,25 @@ public class DeviceConfigContainer {
         return "";
     }
 
-    public String getCommObjectGroupAddress(Short id) {
+    public List<String> getCommObjectGroupAddress(Short id) {
         List<CommObjectConfiguration> commObjectConfigurations = device.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration();
         for (CommObjectConfiguration conf : commObjectConfigurations) {
             if (conf.getId() == id) {
-                return Helper.convertNullString(conf.getGroupAddress());
+
+                List<String> groupAddresses = conf.getGroupAddress();
+                for (int i = 0; i < groupAddresses.size(); i++) {
+                    groupAddresses.set(i, Helper.convertNullString(groupAddresses.get(i)));
+                }
+                return groupAddresses;
             }
         }
-        return "";
+        return new ArrayList<String>();
     }
-    
+
     public void setCommObjectActive(Short id, boolean active) {
         boolean oldValue = getCommObjectActive(id);
         getOrCreateCommObjConf(id).setActive(active);
-        if (active!=oldValue) {
+        if (active != oldValue) {
             eventbus.post(new EventDeviceChanged(this));
         }
     }
@@ -533,13 +560,26 @@ public class DeviceConfigContainer {
         }
     }
 
-    public void setCommObjectGroupAddress(Short id, String address) throws InvalidAddressFormatException {
+    public boolean addCommObjectGroupAddress(Short id, String address) throws InvalidAddressFormatException {
         Helper.checkValidGa(address);
-        String oldCommObjectGroupAddress = getCommObjectGroupAddress(id);
-        getOrCreateCommObjConf(id).setGroupAddress(address);
-        if (!address.equals(oldCommObjectGroupAddress)) {
+        List<String> gas = getCommObjectGroupAddress(id);
+        if (!gas.contains(address)) {
+            gas.add(address);
             eventbus.post(new EventDeviceChanged(this));
+            return true;
         }
+        return false;
+    }
+
+    public boolean removeCommObjectGroupAddress(Short id, String address) throws InvalidAddressFormatException {
+        Helper.checkValidGa(address);
+        List<String> gas = getCommObjectGroupAddress(id);
+        if (gas.contains(address)) {
+            gas.remove(address);
+            eventbus.post(new EventDeviceChanged(this));
+            return true;
+        }
+        return false;
     }
 
     private List<Parameter> getAllParameters() {
@@ -747,7 +787,7 @@ public class DeviceConfigContainer {
         allParameters.sort(new ReflectionIdComparator());
 
         for (ParameterDependency dep : paramDependencies) {
-            if (dep.getParamId()== param.getId()) {
+            if (dep.getParamId() == param.getId()) {
                 // matching dependency found, do test
                 TestType test = dep.getTest();
                 Short testParamId = dep.getTestParamId();
@@ -764,12 +804,12 @@ public class DeviceConfigContainer {
 
             }
         }
-        
+
         log.info("No dependency found. Forcing to true");
-        
+
         return true;
     }
-    
+
     public boolean isParameterGroupEnabled(ParameterGroup group) {
         log.info("Testing paramgroup #{}", group.getId());
         Dependencies dependencies = device.getDevice().getDependencies();
@@ -790,7 +830,7 @@ public class DeviceConfigContainer {
         allParameters.sort(new ReflectionIdComparator());
 
         for (ParameterGroupDependency dep : paramGroupDependencies) {
-            if (dep.getParamGroupId()== group.getId()) {
+            if (dep.getParamGroupId() == group.getId()) {
                 // matching dependency found, do test
                 TestType test = dep.getTest();
                 Short testParamId = dep.getTestParamId();
@@ -807,10 +847,201 @@ public class DeviceConfigContainer {
 
             }
         }
-        
+
         log.info("No dependency found. Forcing to true");
-        
+
         return true;
+    }
+
+    public void updateDeviceMemory() {
+
+        DeviceMemory deviceMemory = device.getConfiguration().getDeviceMemory();
+
+        if (deviceMemory == null) {
+            deviceMemory = new DeviceMemory();
+            device.getConfiguration().setDeviceMemory(deviceMemory);
+        }
+        
+        /**
+         * System --> fixed size array
+         */
+        
+        byte[] systemBytes = new byte[16];
+        clearBytes(systemBytes);
+        deviceMemory.setSystem(systemBytes);
+
+        /**
+         * AddressTable --> fixed size table
+         */
+        byte[] addressTable = new byte[1 + (2 * LIMIT_ADDRESSTABLEENTRIES)];
+        clearBytes(addressTable);
+
+        // use hashset to easily add GAs without duplicates
+        Set<String> addrSet = new HashSet<>();
+        List<CommObjectConfiguration> commObjectConfigurations = device.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration();
+        for (CommObjectConfiguration commObjConfig : commObjectConfigurations) {
+            List<String> groupAddress = commObjConfig.getGroupAddress();
+            addrSet.addAll(groupAddress);
+        }
+
+        // convert hashset to arraylist and sort alphanumeric
+        List<String> addressTableList = new ArrayList<>();
+        addressTableList.addAll(addrSet);
+        Collections.sort(addressTableList);
+
+        // insert size
+        addressTable[0] = (byte) addressTableList.size();
+
+        // insert IA
+        // TODO what to do if IA is not yet set?
+        String ia = device.getConfiguration().getIndividualAddress().getAddress();
+        System.arraycopy(Helper.convertIaToBytes(ia), 0, addressTable, 1, 2);
+
+        // insert all GAs
+        int addrTableIndex = 3;
+        for (String addr : addressTableList) {
+            byte[] ga = Helper.convertGaToBytes(addr);
+            System.arraycopy(ga, 0, addressTable, addrTableIndex, 2);
+            addrTableIndex += 2;
+        }
+        deviceMemory.setAddressTable(addressTable);
+
+        /**
+         * AssociationTable --> fixed size table
+         */
+        byte[] associationTable = new byte[1 + (2 * LIMIT_ASSOCIATIONTABLEENTRIES)];
+        clearBytes(associationTable);
+
+        // sort by CommObj ID
+        Collections.sort(commObjectConfigurations, new ReflectionIdComparator());
+
+        int associationCount = 0;
+        int assoTableIndex = 1;
+        for (CommObjectConfiguration commObjectConfiguration : commObjectConfigurations) {
+            List<String> associatedAddresses = commObjectConfiguration.getGroupAddress();
+
+            if (!associatedAddresses.isEmpty()) {
+                associationCount += associatedAddresses.size();
+                for (String addr : associatedAddresses) {
+                    int addrID = addressTableList.indexOf(addr);
+                    if (addrID == -1) {
+                        throw new RuntimeException("ComObj " + commObjectConfiguration.getId() + " has GA " + addr + " assigned, but GA is not in AddressTable!");
+                    }
+
+                    associationTable[assoTableIndex] = (byte) addrID;
+                    associationTable[assoTableIndex + 1] = (byte) commObjectConfiguration.getId();
+                    log.info("AssociationTable index={} addrID={} comObjID={}", assoTableIndex, addrID, commObjectConfiguration.getId());
+                    assoTableIndex += 2;
+                }
+            }
+        }
+
+        // insert size
+        associationTable[0] = (byte) associationCount;
+        log.info("AssociationTable size={}", associationCount);
+        deviceMemory.setAssociationTable(associationTable);
+
+        /**
+         * CommObjectTable --> fixed size table
+         */
+        byte[] commObjTable = new byte[1 + LIMIT_COMMOBJECTTABLEENTRIES];
+        clearBytes(commObjTable);
+
+        int comobjCount = getAllCommObjects().size();
+        if (comobjCount > LIMIT_COMMOBJECTTABLEENTRIES) {
+            throw new RuntimeException("CommObj limit exceeded: " + comobjCount + " of max. " + LIMIT_COMMOBJECTTABLEENTRIES);
+        } else {
+
+            // set size
+            commObjTable[0] = (byte) comobjCount;
+
+            int commObjTableIndex = 1;
+
+            List<CommObject> commObjList = device.getDevice().getCommObjects().getCommObject();
+            Collections.sort(commObjList, new ReflectionIdComparator());
+
+            for (CommObject co : commObjList) {
+                byte flags = co.getFlags();
+                // start with default flags
+                byte configbyte = (byte) 0xbf; // 10111111 --> active = off
+                configbyte = (byte) (flags & (byte) 0x3f); // take B6..B0 of flags
+
+                CommObjectConfiguration conf = getCommObjectConfiguration(co.getId());
+                if (conf != null) {
+                    flags = conf.getFlags();
+                    configbyte = (byte) (flags & (byte) 0x3f); // apply flags
+                    
+                    int active = conf.isActive() ? 1 : 0 ;
+                    configbyte = (byte) (configbyte & (active << 7));
+                }
+                commObjTable[commObjTableIndex] = configbyte;
+
+                log.info("CommObjectTable index={} coID={} configbyte={}, userflags={}", new Object[]{commObjTableIndex, co.getId(), Helper.bytesToHex(new byte[]{configbyte}), conf != null});
+                commObjTableIndex++;
+            }
+
+        }
+        deviceMemory.setCommObjectTable(commObjTable);
+
+        /**
+         * ParameterTable --> dynamic size table (fixed on xml setup)
+         */
+        List<Parameter> params = getAllParameters();
+        // get size of param table
+        int paramTableSize = 0;
+        for (Parameter parameter : params) {
+            ParamType type = parameter.getValue().getType();
+            paramTableSize += Helper.getParameterSize(type);
+        }
+        byte[] paramTable = new byte[paramTableSize];
+
+        if (paramTableSize > 0) {
+            List<ParameterConfiguration> parameterConfigurations = device.getConfiguration().getParameterConfigurations().getParameterConfiguration();
+            if (parameterConfigurations.size() != params.size()) {
+                throw new RuntimeException("The number of parameter configs do not match the number of available params!");
+            }
+            int paramTableIndex = 0;
+            for (ParameterConfiguration parameterConfiguration : parameterConfigurations) {
+                byte[] value = parameterConfiguration.getValue();
+                System.arraycopy(value, 0, paramTable, paramTableIndex, value.length);
+
+                log.info("ParameterTable index={}, length={}, value={}", new Object[]{paramTableIndex, value.length, Helper.bytesToHex(value)});
+
+                paramTableIndex += value.length; // increment index for next param/value
+            }
+        }
+        deviceMemory.setParameterTable(paramTable);
+
+    }
+
+    /**
+     * fill array with 0xff
+     *
+     * @param bytearray
+     */
+    private void clearBytes(byte[] bytearray) {
+        for (int i = 0; i < bytearray.length; i++) {
+            bytearray[i] = (byte) 0xff;
+        }
+    }
+    
+    public static void main(String[] args) throws JAXBException, SAXException {
+        
+        JulFormatter.set();
+        File fin = new File("test.kconfig.xml");
+        File fout = new File("testout.kconfig.xml");
+        DeviceConfigContainer dcc = new DeviceConfigContainer(fin);
+        dcc.updateDeviceMemory();
+        dcc.writeConfig(fout, false);
+        
+        dcc = new DeviceConfigContainer(fout);
+        DeviceMemory deviceMemory = dcc.getDevice().getConfiguration().getDeviceMemory();
+        
+        System.out.println("System           = "+Helper.bytesToHex(deviceMemory.getSystem(), true));
+        System.out.println("AddressTable     = "+Helper.bytesToHex(deviceMemory.getAddressTable(), true));
+        System.out.println("AssociationTable = "+Helper.bytesToHex(deviceMemory.getAssociationTable(), true));
+        System.out.println("CommObjectTable  = "+Helper.bytesToHex(deviceMemory.getCommObjectTable(), true));
+        System.out.println("ParameterTable   = "+Helper.bytesToHex(deviceMemory.getParameterTable(), true));
     }
 
 }
