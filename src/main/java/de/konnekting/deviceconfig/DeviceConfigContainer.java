@@ -77,6 +77,7 @@ public class DeviceConfigContainer {
     private File f;
     private boolean defaultsFilled = false;
 
+    public static final int LIMIT_SYSTEM = 12;
     public static final int LIMIT_ADDRESSTABLEENTRIES = 127;
     public static final int LIMIT_ASSOCIATIONTABLEENTRIES = 255;
     public static final int LIMIT_COMMOBJECTTABLEENTRIES = 85;
@@ -866,8 +867,12 @@ public class DeviceConfigContainer {
          * System --> fixed size array
          */
         
-        byte[] systemBytes = new byte[16];
+        byte[] systemBytes = new byte[LIMIT_SYSTEM];
         clearBytes(systemBytes);
+        byte[] iaBytes = Helper.convertIaToBytes(device.getConfiguration().getIndividualAddress().getAddress());
+        // insert IA
+        systemBytes[0] = iaBytes[0];
+        systemBytes[1] = iaBytes[1];
         deviceMemory.setSystem(systemBytes);
 
         /**
@@ -892,13 +897,8 @@ public class DeviceConfigContainer {
         // insert size
         addressTable[0] = (byte) addressTableList.size();
 
-        // insert IA
-        // TODO what to do if IA is not yet set?
-        String ia = device.getConfiguration().getIndividualAddress().getAddress();
-        System.arraycopy(Helper.convertIaToBytes(ia), 0, addressTable, 1, 2);
-
         // insert all GAs
-        int addrTableIndex = 3;
+        int addrTableIndex = 1;
         for (String addr : addressTableList) {
             byte[] ga = Helper.convertGaToBytes(addr);
             System.arraycopy(ga, 0, addressTable, addrTableIndex, 2);
