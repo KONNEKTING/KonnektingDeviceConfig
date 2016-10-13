@@ -901,10 +901,13 @@ public class DeviceConfigContainer {
 
         // insert all GAs
         int addrTableIndex = 1;
+        int i=0;
         for (String addr : addressTableList) {
+            log.info("AddressTable index={} addrID={} GA={}", addrTableIndex, i, addr);
             byte[] ga = Helper.convertGaToBytes(addr);
             System.arraycopy(ga, 0, addressTable, addrTableIndex, 2);
             addrTableIndex += 2;
+            i++;
         }
         deviceMemory.setAddressTable(addressTable);
 
@@ -920,6 +923,7 @@ public class DeviceConfigContainer {
         int associationCount = 0;
         int assoTableIndex = 1;
         for (CommObjectConfiguration commObjectConfiguration : commObjectConfigurations) {
+
             List<String> associatedAddresses = commObjectConfiguration.getGroupAddress();
 
             if (!associatedAddresses.isEmpty()) {
