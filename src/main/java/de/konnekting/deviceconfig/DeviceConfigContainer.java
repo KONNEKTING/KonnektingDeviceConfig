@@ -196,15 +196,16 @@ public class DeviceConfigContainer {
         this.f = file;
         log.debug("About to write config: {}", f.getName());
         fillDefaults();
-        boolean equal=false;
+        updateDeviceMemory();
+        boolean equal = false;
 
-//        ReflectionComparator reflectionComparator = createRefectionComparator();
-//        Difference difference = reflectionComparator.getDifference(device, deviceLastSave);
-//        if (difference != null) {
-//            equal = false;
-//        } else {
-//            equal = true;
-//        }
+        ReflectionComparator reflectionComparator = createRefectionComparator();
+        Difference difference = reflectionComparator.getDifference(device, deviceLastSave);
+        if (difference != null) {
+            equal = false;
+        } else {
+            equal = true;
+        }
 
         if (!equal) {
             log.info("Saved changes for " + f.getName());
@@ -862,17 +863,18 @@ public class DeviceConfigContainer {
             deviceMemory = new DeviceMemory();
             device.getConfiguration().setDeviceMemory(deviceMemory);
         }
-        
+
         /**
          * System --> fixed size array
          */
-        
         byte[] systemBytes = new byte[LIMIT_SYSTEM];
         clearBytes(systemBytes);
         byte[] iaBytes = Helper.convertIaToBytes(device.getConfiguration().getIndividualAddress().getAddress());
-        // insert IA
-        systemBytes[0] = iaBytes[0];
-        systemBytes[1] = iaBytes[1];
+        if (iaBytes != null) {
+            // insert IA
+            systemBytes[0] = iaBytes[0];
+            systemBytes[1] = iaBytes[1];
+        }
         deviceMemory.setSystem(systemBytes);
 
         /**
@@ -970,8 +972,8 @@ public class DeviceConfigContainer {
                 if (conf != null) {
                     flags = conf.getFlags();
                     configbyte = (byte) (flags & (byte) 0x3f); // apply flags
-                    
-                    int active = conf.isActive() ? 1 : 0 ;
+
+                    int active = conf.isActive() ? 1 : 0;
                     configbyte = (byte) (configbyte & (active << 7));
                 }
                 commObjTable[commObjTableIndex] = configbyte;
@@ -1024,24 +1026,24 @@ public class DeviceConfigContainer {
             bytearray[i] = (byte) 0xff;
         }
     }
-    
+
     public static void main(String[] args) throws JAXBException, SAXException {
-        
+
         JulFormatter.set();
         File fin = new File("test.kconfig.xml");
         File fout = new File("testout.kconfig.xml");
         DeviceConfigContainer dcc = new DeviceConfigContainer(fin);
         dcc.updateDeviceMemory();
         dcc.writeConfig(fout, false);
-        
+
         dcc = new DeviceConfigContainer(fout);
         DeviceMemory deviceMemory = dcc.getDevice().getConfiguration().getDeviceMemory();
-        
-        System.out.println("System           = "+Helper.bytesToHex(deviceMemory.getSystem(), true));
-        System.out.println("AddressTable     = "+Helper.bytesToHex(deviceMemory.getAddressTable(), true));
-        System.out.println("AssociationTable = "+Helper.bytesToHex(deviceMemory.getAssociationTable(), true));
-        System.out.println("CommObjectTable  = "+Helper.bytesToHex(deviceMemory.getCommObjectTable(), true));
-        System.out.println("ParameterTable   = "+Helper.bytesToHex(deviceMemory.getParameterTable(), true));
+
+        System.out.println("System           = " + Helper.bytesToHex(deviceMemory.getSystem(), true));
+        System.out.println("AddressTable     = " + Helper.bytesToHex(deviceMemory.getAddressTable(), true));
+        System.out.println("AssociationTable = " + Helper.bytesToHex(deviceMemory.getAssociationTable(), true));
+        System.out.println("CommObjectTable  = " + Helper.bytesToHex(deviceMemory.getCommObjectTable(), true));
+        System.out.println("ParameterTable   = " + Helper.bytesToHex(deviceMemory.getParameterTable(), true));
     }
 
 }

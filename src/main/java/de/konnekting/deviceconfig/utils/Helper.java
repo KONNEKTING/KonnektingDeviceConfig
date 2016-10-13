@@ -123,6 +123,10 @@ public class Helper {
     }
     
     public static byte[] convertIaToBytes(String ia) {
+        if (isParkedAddress(ia)) {
+            LOG.error("Individual address is parked. Cannot convert");
+            return null;
+        }
         try {
             return Utils.getIndividualAddress(ia).toByteArray();
         } catch (KnxException ex) {
