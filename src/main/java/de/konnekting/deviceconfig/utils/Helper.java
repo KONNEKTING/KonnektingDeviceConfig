@@ -80,15 +80,15 @@ public class Helper {
 
         if (!s.matches("^[0-9a-fA-F]+$") || s.length() % 2 != 0) {
             throw new NumberFormatException("Given value '" + s + "' is not a valid hex string");
-        };
-
-        int len = s.length();
-        byte[] data = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                + Character.digit(s.charAt(i + 1), 16));
         }
-        return data;
+
+        int sLen = s.length();
+        byte[] bytearray = new byte[sLen / 2];
+        for (int i = 0; i < sLen; i += 2) {
+            bytearray[i / 2] = (byte) ( /* left hex-char: shift 4 bits the the left*/ (Character.digit(s.charAt(i), 16) << 4)  
+                + /* right hex-char: no need to shift, as value is already "low" enough */ Character.digit(s.charAt(i + 1), 16) );
+        }
+        return bytearray;
     }
 
     private static final Pattern PA_PATTERB = Pattern.compile("\\A\\d{1,2}\\.\\d{1,2}\\.\\d{1,3}\\z");
