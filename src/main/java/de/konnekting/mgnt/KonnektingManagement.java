@@ -133,7 +133,7 @@ public class KonnektingManagement {
         isProgramming = false;
     }
 
-    public void writeParameter(short id, byte[] data) throws KnxException {
+    public void writeParameter(int id, byte[] data) throws KnxException {
         if (!isProgramming) {
             throw new IllegalStateException("Not in programming-state- Call startProgramming() first.");
         }

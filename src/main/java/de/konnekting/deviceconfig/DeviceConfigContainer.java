@@ -78,9 +78,9 @@ public class DeviceConfigContainer {
     private boolean defaultsFilled = false;
 
     public static final int LIMIT_SYSTEM = 12;
-    public static final int LIMIT_ADDRESSTABLEENTRIES = 127;
+    public static final int LIMIT_ADDRESSTABLEENTRIES = 255;
     public static final int LIMIT_ASSOCIATIONTABLEENTRIES = 255;
-    public static final int LIMIT_COMMOBJECTTABLEENTRIES = 85;
+    public static final int LIMIT_COMMOBJECTTABLEENTRIES = 255;
 
     public DeviceConfigContainer(File f) throws JAXBException, SAXException {
         this.f = f;
@@ -250,7 +250,7 @@ public class DeviceConfigContainer {
         return individualAddress;
     }
 
-    private ParameterConfiguration getOrCreateParameterConf(short id) {
+    private ParameterConfiguration getOrCreateParameterConf(int id) {
 
         // check if ID is valid
         List<Parameter> params = getAllParameters();
@@ -599,7 +599,7 @@ public class DeviceConfigContainer {
         return getIndividualAddress() + " " + getDescription() + (f == null ? "" : "@" + f.getAbsolutePath());
     }
 
-    public Parameter getParameter(short id) {
+    public Parameter getParameter(int id) {
         List<ParameterGroup> groups = device.getDevice().getParameters().getParameterGroup();
         for (ParameterGroup group : groups) {
             List<Parameter> params = group.getParameter();
@@ -613,7 +613,7 @@ public class DeviceConfigContainer {
         return null;
     }
 
-    public ParameterConfiguration getParameterConfig(short id) {
+    public ParameterConfiguration getParameterConfig(int id) {
         ParameterConfigurations parameterConfigurations = getOrCreateParameterConfigurations();
         List<ParameterConfiguration> parameterConfigurationList = parameterConfigurations.getParameterConfiguration();
 
@@ -629,7 +629,7 @@ public class DeviceConfigContainer {
         return conf;
     }
 
-    public void setParameterValue(short id, byte[] value) {
+    public void setParameterValue(int id, byte[] value) {
         if (value == null) {
             throw new IllegalArgumentException("parameter value must not be null");
         }

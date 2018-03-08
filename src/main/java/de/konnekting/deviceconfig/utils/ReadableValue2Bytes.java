@@ -73,6 +73,12 @@ public class ReadableValue2Bytes {
         return new byte[]{b0, b1, b2, b3};
     }
     
+    /**
+     * Converts a Java String into an 11 byte ISO-8859-1 byte array.
+     * @param s
+     * @return
+     * @throws UnsupportedEncodingException 
+     */
     public synchronized byte[] convertString11(String s) throws UnsupportedEncodingException {
         /* 
          * init resulting array with 0x00

@@ -64,16 +64,27 @@ public class Helper {
         PARAM_SIZE_MAP.put(ParamType.STRING_11, 11);
     }
 
+    /**
+     * return upper case hex!
+     * @param bytes
+     * @return 
+     */
     public static String bytesToHex(byte[] bytes) {
         return bytesToHex(bytes, false);
     }
 
+    /**
+     * returns upper case hex
+     * @param bytearray
+     * @param whitespace
+     * @return 
+     */
     public static String bytesToHex(byte[] bytearray, boolean whitespace) {
         StringBuilder sb = new StringBuilder(bytearray.length * 2);
         for (int i = 0; i < bytearray.length; i++) {
             sb.append(String.format(whitespace?"%02x ":"%02x", bytearray[i] & 0xff));
         }
-        return sb.toString().trim();
+        return sb.toString().trim().toUpperCase();
     }
 
     public static byte[] hexToBytes(String s) {
