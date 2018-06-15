@@ -22,6 +22,7 @@ import de.konnekting.deviceconfig.utils.Helper;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
 import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01;
+import java.util.Arrays;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +65,7 @@ public class KonnektingManagement {
     /**
      * Write individual address to device. Requires prog-button to be pressed.
      * Returns false if failed.
+     *
      * @param individualAddress
      * @throws de.root1.slicknx.KnxException
      */
@@ -94,7 +96,7 @@ public class KonnektingManagement {
         try {
             protocol.programmingModeWrite(individualAddress, true);
         } catch (KnxException ex) {
-            throw new KnxException("No device responded for enabling prog-mode on address "+individualAddress, ex);
+            throw new KnxException("No device responded for enabling prog-mode on address " + individualAddress, ex);
         }
 
         log.debug("Checking for devices in prog mode");
@@ -112,14 +114,14 @@ public class KonnektingManagement {
         // check for correct device
         if (di.getManufacturerId() != manufacturerId || di.getDeviceId() != deviceId || di.getRevisionId() != revisionId) {
             throw new KnxException("Device does not match.\n"
-                + " KONNEKTING reported: \n"
-                + "  manufacturer: " + di.getManufacturerId() + "\n"
-                + "  device: " + di.getDeviceId() + "\n"
-                + "  revision: " + di.getRevisionId() + "\n"
-                + " Configuration requires:\n"
-                + "  manufacturer: " + manufacturerId + "\n"
-                + "  device: " + deviceId + "\n"
-                + "  revision: " + revisionId);
+                    + " KONNEKTING reported: \n"
+                    + "  manufacturer: " + di.getManufacturerId() + "\n"
+                    + "  device: " + di.getDeviceId() + "\n"
+                    + "  revision: " + di.getRevisionId() + "\n"
+                    + " Configuration requires:\n"
+                    + "  manufacturer: " + manufacturerId + "\n"
+                    + "  device: " + deviceId + "\n"
+                    + "  revision: " + revisionId);
         }
         log.debug("Got device info: {}", di);
         this.individualAddress = individualAddress;
@@ -138,8 +140,75 @@ public class KonnektingManagement {
         if (!isProgramming) {
             throw new IllegalStateException("Not in programming-state- Call startProgramming() first.");
         }
-        log.debug("Writing to index {} following data: {}", index, Helper.bytesToHex(data));
-        protocol.memoryWrite(index, data);
+        log.debug("Writing {} bytes of data to index {}. data: {}", index, Helper.bytesToHex(data, true));
+
+        int written = 0;
+
+        while (written != data.length) {
+
+            int writeStep = (data.length - written > 9 ? 9 : data.length - written);
+
+            log.debug("\twrite {} bytes to index {}", writeStep, index);
+            protocol.memoryWrite(index, Arrays.copyOfRange(data, index, index + writeStep - 1));
+
+            index += writeStep; // increment index for reading next block of 1..9 bytes
+            written += writeStep;
+        }
+        log.debug("Done writing.");
+    }
+
+    public byte[] memoryRead(int index, int lenght) throws KnxException {
+        if (!isProgramming) {
+            throw new IllegalStateException("Not in programming-state- Call startProgramming() first.");
+        }
+        log.debug("Reading {} bytes beginning from index {}", lenght, index);
+
+        byte[] result = new byte[lenght];
+        int read = 0;
+
+        while (lenght != 0) {
+            int readStep = (lenght > 9 ? 9 : lenght);
+            lenght -= readStep;
+            log.debug("\tRead {} bytes from index {}", readStep, index);
+            byte[] data = protocol.memoryRead(index, readStep);
+
+            System.arraycopy(data, 0, result, read, readStep);
+
+            index += readStep; // increment index for reading next block of 1..9 bytes
+            read += readStep;
+        }
+        log.debug("Done reading. data={}", Helper.bytesToHex(result, true));
+        return result;
+    }
+
+    /**
+     * Reads read-only part of system table
+     * @return
+     * @throws KnxException 
+     */
+    public SystemReadOnlyTable getSystemReadOnlyTable() throws KnxException {
+        // TODO read from memory
+//        byte[] system = memoryRead(0, 32);
+
+        byte[] system = new byte[32];
+        system[0] = Helper.getHI(0);
+        system[1] = Helper.getHI(0);
+        
+        system[2] = 0x00;
+        
+        system[3] = Helper.getHI(32);
+        system[4] = Helper.getLO(32);
+        
+        system[5] = Helper.getHI(545);
+        system[6] = Helper.getLO(545);
+        
+        system[7] = Helper.getHI(1058);
+        system[8] = Helper.getLO(1058);
+        
+        system[9] = Helper.getHI(1315);
+        system[10] = Helper.getLO(1315);
+        
+        return new SystemReadOnlyTable(system);
     }
 
     public void restart(String address) throws KnxException {

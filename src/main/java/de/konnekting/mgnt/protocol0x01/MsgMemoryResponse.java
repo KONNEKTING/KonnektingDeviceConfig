@@ -31,7 +31,7 @@ import de.konnekting.mgnt.ComObject;
 class MsgMemoryResponse extends ProgMessage {
     
     private int count;
-    private short address;
+    private int address;
 
     public MsgMemoryResponse(byte[] data) {
         super(data);
@@ -43,7 +43,7 @@ class MsgMemoryResponse extends ProgMessage {
         return count;
     }
     
-    public short getAddress() {
+    public int getAddress() {
         return address;
     }
     

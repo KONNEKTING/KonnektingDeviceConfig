@@ -26,6 +26,8 @@ import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
 import de.konnekting.mgnt.ComObject;
 import de.konnekting.mgnt.KonnektingManagement;
+import de.konnekting.mgnt.SystemReadOnlyTable;
+import de.konnekting.xml.konnektingdevice.v0.DeviceMemory;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -82,10 +84,6 @@ public class Program {
             KonnektingDevice c = device.getDevice();
             String individualAddress = device.getIndividualAddress();
 
-            // prepare
-            List<CommObjectConfiguration> comObjectConfiguration = null;
-            List<ParameterConfiguration> parameterConfiguration;
-
             int i = 0;
 
             int maxSteps = 4;
@@ -94,19 +92,32 @@ public class Program {
                 maxSteps++;
             }
 
-            if (doComObjects) {
-                fireProgressStatusMessage(getLangString("readingComObjects"));// "Reading commobjects..."
-                comObjectConfiguration = c.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration();
-                maxSteps += comObjectConfiguration.size();
-            }
+            DeviceMemory deviceMemory = c.getConfiguration().getDeviceMemory();
 
-            if (doParams) {
-                fireProgressStatusMessage(getLangString("readingParameters")); //Reading parameters...
-                parameterConfiguration = c.getConfiguration().getParameterConfigurations().getParameterConfiguration();
-                maxSteps += parameterConfiguration.size();
-            }
-
+            fireProgressStatusMessage(getLangString("readingSystemTable"));
+            byte[] system = deviceMemory.getSystem();
             fireProgressUpdate(++i, maxSteps);
+
+            fireProgressStatusMessage(getLangString("readingAddressTable"));
+            byte[] addressTable = deviceMemory.getAddressTable();
+            fireProgressUpdate(++i, maxSteps);
+
+            fireProgressStatusMessage(getLangString("readingAssociationTable"));
+            byte[] associationTable = deviceMemory.getAssociationTable();
+            fireProgressUpdate(++i, maxSteps);
+
+            fireProgressStatusMessage(getLangString("readingCommObjectTable"));
+            byte[] commObjectTable = deviceMemory.getCommObjectTable();
+            fireProgressUpdate(++i, maxSteps);
+
+            fireProgressStatusMessage(getLangString("readingParameterTable"));
+            byte[] parameterTable = deviceMemory.getParameterTable();
+            fireProgressUpdate(++i, maxSteps);
+            
+
+            fireProgressStatusMessage(getLangString("readingSystemTable"));
+            SystemReadOnlyTable systemReadOnly = mgt.getSystemReadOnlyTable();
+
 
             if (doIndividualAddress) {
                 if (!abort) {
@@ -152,22 +163,18 @@ public class Program {
 
             if (doComObjects) {
                 if (!abort) {
-                    log.info("Writing commobjects ...");
+                    log.info("Writing AddressTable");
+                    mgt.memoryWrite(systemReadOnly.getAddressTableAddress(), addressTable);
+                    fireProgressUpdate(++i, maxSteps);
+                    
+                    log.info("Writing AssociationTable");
+                    mgt.memoryWrite(systemReadOnly.getAssociationTableAddress(), associationTable);
+                    fireProgressUpdate(++i, maxSteps);
 
-                    for (CommObjectConfiguration comObj : comObjectConfiguration) {
-                        log.error("MISSING IMPLEMENTATION!!!!");
-//                        if (!abort) {
-//                            ComObject comObjectToWrite = new ComObject((byte) comObj.getId(), comObj.getGroupAddress(), comObj.isActive());
-//                            log.debug("Writing ComObject: id={} ga={} active={}", new Object[]{comObjectToWrite.getId(), comObjectToWrite.getGroupAddress(), comObjectToWrite.isActive()});
-//                            fireProgressStatusMessage(getLangString("writingComObject",comObjectToWrite.getId(), comObjectToWrite.isActive()));//Writing comobject " + comObjectToWrite.getId() + " / active=" + comObjectToWrite.isActive());
-//                            mgt.writeComObject(comObjectToWrite);
-//                            fireProgressUpdate(++i, maxSteps);
-//                        } else {
-//                            fireProgressStatusMessage(getLangString("cancelled"));
-//                            abort = false;
-//                            return;
-//                        }
-                    }
+                    
+                    log.info("Writing CommObjectTable");
+                    mgt.memoryWrite(systemReadOnly.getCommobjectTableAddress(), commObjectTable);
+                    fireProgressUpdate(++i, maxSteps);
 
                 } else {
                     fireProgressStatusMessage(getLangString("cancelled"));
@@ -179,19 +186,12 @@ public class Program {
             if (doParams) {
                 if (!abort) {
                     log.info("Writing parameter ...");
-                    for (ParameterConfiguration parameter : c.getConfiguration().getParameterConfigurations().getParameterConfiguration()) {
-                        if (!abort) {
-                            byte[] data = parameter.getValue();
-                            log.debug("Writing " + Helper.bytesToHex(data) + " to param with id " + parameter.getId());
-                            fireProgressStatusMessage(getLangString("writingParameter", parameter.getId()));
-//                            mgt.writeParameter(parameter.getId(), data);
-                            fireProgressUpdate(++i, maxSteps);
-                        } else {
-                            fireProgressStatusMessage(getLangString("cancelled"));
-                            abort = false;
-                            return;
-                        }
-                    }
+                    
+                    log.info("Writing ParameterTable");
+                    mgt.memoryWrite(systemReadOnly.getParameterTableAddress(), parameterTable);
+                    
+                    fireProgressUpdate(++i, maxSteps);
+
                 } else {
                     fireProgressStatusMessage(getLangString("cancelled"));
                     abort = false;
