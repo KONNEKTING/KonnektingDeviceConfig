@@ -16,9 +16,9 @@
  *   You should have received a copy of the GNU General Public License
  *   along with slicKnx.  If not, see <http://www.gnu.org/licenses/>.
  */
-package de.konnekting.mgnt.protocol0x00;
+package de.konnekting.mgnt.protocol0x01;
 
-import static de.konnekting.mgnt.protocol0x00.ProgProtocol0x00.PROTOCOL_VERSION;
+import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.PROTOCOL_VERSION;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

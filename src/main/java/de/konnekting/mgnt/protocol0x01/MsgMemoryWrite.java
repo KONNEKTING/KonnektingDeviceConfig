@@ -14,9 +14,9 @@ import static de.konnekting.mgnt.protocol0x00.ProgProtocol0x00.MSGTYPE_WRITE_COM
  *
  * @author achristian
  */
-class MsgWriteComObject extends ProgMessage {
+class MsgMemoryWrite extends ProgMessage {
 
-    public MsgWriteComObject(ComObject co) throws KnxException {
+    public MsgMemoryWrite(ComObject co) throws KnxException {
         super(MSGTYPE_WRITE_COM_OBJECT);
 
         if (co == null) {

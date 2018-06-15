@@ -16,7 +16,7 @@
  *   You should have received a copy of the GNU General Public License
  *   along with slicKnx.  If not, see <http://www.gnu.org/licenses/>.
  */
-package de.konnekting.mgnt.protocol0x00;
+package de.konnekting.mgnt.protocol0x01;
 
 import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
@@ -25,10 +25,10 @@ import de.root1.slicknx.Utils;
  *
  * @author achristian
  */
-class MsgAnswerDeviceInfo extends ProgMessage {
+class MsgDeviceInfoResponse extends ProgMessage {
 
     
-    public MsgAnswerDeviceInfo(byte[] data) {
+    public MsgDeviceInfoResponse(byte[] data) {
         super(data);
     }
 

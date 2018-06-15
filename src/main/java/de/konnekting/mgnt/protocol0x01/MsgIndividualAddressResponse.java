@@ -25,12 +25,10 @@ import de.root1.slicknx.Utils;
  *
  * @author achristian
  */
-class MsgAnswerProgrammingMode extends ProgMessage {
-    private final byte[] data;
+class MsgIndividualAddressResponse extends ProgMessage {
 
-    public MsgAnswerProgrammingMode(byte[] data) {
+    public MsgIndividualAddressResponse(byte[] data) {
         super(data);
-        this.data = data;
     }
     
     public String getAddress() throws KnxException {
@@ -41,9 +39,9 @@ class MsgAnswerProgrammingMode extends ProgMessage {
     public String toString() {
         String t;
         try {
-            t = "AnswerProgrammingMode{"+getAddress()+"}";
+            t = "AnswerIndividualAddress{individualAddress="+getAddress()+"}";
         } catch (KnxException ex) {
-            t = "AnswerProgrammingMode{!!!EXCEPTION!!!}";
+            t = "AnswerIndividualAddress{!!!EXCEPTION!!!}";
             log.error("Error parsing individual address ", ex);
         }
         return t;

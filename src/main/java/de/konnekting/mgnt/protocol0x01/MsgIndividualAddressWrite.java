@@ -14,9 +14,9 @@ import tuwien.auto.calimero.IndividualAddress;
  *
  * @author achristian
  */
-class MsgWriteIndividualAddress extends ProgMessage {
+class MsgIndividualAddressWrite extends ProgMessage {
 
-    public MsgWriteIndividualAddress(String address) throws KnxException {
+    public MsgIndividualAddressWrite(String address) throws KnxException {
         super(MSGTYPE_WRITE_INDIVIDUAL_ADDRESS);
         IndividualAddress ia = Utils.getIndividualAddress(address);
         System.arraycopy(ia.toByteArray(), 0, data, 2, 2);

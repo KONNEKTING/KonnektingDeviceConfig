@@ -9,19 +9,17 @@ package de.konnekting.mgnt.protocol0x00;
  *
  * @author achristian
  */
-class MsgReadIndividualAddress extends ProgMessage {
+class MsgProgrammingModeRead extends ProgMessage {
 
-    public MsgReadIndividualAddress(byte[] data) {
-        super(data);
-    }
-
-    public MsgReadIndividualAddress() {
-        super(ProgProtocol0x00.MSGTYPE_READ_INDIVIDUAL_ADDRESS);
+    public MsgProgrammingModeRead() {
+        super(ProgProtocol0x00.MSGTYPE_READ_PROGRAMMING_MODE);
     }
 
     @Override
     public String toString() {
-        return "MsgReadIndividualAddress{}";
+        return "MsgReadProgrammingMode{}";
     }
+    
+    
     
 }

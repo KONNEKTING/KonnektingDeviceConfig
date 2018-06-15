@@ -3,20 +3,20 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package de.konnekting.mgnt.protocol0x00;
+package de.konnekting.mgnt.protocol0x01;
 
 import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
-import static de.konnekting.mgnt.protocol0x00.ProgProtocol0x00.MSGTYPE_READ_DEVICE_INFO;
+import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_DEVICE_INFO_READ;
 
 /**
  *
  * @author achristian
  */
-class MsgReadDeviceInfo extends ProgMessage {
+class MsgDeviceInfoRead extends ProgMessage {
 
-    public MsgReadDeviceInfo(String individualAddress) throws KnxException {
-        super(MSGTYPE_READ_DEVICE_INFO);
+    public MsgDeviceInfoRead(String individualAddress) throws KnxException {
+        super(MSGTYPE_DEVICE_INFO_READ);
         System.arraycopy(Utils.getIndividualAddress(individualAddress).toByteArray(), 0, data, 2, 2);
     }
 

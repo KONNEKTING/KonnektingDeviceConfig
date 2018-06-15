@@ -18,22 +18,35 @@
  */
 package de.konnekting.mgnt.protocol0x00;
 
+import de.root1.slicknx.KnxException;
+import de.root1.slicknx.Utils;
+
 /**
  *
  * @author achristian
  */
-class MsgAnswerParameter extends ProgMessage {
+class MsgProgrammingModeResponse extends ProgMessage {
     private final byte[] data;
 
-    public MsgAnswerParameter(byte[] data) {
+    public MsgProgrammingModeResponse(byte[] data) {
         super(data);
         this.data = data;
     }
-
-    byte[] getParamValue() {
-        byte[] value = new byte[11];
-        System.arraycopy(data, 3, value, 0, 11);
-        return value;
+    
+    public String getAddress() throws KnxException {
+        return Utils.getIndividualAddress(data[2], data[3]).toString();
+    }
+    
+    @Override
+    public String toString() {
+        String t;
+        try {
+            t = "AnswerProgrammingMode{"+getAddress()+"}";
+        } catch (KnxException ex) {
+            t = "AnswerProgrammingMode{!!!EXCEPTION!!!}";
+            log.error("Error parsing individual address ", ex);
+        }
+        return t;
     }
     
 }

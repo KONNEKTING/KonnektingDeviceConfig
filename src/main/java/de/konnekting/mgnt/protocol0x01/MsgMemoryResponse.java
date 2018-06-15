@@ -20,31 +20,20 @@ package de.konnekting.mgnt.protocol0x00;
 
 import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
+import de.konnekting.mgnt.ComObject;
 
 /**
  *
  * @author achristian
  */
-class MsgAnswerIndividualAddress extends ProgMessage {
+class MsgMemoryResponse extends ProgMessage {
 
-    public MsgAnswerIndividualAddress(byte[] data) {
+    public MsgMemoryResponse(byte[] data) {
         super(data);
     }
     
-    public String getAddress() throws KnxException {
-        return Utils.getIndividualAddress(data[2], data[3]).toString();
-    }
-    
-    @Override
-    public String toString() {
-        String t;
-        try {
-            t = "AnswerIndividualAddress{individualAddress="+getAddress()+"}";
-        } catch (KnxException ex) {
-            t = "AnswerIndividualAddress{!!!EXCEPTION!!!}";
-            log.error("Error parsing individual address ", ex);
-        }
-        return t;
+    public ComObject getComObject() throws KnxException {
+        return new ComObject(data[2], Utils.getGroupAddress(data[3], data[4]).toString());
     }
     
 }

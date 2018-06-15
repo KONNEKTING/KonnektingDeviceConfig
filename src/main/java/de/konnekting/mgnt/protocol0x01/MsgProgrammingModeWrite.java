@@ -13,9 +13,9 @@ import static de.konnekting.mgnt.protocol0x00.ProgProtocol0x00.MSGTYPE_WRITE_PRO
  *
  * @author achristian
  */
-class MsgWriteProgrammingMode extends ProgMessage {
+class MsgProgrammingModeWrite extends ProgMessage {
 
-    public MsgWriteProgrammingMode(String individualAddress, boolean progMode) throws KnxException {
+    public MsgProgrammingModeWrite(String individualAddress, boolean progMode) throws KnxException {
         super(MSGTYPE_WRITE_PROGRAMMING_MODE);
         System.arraycopy(Utils.getIndividualAddress(individualAddress).toByteArray(), 0, data, 2, 2);
         data[4] = (byte) (progMode ? 0x01 : 0x00);

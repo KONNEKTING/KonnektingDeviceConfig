@@ -16,7 +16,7 @@
  *   You should have received a copy of the GNU General Public License
  *   along with slicKnx.  If not, see <http://www.gnu.org/licenses/>.
  */
-package de.konnekting.mgnt.protocol0x00;
+package de.konnekting.mgnt.protocol0x01;
 
 import de.root1.slicknx.GroupAddressEvent;
 import de.root1.slicknx.GroupAddressListener;
@@ -34,18 +34,18 @@ import org.slf4j.LoggerFactory;
  *
  * @author achristian
  */
-public class ProgProtocol0x00 {
+public class ProgProtocol0x01 {
 
-    private static final Logger log = LoggerFactory.getLogger(ProgProtocol0x00.class);
+    private static final Logger log = LoggerFactory.getLogger(ProgProtocol0x01.class);
     private static final Logger plog = LoggerFactory.getLogger("ProgrammingLogger");
 
-    public static ProgProtocol0x00 getInstance(Knx knx) {
+    public static ProgProtocol0x01 getInstance(Knx knx) {
         boolean debug = Boolean.getBoolean("de.root1.slicknx.konnekting.debug");
         if (debug) {
             WAIT_TIMEOUT = 5000;
             log.info("###### RUNNING DEBUG MODE #######");
         }
-        return new ProgProtocol0x00(knx);
+        return new ProgProtocol0x01(knx);
     }
 
     private final Knx knx;
@@ -53,28 +53,28 @@ public class ProgProtocol0x00 {
     private static int WAIT_TIMEOUT = 500; // produktiv: 500ms, debug: 5000ms
 
     public static final String PROG_GA = "15/7/255";
-    public static final byte PROTOCOL_VERSION = 0x00;
+    public static final byte PROTOCOL_VERSION = 0x01;
 
-    public static final byte MSGTYPE_ACK = 0;
-    public static final byte MSGTYPE_READ_DEVICE_INFO = 1;
-    public static final byte MSGTYPE_ANSWER_DEVICE_INFO = 2;
-    public static final byte MSGTYPE_RESTART = 9;
+    public static final byte MSGTYPE_ACK = 0x00;
+    public static final byte MSGTYPE_DEVICE_INFO_READ = 0x01;
+    public static final byte MSGTYPE_DEVICE_INFO_RESPONSE = 0x02;
+    public static final byte MSGTYPE_RESTART = 0x09;
 
-    public static final byte MSGTYPE_WRITE_PROGRAMMING_MODE = 10;
-    public static final byte MSGTYPE_READ_PROGRAMMING_MODE = 11;
-    public static final byte MSGTYPE_ANSWER_PROGRAMMING_MODE = 12;
+    public static final byte MSGTYPE_PROGRAMMING_MODE_WRITE = 0x0A;
+    public static final byte MSGTYPE_PROGRAMMING_MODE_READ = 0x0B;
+    public static final byte MSGTYPE_PROGRAMMING_MODE_RESPONSE = 0x0C;
 
-    public static final byte MSGTYPE_WRITE_INDIVIDUAL_ADDRESS = 20;
-    public static final byte MSGTYPE_READ_INDIVIDUAL_ADDRESS = 21;
-    public static final byte MSGTYPE_ANSWER_INDIVIDUAL_ADDRESS = 22;
+    public static final byte MSGTYPE_INDIVIDUAL_ADDRESS_WRITE = 0x14;
+    public static final byte MSGTYPE_INDIVIDUAL_ADDRESS_READ = 0x15;
+    public static final byte MSGTYPE_INDIVIDUAL_ADDRESS_RESPONSE = 0x16;
 
-    public static final byte MSGTYPE_WRITE_PARAMETER = 30;
-    public static final byte MSGTYPE_READ_PARAMETER = 31;
-    public static final byte MSGTYPE_ANSWER_PARAMETER = 32;
+    public static final byte MSGTYPE_MEMORY_WRITE = 0x1E;
+    public static final byte MSGTYPE_MEMORY_READ = 0x1F;
+    public static final byte MSGTYPE_MEMORY_RESPONSE = 0x20;
 
-    public static final byte MSGTYPE_WRITE_COM_OBJECT = 40;
-    public static final byte MSGTYPE_READ_COM_OBJECT = 41;
-    public static final byte MSGTYPE_ANSWER_COM_OBJECT = 42;
+    public static final byte MSGTYPE_DATA_PREPARE = 0x28;
+    public static final byte MSGTYPE_DATA_WRITE = 0x29;
+    public static final byte MSGTYPE_DATA_FINISH = 0x2A;
 
     private final List<ProgMessage> receivedMessages = new ArrayList<>();
 
@@ -105,34 +105,19 @@ public class ProgProtocol0x00 {
                     case MSGTYPE_ACK:
                         msg = new MsgAck(data);
                         break;
-                    case MSGTYPE_ANSWER_COM_OBJECT:
-                        msg = new MsgAnswerComObject(data);
+                    case MSGTYPE_DEVICE_INFO_RESPONSE:
+                        msg = new MsgDeviceInfoResponse(data);
                         break;
-                    case MSGTYPE_ANSWER_DEVICE_INFO:
-                        msg = new MsgAnswerDeviceInfo(data);
+                    case MSGTYPE_PROGRAMMING_MODE_RESPONSE:
+                        msg = new MsgProgrammingModeResponse(data);
                         break;
-                    case MSGTYPE_ANSWER_INDIVIDUAL_ADDRESS:
-                        msg = new MsgAnswerIndividualAddress(data);
+                    case MSGTYPE_INDIVIDUAL_ADDRESS_RESPONSE:
+                        msg = new MsgIndividualAddressResponse(data);
                         break;
-                    case MSGTYPE_ANSWER_PROGRAMMING_MODE:
-                        msg = new MsgAnswerProgrammingMode(data);
-                        break;
-                    case MSGTYPE_ANSWER_PARAMETER:
-                        msg = new MsgAnswerParameter(data);
+                    case MSGTYPE_MEMORY_RESPONSE:
+                        msg = new MsgMemoryResponse(data);
                         break;
 
-                    // do nothing, we sent those messages...
-                    case MSGTYPE_READ_COM_OBJECT:
-                    case MSGTYPE_READ_DEVICE_INFO:
-                    case MSGTYPE_READ_INDIVIDUAL_ADDRESS:
-                    case MSGTYPE_READ_PARAMETER:
-                    case MSGTYPE_READ_PROGRAMMING_MODE:
-                    case MSGTYPE_RESTART:
-                    case MSGTYPE_WRITE_COM_OBJECT:
-                    case MSGTYPE_WRITE_INDIVIDUAL_ADDRESS:
-                    case MSGTYPE_WRITE_PARAMETER:
-                    case MSGTYPE_WRITE_PROGRAMMING_MODE:
-                        break;
 
                     // log everything else     
                     default:
@@ -151,7 +136,7 @@ public class ProgProtocol0x00 {
         }
     };
 
-    private ProgProtocol0x00(Knx knx) {
+    private ProgProtocol0x01(Knx knx) {
         this.knx = knx;
         knx.addGroupAddressListener(PROG_GA, gal);
     }
@@ -273,12 +258,12 @@ public class ProgProtocol0x00 {
      * @throws KnxException
      */
     public boolean onlyOneDeviceInProgMode() throws KnxException {
-        sendMessage(new MsgReadProgrammingMode());
+        sendMessage(new MsgProgrammingModeRead());
         List<ProgMessage> waitForMessage = waitForMessage(WAIT_TIMEOUT, false);
         int count = 0;
 
         for (ProgMessage msg : waitForMessage) {// FIXME check also for IA matching
-            if (msg.getType() == MSGTYPE_ANSWER_PROGRAMMING_MODE) {
+            if (msg.getType() == MSGTYPE_PROGRAMMING_MODE_RESPONSE) {
                 count++;
             }
         }
@@ -302,15 +287,15 @@ public class ProgProtocol0x00 {
      */
     public List<String> readIndividualAddress(boolean oneAddressOnly) throws KnxException {
         List<String> list = new ArrayList<>();
-        sendMessage(new MsgReadIndividualAddress());
+        sendMessage(new MsgIndividualAddressRead());
         if (oneAddressOnly) {
-            MsgAnswerIndividualAddress expectSingleMessage = expectSingleMessage(MsgAnswerIndividualAddress.class);
+            MsgIndividualAddressResponse expectSingleMessage = expectSingleMessage(MsgIndividualAddressResponse.class);
             list.add(expectSingleMessage.getAddress());
         } else {
             List<ProgMessage> msgList = waitForMessage(WAIT_TIMEOUT, false);
             for (ProgMessage msg : msgList) {
-                if (msg instanceof MsgAnswerIndividualAddress) {
-                    MsgAnswerIndividualAddress ia = (MsgAnswerIndividualAddress) msg;
+                if (msg instanceof MsgIndividualAddressResponse) {
+                    MsgIndividualAddressResponse ia = (MsgIndividualAddressResponse) msg;
                     list.add(ia.getAddress());
                 }
             }
@@ -319,8 +304,8 @@ public class ProgProtocol0x00 {
     }
 
     public DeviceInfo readDeviceInfo(String individualAddress) throws KnxException {
-        sendMessage(new MsgReadDeviceInfo(individualAddress));
-        MsgAnswerDeviceInfo msg = expectSingleMessage(MsgAnswerDeviceInfo.class);
+        sendMessage(new MsgDeviceInfoRead(individualAddress));
+        MsgDeviceInfoResponse msg = expectSingleMessage(MsgDeviceInfoResponse.class);
 
         return new DeviceInfo(msg.getManufacturerId(), msg.getDeviceId(), msg.getRevisionId(), msg.getDeviceFlags(), msg.getIndividualAddress());
     }
@@ -384,37 +369,26 @@ public class ProgProtocol0x00 {
             throw new KnxException("Can not set address. " + msg);
         }
         log.debug("Writing address ...");
-        sendMessage(new MsgWriteIndividualAddress(address));
+        sendMessage(new MsgIndividualAddressWrite(address));
         expectAck();
     }
 
-    public void writeParameter(byte id, byte[] paramData) throws KnxException {
-        if (paramData.length > 11) {
-            throw new IllegalArgumentException("Data must not exceed 11 bytes.");
-        }
-        sendMessage(new MsgWriteParameter(id, paramData));
+    public void memoryWrite(int index, byte[] data) throws KnxException {
+        // FIXME
+        //sendMessage(new MsgWriteComObject(comObject));
         expectAck();
     }
 
-    public byte[] readParameter(byte id) throws KnxException {
-        sendMessage(new MsgReadParameter(id));
-        MsgAnswerParameter parameter = expectSingleMessage(MsgAnswerParameter.class);
-        return parameter.getParamValue();
+    public byte[] memoryRead(int index, int length) throws KnxException {
+        byte[] data = null;
+        // FIXME
+//        sendMessage(new MsgReadComObject(id));
+//        MsgAnswerComObject comObj = expectSingleMessage(MsgAnswerComObject.class);
+        return data;
     }
 
-    public void writeComObject(ComObject comObject) throws KnxException {
-        sendMessage(new MsgWriteComObject(comObject));
-        expectAck();
-    }
-
-    public ComObject readComObject(byte id) throws KnxException {
-        sendMessage(new MsgReadComObject(id));
-        MsgAnswerComObject comObj = expectSingleMessage(MsgAnswerComObject.class);
-        return comObj.getComObject();
-    }
-
-    public void writeProgrammingMode(String individualAddress, boolean progMode) throws KnxException {
-        sendMessage(new MsgWriteProgrammingMode(individualAddress, progMode));
+    public void programmingModeWrite(String individualAddress, boolean progMode) throws KnxException {
+        sendMessage(new MsgProgrammingModeWrite(individualAddress, progMode));
         expectAck(2 * WAIT_TIMEOUT); // give the sketch enough time to respond and set prog-mode (which should pause the device-logic)
     }
 

@@ -11,9 +11,9 @@ import static de.konnekting.mgnt.protocol0x00.ProgProtocol0x00.MSGTYPE_READ_COM_
  *
  * @author achristian
  */
-class MsgReadComObject extends ProgMessage {
+class MsgMemoryRead extends ProgMessage {
 
-    public MsgReadComObject(Byte id) {
+    public MsgMemoryRead(Byte id) {
         super(MSGTYPE_READ_COM_OBJECT);
 
         if (id == null) {
