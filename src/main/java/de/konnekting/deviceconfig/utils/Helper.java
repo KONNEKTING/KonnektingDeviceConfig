@@ -264,4 +264,17 @@ public class Helper {
         return createTempFile.getName();
     }
     
+    public static byte getHI(short v) {
+        return (byte)((v >>> 8) & 0xFF);
+    }
+    
+    public static byte getLO(short v) {
+        return (byte)((v >>> 0) & 0xFF);
+    }
+    
+    public static short getFromHILO(byte hi, byte lo) {
+        int ch1 = hi;
+        int ch2 = lo;
+        return (short) ((ch1 << 8) + ((ch2 << 0) & 0xFF));
+    }
 }

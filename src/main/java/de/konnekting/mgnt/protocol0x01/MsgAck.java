@@ -32,7 +32,7 @@ class MsgAck extends ProgMessage {
 
     @Override
     public String toString() {
-        return "ACK{"
+        return "MsgAck{"
             + "type="+(isAcknowledged()?"ACK":"NACK")+" "
             + "errorCode="+String.format("0x%02x", getErrorCode())+" "
             + "}";

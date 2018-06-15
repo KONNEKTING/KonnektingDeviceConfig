@@ -16,8 +16,10 @@
  *   You should have received a copy of the GNU General Public License
  *   along with slicKnx.  If not, see <http://www.gnu.org/licenses/>.
  */
-package de.konnekting.mgnt.protocol0x00;
+package de.konnekting.mgnt.protocol0x01;
 
+import de.konnekting.deviceconfig.utils.Bytes2ReadableValue;
+import de.konnekting.deviceconfig.utils.Helper;
 import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
 import de.konnekting.mgnt.ComObject;
@@ -27,13 +29,35 @@ import de.konnekting.mgnt.ComObject;
  * @author achristian
  */
 class MsgMemoryResponse extends ProgMessage {
+    
+    private int count;
+    private short address;
 
     public MsgMemoryResponse(byte[] data) {
         super(data);
+        count = data[2]&0xFF; 
+        address = Helper.getFromHILO(data[3], data[4]);
     }
     
-    public ComObject getComObject() throws KnxException {
-        return new ComObject(data[2], Utils.getGroupAddress(data[3], data[4]).toString());
+    public int getCount() {
+        return count;
     }
     
+    public short getAddress() {
+        return address;
+    }
+    
+    public byte[] getData() {
+        byte[] b = new byte[count];
+        System.arraycopy(data, 5, b, 0, count);
+        return b;
+    }
+
+    @Override
+    public String toString() {
+        return "MsgMemoryResponse{" + "count=" + count + ", address=" + address + ", data="+Helper.bytesToHex(getData())+'}';
+    }
+    
+    
+        
 }

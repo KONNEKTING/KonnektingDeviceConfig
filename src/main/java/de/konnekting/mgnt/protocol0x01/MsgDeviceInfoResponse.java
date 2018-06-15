@@ -20,6 +20,8 @@ package de.konnekting.mgnt.protocol0x01;
 
 import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -66,12 +68,24 @@ class MsgDeviceInfoResponse extends ProgMessage {
     public String getIndividualAddress() throws KnxException {
         return Utils.getIndividualAddress(data[7], data[8]).toString();
     }
+    
+    public byte getSystemType() {
+        return data[9];
+    }
 
     @Override
     public String toString() {
-        return "AnswerDeviceInfo{manufacturerId="+String.format("0x%04x", getManufacturerId())+", "
+        String individualAddress = "n/a";
+        try {
+            individualAddress = getIndividualAddress();
+        } catch (KnxException ex) {
+            log.warn("cannot read IA from data", ex);
+        }
+        return "MsgDeviceInfoResponse{manufacturerId="+String.format("0x%04x", getManufacturerId())+", "
             + "deviceId="+String.format("0x%02x", getDeviceId())+", "
-            + "revisionId="+String.format("0x%02x", getRevisionId())
+            + "revisionId="+String.format("0x%02x", getRevisionId())+", "
+            + "ia="+individualAddress+", "
+            + "systemType="+String.format("0x%02x", getSystemType())
             +"}";
     }
     

@@ -16,7 +16,7 @@
  *   You should have received a copy of the GNU General Public License
  *   along with slicKnx.  If not, see <http://www.gnu.org/licenses/>.
  */
-package de.konnekting.mgnt.protocol0x00;
+package de.konnekting.mgnt.protocol0x01;
 
 import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
@@ -39,9 +39,9 @@ class MsgIndividualAddressResponse extends ProgMessage {
     public String toString() {
         String t;
         try {
-            t = "AnswerIndividualAddress{individualAddress="+getAddress()+"}";
+            t = "MsgIndividualAddressResponse{individualAddress="+getAddress()+"}";
         } catch (KnxException ex) {
-            t = "AnswerIndividualAddress{!!!EXCEPTION!!!}";
+            t = "MsgIndividualAddressResponse{!!!EXCEPTION!!!}";
             log.error("Error parsing individual address ", ex);
         }
         return t;

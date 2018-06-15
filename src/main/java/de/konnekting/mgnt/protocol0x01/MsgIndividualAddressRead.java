@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package de.konnekting.mgnt.protocol0x00;
+package de.konnekting.mgnt.protocol0x01;
 
 /**
  *
@@ -16,12 +16,12 @@ class MsgIndividualAddressRead extends ProgMessage {
     }
 
     public MsgIndividualAddressRead() {
-        super(ProgProtocol0x00.MSGTYPE_READ_INDIVIDUAL_ADDRESS);
+        super(ProgProtocol0x01.MSGTYPE_INDIVIDUAL_ADDRESS_READ);
     }
 
     @Override
     public String toString() {
-        return "MsgReadIndividualAddress{}";
+        return "MsgIndividualAddressRead{}";
     }
     
 }

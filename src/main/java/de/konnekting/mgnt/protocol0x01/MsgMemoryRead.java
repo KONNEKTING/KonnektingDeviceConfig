@@ -3,9 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package de.konnekting.mgnt.protocol0x00;
+package de.konnekting.mgnt.protocol0x01;
 
-import static de.konnekting.mgnt.protocol0x00.ProgProtocol0x00.MSGTYPE_READ_COM_OBJECT;
+import de.konnekting.deviceconfig.utils.Helper;
+import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_MEMORY_READ;
 
 /**
  *
@@ -13,21 +14,28 @@ import static de.konnekting.mgnt.protocol0x00.ProgProtocol0x00.MSGTYPE_READ_COM_
  */
 class MsgMemoryRead extends ProgMessage {
 
-    public MsgMemoryRead(Byte id) {
-        super(MSGTYPE_READ_COM_OBJECT);
+    
+    private int count;
+    private short address;
+    
+    public MsgMemoryRead(int count, short address) {
+        super(MSGTYPE_MEMORY_READ);
 
-        if (id == null) {
-            throw new IllegalArgumentException("you must read at least one com object!");
+        if (count<=0) {
+            throw new IllegalArgumentException("you must read at least one byte");
         }
+        
+        this.count = count;
+        this.address = address;
 
-        data[2] = id;
+        data[2] = (byte) count;
+        data[3] = Helper.getHI(address);
+        data[4] = Helper.getLO(address);
     }
 
     @Override
     public String toString() {
-        return "MsgReadComObject{"
-                + "id=" + String.format("0x%02x", data[2])
-                + "}";
+        return "MsgMemoryRead{" + "count=" + count + ", address=" + String.format("0x%04x", address) + '}';
     }
 
 }

@@ -23,9 +23,9 @@ class MsgDeviceInfoRead extends ProgMessage {
     @Override
     public String toString() {
         try {
-            return "MsgReadDeviceInfo{individualAddress=" +Utils.getIndividualAddress(data[2], data[3])+ "}";
+            return "MsgDeviceInfoRead{individualAddress=" +Utils.getIndividualAddress(data[2], data[3])+ "}";
         } catch (KnxException ex) {
-            return "MsgReadDeviceInfo{individualAddress=invalid(" +String.format("0x%02x", data[2])+", "+String.format("0x%02x", data[3])+ ", exMsg="+ex.getCause().getMessage()+"}";
+            return "MsgDeviceInfoRead{individualAddress=invalid(" +String.format("0x%02x", data[2])+", "+String.format("0x%02x", data[3])+ ", exMsg="+ex.getCause().getMessage()+"}";
         }
     }
     

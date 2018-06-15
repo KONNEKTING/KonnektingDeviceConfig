@@ -18,9 +18,10 @@
  */
 package de.konnekting.mgnt;
 
+import de.konnekting.deviceconfig.utils.Helper;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
-import de.konnekting.mgnt.protocol0x00.ProgProtocol0x00;
+import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,7 @@ public class KonnektingManagement {
     }
 
     private final Knx knx;
-    private ProgProtocol0x00 protocol;
+    private ProgProtocol0x01 protocol;
     private boolean isProgramming = false;
     private String individualAddress;
 
@@ -57,7 +58,7 @@ public class KonnektingManagement {
      */
     public KonnektingManagement(Knx knx) {
         this.knx = knx;
-        protocol = ProgProtocol0x00.getInstance(knx);
+        protocol = ProgProtocol0x01.getInstance(knx);
     }
 
     /**
@@ -91,7 +92,7 @@ public class KonnektingManagement {
         // set prog mode based on pa
         log.debug("Set programming mode = true");
         try {
-            protocol.writeProgrammingMode(individualAddress, true);
+            protocol.programmingModeWrite(individualAddress, true);
         } catch (KnxException ex) {
             throw new KnxException("No device responded for enabling prog-mode on address "+individualAddress, ex);
         }
@@ -129,24 +130,16 @@ public class KonnektingManagement {
         if (!isProgramming) {
             throw new IllegalStateException("Not in programming-state- Call startProgramming() first.");
         }
-        protocol.writeProgrammingMode(individualAddress, false);
+        protocol.programmingModeWrite(individualAddress, false);
         isProgramming = false;
     }
 
-    public void writeParameter(int id, byte[] data) throws KnxException {
+    public void memoryWrite(int index, byte[] data) throws KnxException {
         if (!isProgramming) {
             throw new IllegalStateException("Not in programming-state- Call startProgramming() first.");
         }
-        log.debug("Writing parameter #{}", id);
-        protocol.writeParameter((byte) id, data);
-    }
-
-    public void writeComObject(ComObject comObject) throws KnxException {
-        if (!isProgramming) {
-            throw new IllegalStateException("Not in programming-state- Call startProgramming() first.");
-        }
-        log.debug("Writing ComObject ", comObject);
-        protocol.writeComObject(comObject);
+        log.debug("Writing to index {} following data: {}", index, Helper.bytesToHex(data));
+        protocol.memoryWrite(index, data);
     }
 
     public void restart(String address) throws KnxException {
