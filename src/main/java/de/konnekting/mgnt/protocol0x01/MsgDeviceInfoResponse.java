@@ -30,8 +30,9 @@ import java.util.logging.Logger;
 class MsgDeviceInfoResponse extends ProgMessage {
 
     
-    public MsgDeviceInfoResponse(byte[] data) {
+    public MsgDeviceInfoResponse(byte[] data) throws InvalidMessageException {
         super(data);
+        validateEmpty(10, 13);
     }
 
     /**

@@ -40,7 +40,7 @@ abstract class ProgMessage {
         data[0] = PROTOCOL_VERSION;
         data[1] = type;
         for (int i = 2; i < data.length; i++) {
-            data[i] = 0x00;
+            data[i] = (byte)0xff;
         }
     }
 
@@ -50,6 +50,12 @@ abstract class ProgMessage {
 
     public byte getProtocolversion() {
         return data[0];
+    }
+    
+    void validateEmpty(int from, int to) throws InvalidMessageException {
+        for (int i=from; i<=to; i++) {
+            if (data[i]!=(byte)0xff) throw new InvalidMessageException("Message not valid!");
+        }
     }
 
     @Override

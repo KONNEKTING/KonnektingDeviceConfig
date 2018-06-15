@@ -27,8 +27,9 @@ import de.root1.slicknx.Utils;
  */
 class MsgIndividualAddressResponse extends ProgMessage {
 
-    public MsgIndividualAddressResponse(byte[] data) {
+    public MsgIndividualAddressResponse(byte[] data) throws InvalidMessageException {
         super(data);
+        validateEmpty(4, 13);
     }
     
     public String getAddress() throws KnxException {

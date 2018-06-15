@@ -23,6 +23,7 @@ import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -71,6 +72,10 @@ public class Helper {
      */
     public static String bytesToHex(byte[] bytes) {
         return bytesToHex(bytes, false);
+    }
+    
+    public static String bytesToHex(byte[] bytes, int index, int length, boolean whitespace) {
+        return bytesToHex(Arrays.copyOfRange(bytes, index, index+length-1), whitespace);
     }
 
     /**

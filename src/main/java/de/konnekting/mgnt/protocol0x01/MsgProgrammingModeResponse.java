@@ -16,7 +16,7 @@
  *   You should have received a copy of the GNU General Public License
  *   along with slicKnx.  If not, see <http://www.gnu.org/licenses/>.
  */
-package de.konnekting.mgnt.protocol0x00;
+package de.konnekting.mgnt.protocol0x01;
 
 import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
@@ -26,11 +26,10 @@ import de.root1.slicknx.Utils;
  * @author achristian
  */
 class MsgProgrammingModeResponse extends ProgMessage {
-    private final byte[] data;
 
-    public MsgProgrammingModeResponse(byte[] data) {
+    public MsgProgrammingModeResponse(byte[] data) throws InvalidMessageException {
         super(data);
-        this.data = data;
+        validateEmpty(4, 13);
     }
     
     public String getAddress() throws KnxException {
@@ -41,9 +40,9 @@ class MsgProgrammingModeResponse extends ProgMessage {
     public String toString() {
         String t;
         try {
-            t = "AnswerProgrammingMode{"+getAddress()+"}";
+            t = "MsgProgrammingModeResponse{"+getAddress()+"}";
         } catch (KnxException ex) {
-            t = "AnswerProgrammingMode{!!!EXCEPTION!!!}";
+            t = "MsgProgrammingModeResponse{!!!EXCEPTION!!!}";
             log.error("Error parsing individual address ", ex);
         }
         return t;

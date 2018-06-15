@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2015 Alexander Christian <alex(at)root1.de>. All rights reserved.
+ * Copyright (C) 2018 Alexander Christian <info(at)konnekting.de>. All rights reserved.
  * 
- * This file is part of slicKnx.
+ * This file is part of KONNEKTING Device Library.
  *
  *   slicKnx is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -22,35 +22,16 @@ package de.konnekting.mgnt.protocol0x01;
  *
  * @author achristian
  */
-class MsgAck extends ProgMessage {
-    
-    public static final byte ACK = 0x00;
+public class InvalidMessageException extends Exception {
 
-    public MsgAck(byte[] data) throws InvalidMessageException {
-        super(data);
-        validateEmpty(4, 13);
+    public InvalidMessageException(String msg, Throwable cause) {
+        super(msg, cause);
     }
 
-    @Override
-    public String toString() {
-        return "MsgAck{"
-            + "type="+(isAcknowledged()?"ACK":"NACK")+" "
-            + "errorCode="+String.format("0x%02x", getErrorCode())+" "
-            + "}";
-    }
-
-    boolean isAcknowledged() {
-        return data[2]==ACK;
+    InvalidMessageException(String msg) {
+        super(msg);
     }
     
-    public boolean isError() {
-        return data[3]!=0x00;
-    }
-    
-    public byte getErrorCode() {
-        return data[3];
-    }
     
     
 }
-

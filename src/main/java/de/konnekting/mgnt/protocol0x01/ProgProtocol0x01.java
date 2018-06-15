@@ -75,6 +75,7 @@ public class ProgProtocol0x01 {
     public static final byte MSGTYPE_DATA_PREPARE = 0x28;
     public static final byte MSGTYPE_DATA_WRITE = 0x29;
     public static final byte MSGTYPE_DATA_FINISH = 0x2A;
+    public static final byte MSGTYPE_DATA_REMOVE = 0x2B;
 
     private final List<ProgMessage> receivedMessages = new ArrayList<>();
 
@@ -93,43 +94,56 @@ public class ProgProtocol0x01 {
         @Override
         public void write(GroupAddressEvent event) {
 
-            if (event.getDestination().equals(PROG_GA) && event.getData().length == 14 && event.getData()[0] == PROTOCOL_VERSION) {
-                // seems to be relevant
-                byte[] data = event.getData();
-                ProgMessage msg = null;
-                byte type = data[1];
+            if (event.getDestination().equals(PROG_GA)) {
+                try {
+                    // seems to be relevant
+                    byte[] data = event.getData();
+                    ProgMessage msg = null;
+                    byte version = data[0];
 
-                switch (type) {
-
-                    // handle answer messages
-                    case MSGTYPE_ACK:
-                        msg = new MsgAck(data);
-                        break;
-                    case MSGTYPE_DEVICE_INFO_RESPONSE:
-                        msg = new MsgDeviceInfoResponse(data);
-                        break;
-                    case MSGTYPE_PROGRAMMING_MODE_RESPONSE:
-                        msg = new MsgProgrammingModeResponse(data);
-                        break;
-                    case MSGTYPE_INDIVIDUAL_ADDRESS_RESPONSE:
-                        msg = new MsgIndividualAddressResponse(data);
-                        break;
-                    case MSGTYPE_MEMORY_RESPONSE:
-                        msg = new MsgMemoryResponse(data);
-                        break;
-
-
-                    // log everything else     
-                    default:
-                        plog.warn("Received unknown/invalid message: {}", new ProgMessage(data) {
-                        });
-                }
-                if (msg != null) {
-                    synchronized (receivedMessages) {
-                        plog.info("Received message: {}", msg);
-                        receivedMessages.add(msg);
-                        receivedMessages.notifyAll();
+                    if (data.length != 14) {
+                        throw new InvalidMessageException(String.format("Telegram size does not match. expected: %i, got: %i", 14, data.length));
                     }
+
+                    if (version != PROTOCOL_VERSION) {
+                        throw new InvalidMessageException(String.format("Protocol version in telegram does not match. expected: 0x%02x, got: 0x%02x", PROTOCOL_VERSION, version));
+                    }
+                    byte type = data[1];
+
+                    switch (type) {
+
+                        // handle answer messages
+                        case MSGTYPE_ACK:
+                            msg = new MsgAck(data);
+                            break;
+                        case MSGTYPE_DEVICE_INFO_RESPONSE:
+                            msg = new MsgDeviceInfoResponse(data);
+                            break;
+                        case MSGTYPE_PROGRAMMING_MODE_RESPONSE:
+                            msg = new MsgProgrammingModeResponse(data);
+                            break;
+                        case MSGTYPE_INDIVIDUAL_ADDRESS_RESPONSE:
+                            msg = new MsgIndividualAddressResponse(data);
+                            break;
+                        case MSGTYPE_MEMORY_RESPONSE:
+                            msg = new MsgMemoryResponse(data);
+                            break;
+
+                        // log everything else     
+                        default:
+                            throw new InvalidMessageException("Received unknown/invalid message: "+ new ProgMessage(data) {
+                            });
+                            
+                    }
+                    if (msg != null) {
+                        synchronized (receivedMessages) {
+                            plog.info("Received message: {}", msg);
+                            receivedMessages.add(msg);
+                            receivedMessages.notifyAll();
+                        }
+                    }
+                } catch (InvalidMessageException ex) {
+                    plog.warn("Invalid message during programming detected", ex);
                 }
 
             }

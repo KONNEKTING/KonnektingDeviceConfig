@@ -184,7 +184,7 @@ public class Program {
                             byte[] data = parameter.getValue();
                             log.debug("Writing " + Helper.bytesToHex(data) + " to param with id " + parameter.getId());
                             fireProgressStatusMessage(getLangString("writingParameter", parameter.getId()));
-                            mgt.writeParameter(parameter.getId(), data);
+//                            mgt.writeParameter(parameter.getId(), data);
                             fireProgressUpdate(++i, maxSteps);
                         } else {
                             fireProgressStatusMessage(getLangString("cancelled"));
