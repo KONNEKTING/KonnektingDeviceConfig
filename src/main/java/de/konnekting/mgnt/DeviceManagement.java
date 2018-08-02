@@ -65,7 +65,7 @@ public class DeviceManagement {
     /**
      * trigger programming abort
      */
-    public void abort() {
+    public void abortOperation() {
         abort = true;
         log.info("Abort triggered!");
         fireProgressStatusMessage(getLangString("cancelled"));
