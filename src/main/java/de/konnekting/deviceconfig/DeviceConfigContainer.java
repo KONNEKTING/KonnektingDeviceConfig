@@ -77,10 +77,14 @@ public class DeviceConfigContainer {
     private File f;
     private boolean defaultsFilled = false;
 
-    public static final int LIMIT_SYSTEM = 12;
     public static final int LIMIT_ADDRESSTABLEENTRIES = 255;
     public static final int LIMIT_ASSOCIATIONTABLEENTRIES = 255;
     public static final int LIMIT_COMMOBJECTTABLEENTRIES = 255;
+    
+    public static final int LIMIT_SYSTEMTABLEBYTES = 32;
+    public static final int LIMIT_COMMOBJECTTABLEBYTES = 1 + LIMIT_COMMOBJECTTABLEENTRIES;
+    public static final int LIMIT_ASSOCIATIONTABLEBYTES = 1 + (2 * LIMIT_ASSOCIATIONTABLEENTRIES);
+    public static final int LIMIT_ADDRESSTABLEBYTES = 1 + (2 * LIMIT_ADDRESSTABLEENTRIES);
 
     public DeviceConfigContainer(File f) throws JAXBException, SAXException {
         this.f = f;
@@ -872,20 +876,14 @@ public class DeviceConfigContainer {
         /**
          * System --> fixed size array
          */
-        byte[] systemBytes = new byte[LIMIT_SYSTEM];
-        clearBytes(systemBytes);
-        byte[] iaBytes = Helper.convertIaToBytes(device.getConfiguration().getIndividualAddress().getAddress());
-        if (iaBytes != null) {
-            // insert IA
-            systemBytes[0] = iaBytes[0];
-            systemBytes[1] = iaBytes[1];
-        }
-        deviceMemory.setSystemTable(systemBytes);
+        byte[] systemTableBytes = new byte[LIMIT_SYSTEMTABLEBYTES];
+        clearBytes(systemTableBytes);
+        deviceMemory.setSystemTable(systemTableBytes);
 
         /**
          * AddressTable --> fixed size table
          */
-        byte[] addressTable = new byte[1 + (2 * LIMIT_ADDRESSTABLEENTRIES)];
+        byte[] addressTable = new byte[LIMIT_ADDRESSTABLEBYTES];
         clearBytes(addressTable);
 
         // use hashset to easily add GAs without duplicates
@@ -919,7 +917,7 @@ public class DeviceConfigContainer {
         /**
          * AssociationTable --> fixed size table
          */
-        byte[] associationTable = new byte[1 + (2 * LIMIT_ASSOCIATIONTABLEENTRIES)];
+        byte[] associationTable = new byte[LIMIT_ASSOCIATIONTABLEBYTES];
         clearBytes(associationTable);
 
         // sort by CommObj ID
@@ -955,7 +953,7 @@ public class DeviceConfigContainer {
         /**
          * CommObjectTable --> fixed size table
          */
-        byte[] commObjTable = new byte[1 + LIMIT_COMMOBJECTTABLEENTRIES];
+        byte[] commObjTable = new byte[LIMIT_COMMOBJECTTABLEBYTES];
         clearBytes(commObjTable);
 
         int comobjCount = getAllCommObjects().size();
@@ -1024,6 +1022,7 @@ public class DeviceConfigContainer {
         deviceMemory.setParameterTable(paramTable);
 
     }
+    
 
     /**
      * fill array with 0xff
