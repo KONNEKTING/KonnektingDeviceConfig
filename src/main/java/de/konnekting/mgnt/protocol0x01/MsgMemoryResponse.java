@@ -23,6 +23,7 @@ import de.konnekting.deviceconfig.utils.Helper;
 import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
 import de.konnekting.mgnt.ComObject;
+import static de.konnekting.deviceconfig.utils.Bytes2ReadableValue.*;
 
 /**
  *
@@ -36,7 +37,7 @@ class MsgMemoryResponse extends ProgMessage {
     public MsgMemoryResponse(byte[] data) {
         super(data);
         count = data[2]&0xFF; 
-        address = Helper.getFromHILO(data[3], data[4]);
+        address = convertUINT16(data[3], data[4]);
     }
     
     public int getCount() {

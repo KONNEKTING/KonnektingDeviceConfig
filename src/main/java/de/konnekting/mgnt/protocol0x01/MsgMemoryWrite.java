@@ -8,6 +8,8 @@ package de.konnekting.mgnt.protocol0x01;
 import de.konnekting.deviceconfig.utils.Helper;
 import de.root1.slicknx.KnxException;
 import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_MEMORY_WRITE;
+import static de.konnekting.deviceconfig.utils.ReadableValue2Bytes.*;
+import static de.konnekting.deviceconfig.utils.Bytes2ReadableValue.*;
 
 /**
  *
@@ -15,7 +17,7 @@ import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_MEMORY_WR
  */
 class MsgMemoryWrite extends ProgMessage {
 
-    public MsgMemoryWrite(short address, byte[] b) throws KnxException {
+    public MsgMemoryWrite(int address, byte[] b) throws KnxException {
         super(MSGTYPE_MEMORY_WRITE);
 
         if (b.length > 9) {
@@ -23,9 +25,8 @@ class MsgMemoryWrite extends ProgMessage {
         }
 
         data[2] = (byte) b.length;
-
-        data[3] = Helper.getHI(address);
-        data[4] = Helper.getLO(address);
+        data[3] = convertUINT16(address)[0];
+        data[4] = convertUINT16(address)[1];
         System.arraycopy(data, 0, b, 5, b.length);
 
     }
@@ -34,7 +35,7 @@ class MsgMemoryWrite extends ProgMessage {
     public String toString() {
         return "MsgMemoryWrite{"
                 + "count=" + (int) (data[2] & 0xff) + ", "
-                + "address=" + String.format("0x%04x", Helper.getFromHILO(data[3], data[4])) + ", "
+                + "address=" + String.format("0x%04x", convertUINT16(data[3], data[4])) + ", "
                 + "data=" + Helper.bytesToHex(data, 5, (int) (data[2] & 0xff), true)
                 + "}";
     }

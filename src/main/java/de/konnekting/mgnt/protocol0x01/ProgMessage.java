@@ -52,12 +52,22 @@ abstract class ProgMessage {
         return data[0];
     }
     
+    /**
+     * Empty bytes have 0xff value
+     * @param from
+     * @param to
+     * @throws InvalidMessageException 
+     */
     void validateEmpty(int from, int to) throws InvalidMessageException {
         for (int i=from; i<=to; i++) {
             if (data[i]!=(byte)0xff) throw new InvalidMessageException("Message not valid!");
         }
     }
 
+    public byte[] getData() {
+        return data;
+    }
+    
     @Override
     public String toString() {
         return String.format("ProgMessage[%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x]",

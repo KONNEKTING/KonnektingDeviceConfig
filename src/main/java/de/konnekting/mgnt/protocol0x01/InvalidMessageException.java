@@ -28,7 +28,7 @@ public class InvalidMessageException extends Exception {
         super(msg, cause);
     }
 
-    InvalidMessageException(String msg) {
+    public InvalidMessageException(String msg) {
         super(msg);
     }
     

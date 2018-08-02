@@ -18,15 +18,16 @@
  */
 package de.konnekting.mgnt.protocol0x01;
 
+import de.konnekting.deviceconfig.utils.Helper;
 import de.root1.slicknx.GroupAddressEvent;
 import de.root1.slicknx.GroupAddressListener;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
-import de.konnekting.mgnt.ComObject;
-import de.konnekting.mgnt.DeviceInfo;
+import de.konnekting.mgnt.PropertyPageDeviceInfo;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,17 +57,14 @@ public class ProgProtocol0x01 {
     public static final byte PROTOCOL_VERSION = 0x01;
 
     public static final byte MSGTYPE_ACK = 0x00;
-    public static final byte MSGTYPE_DEVICE_INFO_READ = 0x01;
-    public static final byte MSGTYPE_DEVICE_INFO_RESPONSE = 0x02;
+    
+    public static final byte MSGTYPE_PROPERTY_PAGE_READ = 0x01;
+    public static final byte MSGTYPE_PROPERTY_PAGE_RESPONSE = 0x02;
     public static final byte MSGTYPE_RESTART = 0x09;
 
     public static final byte MSGTYPE_PROGRAMMING_MODE_WRITE = 0x0A;
     public static final byte MSGTYPE_PROGRAMMING_MODE_READ = 0x0B;
     public static final byte MSGTYPE_PROGRAMMING_MODE_RESPONSE = 0x0C;
-
-    public static final byte MSGTYPE_INDIVIDUAL_ADDRESS_WRITE = 0x14;
-    public static final byte MSGTYPE_INDIVIDUAL_ADDRESS_READ = 0x15;
-    public static final byte MSGTYPE_INDIVIDUAL_ADDRESS_RESPONSE = 0x16;
 
     public static final byte MSGTYPE_MEMORY_WRITE = 0x1E;
     public static final byte MSGTYPE_MEMORY_READ = 0x1F;
@@ -116,14 +114,11 @@ public class ProgProtocol0x01 {
                         case MSGTYPE_ACK:
                             msg = new MsgAck(data);
                             break;
-                        case MSGTYPE_DEVICE_INFO_RESPONSE:
-                            msg = new MsgDeviceInfoResponse(data);
+                        case MSGTYPE_PROPERTY_PAGE_RESPONSE:
+                            msg = new MsgPropertyPageResponse(data);
                             break;
                         case MSGTYPE_PROGRAMMING_MODE_RESPONSE:
                             msg = new MsgProgrammingModeResponse(data);
-                            break;
-                        case MSGTYPE_INDIVIDUAL_ADDRESS_RESPONSE:
-                            msg = new MsgIndividualAddressResponse(data);
                             break;
                         case MSGTYPE_MEMORY_RESPONSE:
                             msg = new MsgMemoryResponse(data);
@@ -131,9 +126,9 @@ public class ProgProtocol0x01 {
 
                         // log everything else     
                         default:
-                            throw new InvalidMessageException("Received unknown/invalid message: "+ new ProgMessage(data) {
+                            throw new InvalidMessageException("Received unknown/invalid message: " + new ProgMessage(data) {
                             });
-                            
+
                     }
                     if (msg != null) {
                         synchronized (receivedMessages) {
@@ -220,6 +215,35 @@ public class ProgProtocol0x01 {
 
         }
     }
+    
+    private <T extends ProgMessage> List<T> expectMessages(Class<T> msgClass, int timeout) throws KnxException {
+
+        log.debug("Waiting for messages of typ [{}]", msgClass.getName());
+        List<ProgMessage> list = waitForMessage(timeout, true);
+
+        if (list.isEmpty()) {
+
+            throw new KnxException("Waiting for answer of type " + msgClass.getName() + " timed out.");
+
+        } else {
+
+            // search for wrong message in list
+            for (ProgMessage progMessage : list) {
+                if (!msgClass.isAssignableFrom(progMessage.getClass())) {
+                    // more then one message received
+                    StringBuilder sb = new StringBuilder();
+                    list.forEach((msg) -> {
+                        sb.append("\n");
+                        sb.append(msg);
+                    });
+                    throw new KnxException("Received " + list.size() + " messages. Expected only one type, but got at least one extra: " + progMessage.getClass() + ". List: " + sb.toString());
+                }
+                
+            }
+            
+            return (List<T>) list;
+        }
+    }
 
     private <T extends ProgMessage> T expectSingleMessage(Class<T> msgClass) throws KnxException {
         return expectSingleMessage(msgClass, WAIT_TIMEOUT);
@@ -271,139 +295,152 @@ public class ProgProtocol0x01 {
      * @return true, if exactly one device responds to read-device-info -->
      * @throws KnxException
      */
-    public boolean onlyOneDeviceInProgMode() throws KnxException {
+    public List<String> findDevicesInProgMode() throws KnxException {
         sendMessage(new MsgProgrammingModeRead());
         List<ProgMessage> waitForMessage = waitForMessage(WAIT_TIMEOUT, false);
-        int count = 0;
-
-        for (ProgMessage msg : waitForMessage) {// FIXME check also for IA matching
+        List<String> devicesFound = new ArrayList<>();
+        
+        for (ProgMessage msg : waitForMessage) {
             if (msg.getType() == MSGTYPE_PROGRAMMING_MODE_RESPONSE) {
-                count++;
-            }
+                MsgProgrammingModeResponse mpr = (MsgProgrammingModeResponse)msg;
+                devicesFound.add(mpr.getAddress());
+            } 
         }
-        return count == 1;
+        return devicesFound;
     }
 
-    /**
-     * Reads the individual address of a konnekting device
-     * <p>
-     * The konnekting device is a device in programming mode. In situations
-     * necessary to know whether more than one device is in programming mode,
-     * <code>oneAddressOnly</code> is set to <code>false</code> and the device
-     * addresses are listed in the returned address array. In this case, the
-     * whole response timeout is waited for read responses. If
-     * <code>oneAddressOnly</code> is <code>true</code>, the method returns
-     * after receiving the first read response.
-     *
-     * @param oneAddressOnly
-     * @return lis of found addresseskk
-     * @throws KnxException
-     */
-    public List<String> readIndividualAddress(boolean oneAddressOnly) throws KnxException {
-        List<String> list = new ArrayList<>();
-        sendMessage(new MsgIndividualAddressRead());
-        if (oneAddressOnly) {
-            MsgIndividualAddressResponse expectSingleMessage = expectSingleMessage(MsgIndividualAddressResponse.class);
-            list.add(expectSingleMessage.getAddress());
-        } else {
-            List<ProgMessage> msgList = waitForMessage(WAIT_TIMEOUT, false);
-            for (ProgMessage msg : msgList) {
-                if (msg instanceof MsgIndividualAddressResponse) {
-                    MsgIndividualAddressResponse ia = (MsgIndividualAddressResponse) msg;
-                    list.add(ia.getAddress());
-                }
-            }
-        }
-        return list;
+//    /**
+//     * Reads the individual address of a konnekting device
+//     * <p>
+//     * The konnekting device is a device in programming mode. In situations
+//     * necessary to know whether more than one device is in programming mode,
+//     * <code>oneAddressOnly</code> is set to <code>false</code> and the device
+//     * addresses are listed in the returned address array. In this case, the
+//     * whole response timeout is waited for read responses. If
+//     * <code>oneAddressOnly</code> is <code>true</code>, the method returns
+//     * after receiving the first read response.
+//     *
+//     * @param oneAddressOnly
+//     * @return lis of found addresseskk
+//     * @throws KnxException
+//     */
+//    public List<String> readIndividualAddress(boolean oneAddressOnly) throws KnxException {
+//        List<String> list = new ArrayList<>();
+//        sendMessage(new MsgIndividualAddressRead());
+//        if (oneAddressOnly) {
+//            MsgIndividualAddressResponse expectSingleMessage = expectSingleMessage(MsgIndividualAddressResponse.class);
+//            list.add(expectSingleMessage.getAddress());
+//        } else {
+//            List<ProgMessage> msgList = waitForMessage(WAIT_TIMEOUT, false);
+//            for (ProgMessage msg : msgList) {
+//                if (msg instanceof MsgIndividualAddressResponse) {
+//                    MsgIndividualAddressResponse ia = (MsgIndividualAddressResponse) msg;
+//                    list.add(ia.getAddress());
+//                }
+//            }
+//        }
+//        return list;
+//    }
+
+//    /**
+//     * Writes address to device which is in programming mode
+//     *
+//     * @param address address to write to device
+//     * @throws KnxException if f.i. a timeout occurs or more than one device is
+//     * in programming mode
+//     */
+//    public void writeIndividualAddress(String address) throws KnxException {
+//        boolean exists = false;
+//
+//        try {
+//            readDeviceInfo(address);
+//            exists = true;
+//            log.debug("Device with {} exists", address);
+//        } catch (KnxException ex) {
+//
+//        }
+//
+//        boolean setAddr = false;
+//        int attempts = 20;
+//        int count = 0;
+//
+//        String msg = "";
+//
+//        // ensure only one is in prog mode
+//        while (count != 1 && attempts-- > 0) {
+//            try {
+//                // gibt nur Antwort von Geräten im ProgMode
+//                List<String> list = findDevicesInProgMode();
+//                count = list.size();
+//
+//                log.info("responsed: {}", count);
+//
+//                if (count == 0) {
+//                    log.info("No device responded.");
+//                    msg = "no device in prog mode";
+//                } else if (count == 1 && !list.get(0).equals(address)) {
+//                    msg = "one device with different address (" + list.get(0) + ") responded.";
+//                    setAddr = true;
+//                } else if (count == 1 && list.get(0).equals(address)) {
+//                    log.debug("One device responded, but already has {}.", address);
+//                    msg = "One device responded, but already has " + address + ".";
+//                    setAddr = true;
+//                } else {
+//                    msg = "more than one device in prog mode: " + Arrays.toString(list.toArray());
+//                }
+//            } catch (KnxException ex) {
+//                ex.printStackTrace();
+//                if (exists) {
+//                    log.warn("device exists but is not in programming mode, cancel writing address");
+//                    throw new KnxException("device exists but is not in programming mode, cancel writing address");
+//                }
+//            }
+//            log.debug("KONNEKTINGs in programming mode: {}", count);
+//        }
+//        if (!setAddr) {
+//            log.warn("Can not set address. " + msg);
+//            throw new KnxException("Can not set address. " + msg);
+//        }
+//        log.debug("Writing address ...");
+//        
+//        int systemTableAddress = 0;
+//        int iaOffset = 0;
+//        MsgMemoryWrite iaWriteMsg = new MsgMemoryWrite(systemTableAddress+iaOffset, Helper.convertIaToBytes(address));
+//        
+//        sendMessage(iaWriteMsg);
+//        expectAck();
+//    }
+
+    public byte[] propertyPageRead(String individualAddress, int pagenum) throws KnxException {
+        sendMessage(new MsgPropertyPageRead(individualAddress, pagenum));
+        MsgPropertyPageResponse msg = expectSingleMessage(MsgPropertyPageResponse.class);
+        return msg.getData();
     }
 
-    public DeviceInfo readDeviceInfo(String individualAddress) throws KnxException {
-        sendMessage(new MsgDeviceInfoRead(individualAddress));
-        MsgDeviceInfoResponse msg = expectSingleMessage(MsgDeviceInfoResponse.class);
-
-        return new DeviceInfo(msg.getManufacturerId(), msg.getDeviceId(), msg.getRevisionId(), msg.getDeviceFlags(), msg.getIndividualAddress());
-    }
-
-    /**
-     * Writes address to device which is in programming mode
-     *
-     * @param address address to write to device
-     * @throws KnxException if f.i. a timeout occurs or more than one device is
-     * in programming mode
-     */
-    public void writeIndividualAddress(String address) throws KnxException {
-        boolean exists = false;
-
-        try {
-            readDeviceInfo(address);
-            exists = true;
-            log.debug("Device with {} exists", address);
-        } catch (KnxException ex) {
-
-        }
-
-        boolean setAddr = false;
-        int attempts = 20;
-        int count = 0;
-
-        String msg = "";
-
-        while (count != 1 && attempts-- > 0) {
-            try {
-                // gibt nur Antwort von Geräten im ProgMode
-                List<String> list = readIndividualAddress(false);
-                count = list.size();
-
-                log.info("responsed: {}", count);
-
-                if (count == 0) {
-                    log.info("No device responded.");
-                    msg = "no device in prog mode";
-                } else if (count == 1 && !list.get(0).equals(address)) {
-                    msg = "one device with different address (" + list.get(0) + ") responded.";
-                    setAddr = true;
-                } else if (count == 1 && list.get(0).equals(address)) {
-                    log.debug("One device responded, but already has {}.", address);
-                    msg = "One device responded, but already has " + address + ".";
-                    setAddr = true;
-                } else {
-                    msg = "more than one device in prog mode: " + Arrays.toString(list.toArray());
-                }
-            } catch (KnxException ex) {
-                ex.printStackTrace();
-                if (exists) {
-                    log.warn("device exists but is not in programming mode, cancel writing address");
-                    throw new KnxException("device exists but is not in programming mode, cancel writing address");
-                }
-            }
-            log.debug("KONNEKTINGs in programming mode: {}", count);
-        }
-        if (!setAddr) {
-            log.warn("Can not set address. " + msg);
-            throw new KnxException("Can not set address. " + msg);
-        }
-        log.debug("Writing address ...");
-        sendMessage(new MsgIndividualAddressWrite(address));
+    public void memoryWrite(int memoryAddress, byte[] data) throws KnxException {
+        sendMessage(new MsgMemoryWrite(memoryAddress, data));
         expectAck();
     }
 
-    public void memoryWrite(int index, byte[] data) throws KnxException {
-        // FIXME
-        //sendMessage(new MsgWriteComObject(comObject));
-        expectAck();
-    }
-
-    public byte[] memoryRead(int index, int length) throws KnxException {
-        byte[] data = null;
-        // FIXME
-//        sendMessage(new MsgReadComObject(id));
-//        MsgAnswerComObject comObj = expectSingleMessage(MsgAnswerComObject.class);
-        return data;
+    public byte[] memoryRead(int memoryAddress, int length) throws KnxException {
+        sendMessage(new MsgMemoryRead(memoryAddress, length));
+        MsgMemoryResponse msg = expectSingleMessage(MsgMemoryResponse.class);
+        return msg.getData();
     }
 
     public void programmingModeWrite(String individualAddress, boolean progMode) throws KnxException {
         sendMessage(new MsgProgrammingModeWrite(individualAddress, progMode));
         expectAck(2 * WAIT_TIMEOUT); // give the sketch enough time to respond and set prog-mode (which should pause the device-logic)
+    }
+    
+    public List<String> programmingModeRead() throws KnxException {
+        sendMessage(new MsgProgrammingModeRead());
+        List<MsgProgrammingModeResponse> messages = expectMessages(MsgProgrammingModeResponse.class, 2*WAIT_TIMEOUT);
+        List<String> addresses = new ArrayList<>();
+        for (MsgProgrammingModeResponse msg : messages) {
+            addresses.add(msg.getAddress());
+        }
+        return addresses;
     }
 
     public void restart(String individualAddress) throws KnxException {

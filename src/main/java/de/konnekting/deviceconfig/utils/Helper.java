@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -67,27 +68,29 @@ public class Helper {
 
     /**
      * return upper case hex!
+     *
      * @param bytes
-     * @return 
+     * @return
      */
     public static String bytesToHex(byte[] bytes) {
         return bytesToHex(bytes, false);
     }
-    
+
     public static String bytesToHex(byte[] bytes, int index, int length, boolean whitespace) {
-        return bytesToHex(Arrays.copyOfRange(bytes, index, index+length-1), whitespace);
+        return bytesToHex(Arrays.copyOfRange(bytes, index, index + length - 1), whitespace);
     }
 
     /**
      * returns upper case hex
+     *
      * @param bytearray
      * @param whitespace
-     * @return 
+     * @return
      */
     public static String bytesToHex(byte[] bytearray, boolean whitespace) {
         StringBuilder sb = new StringBuilder(bytearray.length * 2);
         for (int i = 0; i < bytearray.length; i++) {
-            sb.append(String.format(whitespace?"%02x ":"%02x", bytearray[i] & 0xff));
+            sb.append(String.format(whitespace ? "%02x " : "%02x", bytearray[i] & 0xff));
         }
         return sb.toString().trim().toUpperCase();
     }
@@ -101,8 +104,8 @@ public class Helper {
         int sLen = s.length();
         byte[] bytearray = new byte[sLen / 2];
         for (int i = 0; i < sLen; i += 2) {
-            bytearray[i / 2] = (byte) ( /* left hex-char: shift 4 bits the the left*/ (Character.digit(s.charAt(i), 16) << 4)  
-                + /* right hex-char: no need to shift, as value is already "low" enough */ Character.digit(s.charAt(i + 1), 16) );
+            bytearray[i / 2] = (byte) ( /* left hex-char: shift 4 bits the the left*/(Character.digit(s.charAt(i), 16) << 4)
+                    + /* right hex-char: no need to shift, as value is already "low" enough */ Character.digit(s.charAt(i + 1), 16));
         }
         return bytearray;
     }
@@ -117,6 +120,16 @@ public class Helper {
         } catch (KnxException ex) {
             LOG.error("Error converting GA to bytes", ex);
             return null;
+        }
+    }
+
+    public static String convertBytesToIA(byte b0, byte b1) {
+        try {
+            // TODO check corect endianess
+            return Utils.getIndividualAddress(b1, b0).toString();
+        } catch (KnxException ex) {
+            // will never happen, cause we fix the byte-array
+            return "input.not.valid";
         }
     }
 
@@ -269,17 +282,24 @@ public class Helper {
         return createTempFile.getName();
     }
     
-    public static byte getHI(int v) {
-        return (byte)((v >>> 8) & 0xFF);
+    public static boolean setByte(byte[] dst, int dstIndex, byte in) {
+        boolean dirty = false;
+        if (dst[dstIndex]!=in) {
+            dst[dstIndex]=in;
+            dirty = true;
+        }
+        return dirty;
     }
-    
-    public static byte getLO(int v) {
-        return (byte)((v >>> 0) & 0xFF);
-    }
-    
-    public static int getFromHILO(byte hi, byte lo) {
-        int ch1 = hi;
-        int ch2 = lo;
-        return (int) ((ch1 << 8) + ((ch2 << 0) & 0xFF));
-    }
+
+//    public static byte getHI(int v) {
+//        return (byte)((v >>> 8) & 0xFF);
+//    }
+//    
+//    public static byte getLO(int v) {
+//        return (byte)((v >>> 0) & 0xFF);
+//    }
+//    
+//    public static int getFrom16bit(byte lo, byte hi) {
+//        return (int) ((hi << 8) + ((lo << 0) & 0xFF));
+//    }
 }

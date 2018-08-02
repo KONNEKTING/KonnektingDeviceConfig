@@ -18,34 +18,25 @@
  */
 package de.konnekting.mgnt.protocol0x01;
 
+import de.konnekting.deviceconfig.utils.Helper;
 import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
+import java.util.logging.Logger;
 
 /**
  *
  * @author achristian
  */
-class MsgIndividualAddressResponse extends ProgMessage {
+public class MsgPropertyPageResponse extends ProgMessage {
 
-    public MsgIndividualAddressResponse(byte[] data) throws InvalidMessageException {
+    
+    public MsgPropertyPageResponse(byte[] data) throws InvalidMessageException {
         super(data);
-        validateEmpty(4, 13);
     }
-    
-    public String getAddress() throws KnxException {
-        return Utils.getIndividualAddress(data[2], data[3]).toString();
-    }
-    
+
     @Override
     public String toString() {
-        String t;
-        try {
-            t = "MsgIndividualAddressResponse{individualAddress="+getAddress()+"}";
-        } catch (KnxException ex) {
-            t = "MsgIndividualAddressResponse{!!!EXCEPTION!!!}";
-            log.error("Error parsing individual address ", ex);
-        }
-        return t;
+        return "MsgPropertyPageResponse{data="+Helper.bytesToHex(data, true)+"}";
     }
     
 }

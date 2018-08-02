@@ -880,7 +880,7 @@ public class DeviceConfigContainer {
             systemBytes[0] = iaBytes[0];
             systemBytes[1] = iaBytes[1];
         }
-        deviceMemory.setSystem(systemBytes);
+        deviceMemory.setSystemTable(systemBytes);
 
         /**
          * AddressTable --> fixed size table
@@ -1048,7 +1048,7 @@ public class DeviceConfigContainer {
         dcc = new DeviceConfigContainer(fout);
         DeviceMemory deviceMemory = dcc.getDevice().getConfiguration().getDeviceMemory();
 
-        System.out.println("System           = " + Helper.bytesToHex(deviceMemory.getSystem(), true));
+        System.out.println("System           = " + Helper.bytesToHex(deviceMemory.getSystemTable(), true));
         System.out.println("AddressTable     = " + Helper.bytesToHex(deviceMemory.getAddressTable(), true));
         System.out.println("AssociationTable = " + Helper.bytesToHex(deviceMemory.getAssociationTable(), true));
         System.out.println("CommObjectTable  = " + Helper.bytesToHex(deviceMemory.getCommObjectTable(), true));
