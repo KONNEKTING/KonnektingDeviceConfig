@@ -22,17 +22,17 @@ package de.konnekting.mgnt;
  *
  * @author achristian
  */
-public class ProgramException extends Exception {
+public class DeviceManagementException extends Exception {
 
-    public ProgramException(String message) {
+    public DeviceManagementException(String message) {
         super(message);
     }
 
-    public ProgramException(Throwable cause) {
+    public DeviceManagementException(Throwable cause) {
         super(cause);
     }
 
-    public ProgramException(String message, Throwable cause) {
+    public DeviceManagementException(String message, Throwable cause) {
         super(message, cause);
     }
     

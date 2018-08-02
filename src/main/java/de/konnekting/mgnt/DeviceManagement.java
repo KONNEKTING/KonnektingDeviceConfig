@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author achristian
  */
-public class Program {
+public class DeviceManagement {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("de/konnekting/deviceconfig/i18n/language"); // NOI18N
@@ -57,7 +57,7 @@ public class Program {
     private int progressMaxSteps = 0;
     private int progressCurrent = 0;
 
-    public Program(Knx knx) {
+    public DeviceManagement(Knx knx) {
         this.knx = knx;
         protocol = ProgProtocol0x01.getInstance(knx);
     }
@@ -81,7 +81,7 @@ public class Program {
      * @param doParams
      * @throws de.konnekting.deviceconfig.ProgramException
      */
-    public void program(DeviceConfigContainer deviceConfigContainer, boolean doIndividualAddress, boolean doComObjects, boolean doParams) throws ProgramException {
+    public void program(DeviceConfigContainer deviceConfigContainer, boolean doIndividualAddress, boolean doComObjects, boolean doParams) throws DeviceManagementException {
 
         try {
             fireProgressStatusMessage(getLangString("initialize")); // "Initialize..."
@@ -134,7 +134,7 @@ public class Program {
                 }
             } catch (KnxException ex) {
                 // TODO fail!
-                throw new ProgramException("Error getting into programing mode", ex);
+                throw new DeviceManagementException("Error getting into programing mode", ex);
             }
 
             checkAbort();
@@ -188,7 +188,7 @@ public class Program {
             fireProgressStatusMessage(getLangString("done"));//All done.");
 
         } catch (KnxException | IllegalArgumentException ex) {
-            throw new ProgramException("Programming failed", ex);
+            throw new DeviceManagementException("Programming failed", ex);
         }
 
     }
@@ -202,7 +202,7 @@ public class Program {
      * @param revision
      * @throws de.root1.slicknx.KnxException
      */
-    private void startProgMode(String individualAddress, int manufacturerId, short deviceId, short revision) throws KnxException, ProgramException {
+    private void startProgMode(String individualAddress, int manufacturerId, short deviceId, short revision) throws KnxException, DeviceManagementException {
         if (isProgramming) {
             throw new IllegalStateException("Already in programming mode. Please call stopProgramming() first.");
         }
@@ -249,7 +249,7 @@ public class Program {
 
         // check for correct device
         if (ppdi.getManufacturerId() != manufacturerId || ppdi.getDeviceId() != deviceId || ppdi.getRevision() != revision) {
-            throw new ProgramException("Device does not match to configuration.\n"
+            throw new DeviceManagementException("Device does not match to configuration.\n"
                     + " KONNEKTING reported: \n"
                     + "  manufacturer: " + ppdi.getManufacturerId() + "\n"
                     + "  device: " + ppdi.getDeviceId() + "\n"
@@ -323,14 +323,14 @@ public class Program {
         return result;
     }
 
-    private PropertyPageDeviceInfo readDeviceInfo(String individualAddress) throws ProgramException {
+    private PropertyPageDeviceInfo readDeviceInfo(String individualAddress) throws DeviceManagementException {
         try {
             byte[] propertyPageRead = protocol.propertyPageRead(individualAddress, PropertyPageDeviceInfo.PROPERTY_PAGE_NUM);
             PropertyPageDeviceInfo ppdi = new PropertyPageDeviceInfo(propertyPageRead);
             return ppdi;
         } catch (KnxException ex) {
             log.error("Error reading device info property page", ex);
-            throw new ProgramException("Error reading device info property page", ex);
+            throw new DeviceManagementException("Error reading device info property page", ex);
         }
     }
 
@@ -394,9 +394,10 @@ public class Program {
         listeners.remove(listener);
     }
 
-    private void checkAbort() throws ProgramException {
+    private void checkAbort() throws DeviceManagementException {
         if (abort) {
-            throw new ProgramException("Programming aborted");
+            abort=false;
+            throw new DeviceManagementException("Programming aborted");
         }
     }
 
