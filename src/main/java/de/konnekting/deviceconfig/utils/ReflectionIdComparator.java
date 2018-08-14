@@ -23,7 +23,6 @@ import java.lang.reflect.Method;
 import java.util.Comparator;
 
 /**
- *
  * @author achristian
  */
 public class ReflectionIdComparator implements Comparator<Object> {

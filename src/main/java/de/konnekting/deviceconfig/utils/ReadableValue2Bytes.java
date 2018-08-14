@@ -21,7 +21,7 @@ package de.konnekting.deviceconfig.utils;
 import java.io.UnsupportedEncodingException;
 
 /**
- *
+ * big endian
  * @author achristian
  */
 public class ReadableValue2Bytes {

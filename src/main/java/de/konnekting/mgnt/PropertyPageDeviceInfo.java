@@ -30,19 +30,22 @@ public class PropertyPageDeviceInfo {
 
     public PropertyPageDeviceInfo(byte[] data) throws IllegalArgumentException {
         manufacturerId = convertUINT16(data[2], data[3]);
-        deviceId = data[4];
-        revision = data[5];
+        deviceId = data[4]&0xFF;
+        revision = data[5]&0xFF;
         deviceFlags = data[6];
 
         switch (data[7]) {
-            case 0:
+            case (byte)0x00:
                 systemType = SystemType.SYSTEM_1;
-            case 1:
+                break;
+            case (byte)0x01:
                 systemType = SystemType.SYSTEM_2;
-            case 2:
+                break;
+            case (byte)0x02:
                 systemType = SystemType.SYSTEM_3;
+                break;
             default:
-                throw new IllegalArgumentException("System type with " + String.format("0x%02x", systemType) + " not known!");
+                throw new IllegalArgumentException("System type with " + String.format("0x%02x", data[7]) + " not known!");
         }
     }
 

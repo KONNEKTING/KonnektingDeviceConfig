@@ -27,7 +27,8 @@ class MsgMemoryWrite extends ProgMessage {
         data[2] = (byte) b.length;
         data[3] = convertUINT16(address)[0];
         data[4] = convertUINT16(address)[1];
-        System.arraycopy(data, 0, b, 5, b.length);
+        fillEmpty(5);
+        System.arraycopy(b, 0, data, 5, b.length);
 
     }
 

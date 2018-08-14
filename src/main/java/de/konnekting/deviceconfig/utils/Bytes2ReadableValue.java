@@ -23,6 +23,7 @@ import java.io.UnsupportedEncodingException;
 /**
  *
  * @author achristian
+ * uses big endian
  */
 public class Bytes2ReadableValue {
 

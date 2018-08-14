@@ -114,6 +114,11 @@ public class Helper {
     private static final Pattern PA_PARKED_PATTERN = Pattern.compile("\\A\\d{1,2}\\.\\d{1,2}\\.\\z");
     private static final Pattern GA_PATTERN = Pattern.compile("\\A\\d{1,2}/\\d{1,2}/\\d{1,3}\\z");
 
+    /**
+     * uses big endian
+     * @param ga
+     * @return 
+     */
     public static byte[] convertGaToBytes(String ga) {
         try {
             return Utils.getGroupAddress(ga).toByteArray();
@@ -123,6 +128,12 @@ public class Helper {
         }
     }
 
+    /**
+     * uses big endian
+     * @param b0
+     * @param b1
+     * @return 
+     */
     public static String convertBytesToIA(byte b0, byte b1) {
         try {
             // TODO check corect endianess
@@ -133,6 +144,11 @@ public class Helper {
         }
     }
 
+    /**
+     * uses big endian
+     * @param ia
+     * @return 
+     */
     public static byte[] convertIaToBytes(String ia) {
         if (isParkedAddress(ia)) {
             LOG.error("Individual address is parked. Cannot convert");

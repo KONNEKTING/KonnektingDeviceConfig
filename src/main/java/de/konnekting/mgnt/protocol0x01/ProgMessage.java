@@ -63,6 +63,12 @@ abstract class ProgMessage {
             if (data[i]!=(byte)0xff) throw new InvalidMessageException("Message not valid!");
         }
     }
+    
+    void fillEmpty(int startIndex) {
+        for (int i=startIndex;i<data.length;i++) {
+            data[i] = (byte)0xff;
+        }
+    }
 
     public byte[] getData() {
         return data;

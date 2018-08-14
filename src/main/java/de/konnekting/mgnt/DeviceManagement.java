@@ -251,13 +251,13 @@ public class DeviceManagement {
         if (ppdi.getManufacturerId() != manufacturerId || ppdi.getDeviceId() != deviceId || ppdi.getRevision() != revision) {
             throw new DeviceManagementException("Device does not match to configuration.\n"
                     + " KONNEKTING reported: \n"
-                    + "  manufacturer: " + ppdi.getManufacturerId() + "\n"
-                    + "  device: " + ppdi.getDeviceId() + "\n"
-                    + "  revision: " + ppdi.getRevision() + "\n"
+                    + "  manufacturer: " + String.format("0x%04x", ppdi.getManufacturerId()) + "\n"
+                    + "  device: " + String.format("0x%02x", ppdi.getDeviceId()) + "\n"
+                    + "  revision: " + String.format("0x%02x", ppdi.getRevision()) + "\n"
                     + " Configuration requires:\n"
-                    + "  manufacturer: " + manufacturerId + "\n"
-                    + "  device: " + deviceId + "\n"
-                    + "  revision: " + revision);
+                    + "  manufacturer: " + String.format("0x%04x", manufacturerId) + "\n"
+                    + "  device: " + String.format("0x%02x", deviceId) + "\n"
+                    + "  revision: " + String.format("0x%02x", revision));
         }
         log.debug("Got device info: {}", ppdi);
         isProgramming = true;
@@ -273,35 +273,34 @@ public class DeviceManagement {
         isProgramming = false;
     }
 
-    private void memoryWrite(int index, byte[] data) throws KnxException {
+    private void memoryWrite(int addr, byte[] data) throws KnxException {
         if (!isProgramming) {
             throw new IllegalStateException("Not in programming-state- Call startProgramming() first.");
         }
-        log.debug("Writing {} bytes of data to index {}. data: {}", index, Helper.bytesToHex(data, true));
+        log.debug("Writing {} bytes of data to addr {}. data: {}", data.length, String.format("0x%02x", addr), Helper.bytesToHex(data, true));
 
         int written = 0;
 
         fireIncreaseMaxSteps((int) Math.ceil((double) data.length / (double) MEMORY_READWRITE_BYTES));
-
         while (written != data.length) {
 
             int writeStep = (data.length - written > MEMORY_READWRITE_BYTES ? MEMORY_READWRITE_BYTES : data.length - written);
 
-            log.debug("\twrite {} bytes to index {}", writeStep, index);
-            protocol.memoryWrite(index, Arrays.copyOfRange(data, index, index + writeStep - 1));
+            log.debug("\twrite {} bytes to index {}", writeStep, String.format("0x%02x", addr));
+            protocol.memoryWrite(addr, Arrays.copyOfRange(data, written, written + writeStep - 1));
 
-            index += writeStep; // increment index for reading next block of 1..9 bytes
+            addr += writeStep; // increment index for reading next block of 1..9 bytes
             written += writeStep;
             fireDone();
         }
         log.debug("Done writing.");
     }
 
-    private byte[] memoryRead(int index, int lenght) throws KnxException {
+    private byte[] memoryRead(int addr, int lenght) throws KnxException {
         if (!isProgramming) {
             throw new IllegalStateException("Not in programming-state- Call startProgramming() first.");
         }
-        log.debug("Reading {} bytes beginning from index {}", lenght, index);
+        log.debug("Reading {} bytes beginning from addr {}", lenght, String.format("0x%02x", addr));
 
         byte[] result = new byte[lenght];
         int read = 0;
@@ -310,12 +309,12 @@ public class DeviceManagement {
         while (lenght != 0) {
             int readStep = (lenght > MEMORY_READWRITE_BYTES ? MEMORY_READWRITE_BYTES : lenght);
             lenght -= readStep;
-            log.debug("\tRead {} bytes from index {}", readStep, index);
-            byte[] data = protocol.memoryRead(index, readStep);
+            log.debug("\tRead {} bytes from addr {}", readStep, String.format("0x%02x", addr));
+            byte[] data = protocol.memoryRead(addr, readStep);
 
             System.arraycopy(data, 0, result, read, readStep);
 
-            index += readStep; // increment index for reading next block of 1..9 bytes
+            addr += readStep; // increment index for reading next block of 1..9 bytes
             read += readStep;
             fireDone();
         }
@@ -401,8 +400,12 @@ public class DeviceManagement {
         }
     }
 
-//    public static void main(String[] args) {
-//        double x = Math.ceil(1000d / 9d);
-//        System.out.println("x="+x);
-//    }
+    public static void main(String[] args) {
+        byte b0 = (byte) 0x00;
+        byte b1 = (byte) 0xff;
+        String ia = "15/7/0";
+        byte[] convertIaToBytes = Helper.convertIaToBytes(ia);
+        System.out.println("b0="+String.format("0x%02x",convertIaToBytes[0]));
+        System.out.println("b1="+String.format("0x%02x",convertIaToBytes[1]));
+    }
 }

@@ -57,7 +57,7 @@ public class ProgProtocol0x01 {
     public static final byte PROTOCOL_VERSION = 0x01;
 
     public static final byte MSGTYPE_ACK = 0x00;
-    
+
     public static final byte MSGTYPE_PROPERTY_PAGE_READ = 0x01;
     public static final byte MSGTYPE_PROPERTY_PAGE_RESPONSE = 0x02;
     public static final byte MSGTYPE_RESTART = 0x09;
@@ -215,7 +215,7 @@ public class ProgProtocol0x01 {
 
         }
     }
-    
+
     private <T extends ProgMessage> List<T> expectMessages(Class<T> msgClass, int timeout) throws KnxException {
 
         log.debug("Waiting for messages of typ [{}]", msgClass.getName());
@@ -238,9 +238,9 @@ public class ProgProtocol0x01 {
                     });
                     throw new KnxException("Received " + list.size() + " messages. Expected only one type, but got at least one extra: " + progMessage.getClass() + ". List: " + sb.toString());
                 }
-                
+
             }
-            
+
             return (List<T>) list;
         }
     }
@@ -299,12 +299,12 @@ public class ProgProtocol0x01 {
         sendMessage(new MsgProgrammingModeRead());
         List<ProgMessage> waitForMessage = waitForMessage(WAIT_TIMEOUT, false);
         List<String> devicesFound = new ArrayList<>();
-        
+
         for (ProgMessage msg : waitForMessage) {
             if (msg.getType() == MSGTYPE_PROGRAMMING_MODE_RESPONSE) {
-                MsgProgrammingModeResponse mpr = (MsgProgrammingModeResponse)msg;
+                MsgProgrammingModeResponse mpr = (MsgProgrammingModeResponse) msg;
                 devicesFound.add(mpr.getAddress());
-            } 
+            }
         }
         return devicesFound;
     }
@@ -341,7 +341,6 @@ public class ProgProtocol0x01 {
 //        }
 //        return list;
 //    }
-
 //    /**
 //     * Writes address to device which is in programming mode
 //     *
@@ -410,7 +409,6 @@ public class ProgProtocol0x01 {
 //        sendMessage(iaWriteMsg);
 //        expectAck();
 //    }
-
     public byte[] propertyPageRead(String individualAddress, int pagenum) throws KnxException {
         sendMessage(new MsgPropertyPageRead(individualAddress, pagenum));
         MsgPropertyPageResponse msg = expectSingleMessage(MsgPropertyPageResponse.class);
@@ -432,13 +430,18 @@ public class ProgProtocol0x01 {
         sendMessage(new MsgProgrammingModeWrite(individualAddress, progMode));
         expectAck(2 * WAIT_TIMEOUT); // give the sketch enough time to respond and set prog-mode (which should pause the device-logic)
     }
-    
+
     public List<String> programmingModeRead() throws KnxException {
         sendMessage(new MsgProgrammingModeRead());
-        List<MsgProgrammingModeResponse> messages = expectMessages(MsgProgrammingModeResponse.class, 2*WAIT_TIMEOUT);
         List<String> addresses = new ArrayList<>();
-        for (MsgProgrammingModeResponse msg : messages) {
-            addresses.add(msg.getAddress());
+        try {
+            // there may be responses, but maybe not. who knows. it's okay when nothting is responding.
+            List<MsgProgrammingModeResponse> messages = expectMessages(MsgProgrammingModeResponse.class, 2 * WAIT_TIMEOUT);
+            for (MsgProgrammingModeResponse msg : messages) {
+                addresses.add(msg.getAddress());
+            }
+        } catch (KnxException ex) {
+            log.info("",ex);
         }
         return addresses;
     }

@@ -18,11 +18,7 @@
  */
 package de.konnekting.mgnt.protocol0x01;
 
-import de.konnekting.deviceconfig.utils.Bytes2ReadableValue;
 import de.konnekting.deviceconfig.utils.Helper;
-import de.root1.slicknx.KnxException;
-import de.root1.slicknx.Utils;
-import de.konnekting.mgnt.ComObject;
 import static de.konnekting.deviceconfig.utils.Bytes2ReadableValue.*;
 
 /**

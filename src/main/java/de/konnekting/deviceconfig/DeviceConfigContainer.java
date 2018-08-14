@@ -23,6 +23,8 @@ import de.konnekting.deviceconfig.exception.InvalidAddressFormatException;
 import de.konnekting.deviceconfig.utils.Bytes2ReadableValue;
 import de.konnekting.deviceconfig.utils.Helper;
 import de.konnekting.deviceconfig.utils.ReflectionIdComparator;
+import de.konnekting.mgnt.DeviceManagement;
+import de.konnekting.mgnt.DeviceManagementException;
 import de.konnekting.xml.konnektingdevice.v0.CommObject;
 import de.konnekting.xml.konnektingdevice.v0.CommObjectConfiguration;
 import de.konnekting.xml.konnektingdevice.v0.CommObjectConfigurations;
@@ -44,6 +46,8 @@ import de.konnekting.xml.konnektingdevice.v0.Parameters;
 import de.konnekting.xml.konnektingdevice.v0.TestType;
 import de.root1.logging.JulFormatter;
 import de.root1.rooteventbus.RootEventBus;
+import de.root1.slicknx.Knx;
+import de.root1.slicknx.KnxException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -1035,7 +1039,7 @@ public class DeviceConfigContainer {
         }
     }
 
-    public static void main(String[] args) throws JAXBException, SAXException {
+    public static void main(String[] args) throws JAXBException, SAXException, KnxException, DeviceManagementException {
 
         JulFormatter.set();
         File fin = new File("test.kconfig.xml");
@@ -1052,6 +1056,12 @@ public class DeviceConfigContainer {
         System.out.println("AssociationTable = " + Helper.bytesToHex(deviceMemory.getAssociationTable(), true));
         System.out.println("CommObjectTable  = " + Helper.bytesToHex(deviceMemory.getCommObjectTable(), true));
         System.out.println("ParameterTable   = " + Helper.bytesToHex(deviceMemory.getParameterTable(), true));
+        
+        Knx knx = new Knx("1.1.1");
+        
+        DeviceManagement mgmt = new DeviceManagement(knx);
+        
+        mgmt.program(dcc, true, false, false);
     }
 
 }
