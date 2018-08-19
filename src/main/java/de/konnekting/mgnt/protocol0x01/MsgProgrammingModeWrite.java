@@ -5,6 +5,8 @@
  */
 package de.konnekting.mgnt.protocol0x01;
 
+import de.konnekting.deviceconfig.utils.Bytes2ReadableValue;
+import de.konnekting.deviceconfig.utils.Helper;
 import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
 import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_PROGRAMMING_MODE_WRITE;
@@ -17,7 +19,12 @@ class MsgProgrammingModeWrite extends ProgMessage {
 
     public MsgProgrammingModeWrite(String individualAddress, boolean progMode) throws KnxException {
         super(MSGTYPE_PROGRAMMING_MODE_WRITE);
-        System.arraycopy(Utils.getIndividualAddress(individualAddress).toByteArray(), 0, data, 2, 2);
+        
+        byte[] ia = Helper.convertIaToBytes(individualAddress);
+
+        log.error("ia={}", String.format("0x%04x",Bytes2ReadableValue.convertUINT16(ia)));
+        data[2] = ia[0];
+        data[3] = ia[1];
         data[4] = (byte) (progMode ? 0x01 : 0x00);
     }
 

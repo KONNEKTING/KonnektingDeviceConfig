@@ -42,16 +42,16 @@ public class ProgProtocol0x01 {
 
     public static ProgProtocol0x01 getInstance(Knx knx) {
         boolean debug = Boolean.getBoolean("de.root1.slicknx.konnekting.debug");
-        if (debug) {
-            WAIT_TIMEOUT = 5000;
-            log.info("###### RUNNING DEBUG MODE #######");
-        }
+//        if (debug) {
+//            WAIT_TIMEOUT = 5000;
+//            log.info("###### RUNNING DEBUG MODE #######");
+//        }
         return new ProgProtocol0x01(knx);
     }
 
     private final Knx knx;
 
-    private static int WAIT_TIMEOUT = 500; // produktiv: 500ms, debug: 5000ms
+    private static int WAIT_TIMEOUT = 1500; // produktiv: 500ms, debug: 5000ms
 
     public static final String PROG_GA = "15/7/255";
     public static final byte PROTOCOL_VERSION = 0x01;
@@ -132,8 +132,8 @@ public class ProgProtocol0x01 {
                     }
                     if (msg != null) {
                         synchronized (receivedMessages) {
-                            plog.info("Received message: {}", msg);
                             receivedMessages.add(msg);
+                            plog.info("Received message {} from {}. receivedMessages={}", msg, event.getSource(), receivedMessages.size());
                             receivedMessages.notifyAll();
                         }
                     }
@@ -165,14 +165,21 @@ public class ProgProtocol0x01 {
             synchronized (receivedMessages) {
                 try {
 
-                    receivedMessages.wait(timeout / 10);
+                    if (receivedMessages.isEmpty()) {
+                        log.debug("Waiting {}ms", timeout/10);
+                        receivedMessages.wait(timeout / 10);
+                    } else {
+                        log.debug("messages available, continue");
+                    }
 
                     if (!receivedMessages.isEmpty()) {
 
                         if (returnOnFirstMsg) {
                             list.add(receivedMessages.remove(0));
+                            log.debug("got one, return 1st. duration={} ms", (System.currentTimeMillis()-start));
                             return list;
                         } else {
+                            log.debug("got {}, clear and return", receivedMessages.size());
                             list.addAll(receivedMessages);
                             receivedMessages.clear();
                         }
@@ -182,6 +189,7 @@ public class ProgProtocol0x01 {
                 }
             }
         }
+        log.debug("done. duration={} ms", (System.currentTimeMillis()-start));
         return list;
     }
 
@@ -428,7 +436,7 @@ public class ProgProtocol0x01 {
 
     public void programmingModeWrite(String individualAddress, boolean progMode) throws KnxException {
         sendMessage(new MsgProgrammingModeWrite(individualAddress, progMode));
-        expectAck(2 * WAIT_TIMEOUT); // give the sketch enough time to respond and set prog-mode (which should pause the device-logic)
+        expectAck(WAIT_TIMEOUT); // give the sketch enough time to respond and set prog-mode (which should pause the device-logic)
     }
 
     public List<String> programmingModeRead() throws KnxException {
@@ -436,7 +444,7 @@ public class ProgProtocol0x01 {
         List<String> addresses = new ArrayList<>();
         try {
             // there may be responses, but maybe not. who knows. it's okay when nothting is responding.
-            List<MsgProgrammingModeResponse> messages = expectMessages(MsgProgrammingModeResponse.class, 2 * WAIT_TIMEOUT);
+            List<MsgProgrammingModeResponse> messages = expectMessages(MsgProgrammingModeResponse.class, WAIT_TIMEOUT);
             for (MsgProgrammingModeResponse msg : messages) {
                 addresses.add(msg.getAddress());
             }

@@ -20,4 +20,11 @@ public class NonReverseableFlag {
     public boolean isSet(){
         return flag;
     }
+
+    @Override
+    public String toString() {
+        return flag?"true":"false";
+    }
+    
+    
 }

@@ -105,5 +105,18 @@ public class SystemTable {
     public boolean hasChanged() {
         return dirty.isSet();
     }
+
+    @Override
+    public String toString() {
+        return "SystemTable{" + "dirty=" + dirty + 
+                " deviceFlags="+String.format("0x%02x",getDeviceFlags())+
+                " groupAddressTable="+String.format("0x%04x",getAddressTableAddress())+
+                " assocationTable="+String.format("0x%04x",getAssociationTableAddress())+
+                " commObjectTable="+String.format("0x%04x", getCommobjectTableAddress())+
+                " parameterTable="+String.format("0x%04x", getParameterTableAddress())+
+                " ia="+getIndividualAddress()+"}";
+    }
+    
+    
     
 }

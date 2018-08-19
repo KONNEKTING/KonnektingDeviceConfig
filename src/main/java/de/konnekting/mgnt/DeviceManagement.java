@@ -144,6 +144,7 @@ public class DeviceManagement {
             fireDone();
             SystemTable systemTable = new SystemTable(memoryRead);
             systemTable.setIndividualAddress(individualAddress);
+            log.debug("read system table: {}", systemTable);
 
             checkAbort();
 
@@ -368,7 +369,7 @@ public class DeviceManagement {
         try {
             return bundle.getString(completeKey);
         } catch (Exception ex) {
-            log.error("Problem reading/using key '" + completeKey + "'", ex);
+            log.error("Problem reading/using key '" + completeKey + "': "+ex.getMessage());
             return "<" + completeKey + ">";
         }
     }

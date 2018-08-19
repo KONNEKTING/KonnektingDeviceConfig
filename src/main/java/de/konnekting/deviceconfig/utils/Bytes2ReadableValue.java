@@ -49,8 +49,8 @@ public class Bytes2ReadableValue {
         return ((ch1 << 8) & 0xff00) + ((ch2 << 0) & 0xFF);
     }
     
-    public static synchronized int convertUINT16(byte b0, byte b1) {
-        return convertUINT16(new byte[]{b0, b1});
+    public static synchronized int convertUINT16(byte hi, byte lo) {
+        return convertUINT16(new byte[]{hi, lo});
     }
 
     public static synchronized int convertINT32(byte[] b) {

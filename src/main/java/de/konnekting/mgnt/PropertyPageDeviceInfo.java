@@ -68,7 +68,18 @@ public class PropertyPageDeviceInfo {
     public int getRevision() {
         return revision;
     }
+
+    @Override
+    public String toString() {
+        return "PropertyPageDeviceInfo{" + 
+                "manufacturerId=" + String.format("0x%04x",manufacturerId) + 
+                ", deviceId=" + String.format("0x%02x", deviceId) + 
+                ", revision=" + String.format("0x%02x", revision) + 
+                ", deviceFlags=" + String.format("0x%02x", deviceFlags) + 
+                ", systemType=" + String.format("0x%02x", systemType) + '}';
+    }
     
+
     
 
 }

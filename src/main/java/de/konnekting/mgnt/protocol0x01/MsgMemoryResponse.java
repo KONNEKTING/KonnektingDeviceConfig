@@ -52,7 +52,7 @@ class MsgMemoryResponse extends ProgMessage {
 
     @Override
     public String toString() {
-        return "MsgMemoryResponse{" + "count=" + count + ", address=" + address + ", data="+Helper.bytesToHex(getData())+'}';
+        return "MsgMemoryResponse{" + "count=" + count + ", address=" + String.format("0x%04x",address) + ", data="+Helper.bytesToHex(getData())+'}';
     }
     
     
