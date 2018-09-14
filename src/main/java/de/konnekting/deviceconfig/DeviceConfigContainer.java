@@ -81,19 +81,56 @@ public class DeviceConfigContainer {
     private File f;
     private boolean defaultsFilled = false;
 
-    public static final int LIMIT_ADDRESSTABLEENTRIES = 255;
-    public static final int LIMIT_ASSOCIATIONTABLEENTRIES = 255;
-    public static final int LIMIT_COMMOBJECTTABLEENTRIES = 255;
-    
-    public static final int LIMIT_SYSTEMTABLEBYTES = 32;
-    public static final int LIMIT_COMMOBJECTTABLEBYTES = 1 + LIMIT_COMMOBJECTTABLEENTRIES;
-    public static final int LIMIT_ASSOCIATIONTABLEBYTES = 1 + (2 * LIMIT_ASSOCIATIONTABLEENTRIES);
-    public static final int LIMIT_ADDRESSTABLEBYTES = 1 + (2 * LIMIT_ADDRESSTABLEENTRIES);
+    private int LIMIT_ENTRIES_ADDRESSTABLE = -1;
+    private int LIMIT_ENTRIES_ASSOCIATIONTABLE = -1;
+    private int LIMIT_ENTRIES_COMMOBJECTTABLE = -1;
+    private int LIMIT_ENTRIES_PARAMETERTABLE = -1;
+
+    private int LIMIT_BYTES_SYSTEMTABLE = -1;
+    private int LIMIT_BYTES_ADDRESSTABLE = -1;
+    private int LIMIT_BYTES_ASSOCIATIONTABLE = -1;
+    private int LIMIT_BYTES_COMMOBJECTTABLE = -1;
+
+    private void setLimits(int systemType) {
+
+        // same for all system types
+        LIMIT_BYTES_SYSTEMTABLE = 32;
+
+        switch (systemType) {
+            case 0x00:
+                LIMIT_ENTRIES_ADDRESSTABLE = 128;
+                LIMIT_ENTRIES_ASSOCIATIONTABLE = 128;
+                LIMIT_ENTRIES_COMMOBJECTTABLE = 128;
+                LIMIT_ENTRIES_PARAMETERTABLE = 128;
+                log.debug("System Type: {} / {}", systemType, String.format("0x%02X", systemType));
+                break;
+            case 0x01:
+                LIMIT_ENTRIES_ADDRESSTABLE = 255;
+                LIMIT_ENTRIES_ASSOCIATIONTABLE = 255;
+                LIMIT_ENTRIES_COMMOBJECTTABLE = 255;
+                LIMIT_ENTRIES_PARAMETERTABLE = 255;
+                log.debug("System Type: {} / {}", systemType, String.format("0x%02X", systemType));
+                break;
+            default:
+                log.error("System Type not supported: {} / {}", systemType, String.format("0x%02X", systemType));
+                break;
+        }
+
+        LIMIT_BYTES_ADDRESSTABLE = 1 + (2 * LIMIT_ENTRIES_ADDRESSTABLE);
+        LIMIT_BYTES_ASSOCIATIONTABLE = 1 + (2 * LIMIT_ENTRIES_ASSOCIATIONTABLE);
+        LIMIT_BYTES_COMMOBJECTTABLE = 1 + LIMIT_ENTRIES_COMMOBJECTTABLE;
+
+    }
 
     public DeviceConfigContainer(File f) throws JAXBException, SAXException {
         this.f = f;
         device = KonnektingDeviceXmlService.readConfiguration(f);
         deviceLastSave = deepCloneDevice();
+
+        // calculate limits
+        short systemType = device.getDevice().getSystemType();
+        setLimits(systemType);
+
         fillDefaults();
     }
 
@@ -172,18 +209,8 @@ public class DeviceConfigContainer {
         }
 
         // update active/inactive dependencie check
-        log.info("Setting active/inactive flags for com objects");
-        for (CommObjectConfiguration comObjConf : device.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration()) {
-            boolean oldValue = comObjConf.isActive();
+        updateDeviceMemory();
 
-            comObjConf.setActive(isCommObjectEnabled(comObjConf.getId()));
-            boolean newValue = comObjConf.isActive();
-
-            if (oldValue != newValue) {
-                log.info("changed active/inactive of comobj #{} from {} to {}", comObjConf.getId(), oldValue, newValue);
-                dirty = true;
-            }
-        }
         if (dirty) {
             log.info("Writing configuration due to dirty flag");
             writeConfig();
@@ -445,7 +472,6 @@ public class DeviceConfigContainer {
                 ParamType type = allParameters.get(testParamId).getValue().getType();
 
                 boolean enabled = testValue(test, testValue, value, type);
-                setCommObjectActive(co.getId(), enabled);
                 log.info("Dependency test result: {}", enabled);
                 return enabled;
 
@@ -453,8 +479,6 @@ public class DeviceConfigContainer {
         }
 
         log.info("No dependency found. Forcing to true");
-
-        setCommObjectActive(co.getId(), true);
         return true;
     }
 
@@ -491,6 +515,10 @@ public class DeviceConfigContainer {
         return device.getDevice().getRevision();
     }
 
+    public short getSystemType() {
+        return device.getDevice().getSystemType();
+    }
+
     @Override
     public int hashCode() {
         int hash = 5;
@@ -514,16 +542,6 @@ public class DeviceConfigContainer {
             return false;
         }
         return true;
-    }
-
-    public boolean getCommObjectActive(Short id) {
-        List<CommObjectConfiguration> commObjectConfigurations = getOrCreateCommObjectConfigurations().getCommObjectConfiguration();
-        for (CommObjectConfiguration conf : commObjectConfigurations) {
-            if (conf.getId() == id) {
-                return conf.isActive();
-            }
-        }
-        return false;
     }
 
     public String getCommObjectDescription(Short id) {
@@ -550,14 +568,6 @@ public class DeviceConfigContainer {
             }
         }
         return new ArrayList<String>();
-    }
-
-    public void setCommObjectActive(Short id, boolean active) {
-        boolean oldValue = getCommObjectActive(id);
-        getOrCreateCommObjConf(id).setActive(active);
-        if (active != oldValue) {
-            eventbus.post(new EventDeviceChanged(this));
-        }
     }
 
     public void setCommObjectDescription(Short id, String description) {
@@ -880,14 +890,19 @@ public class DeviceConfigContainer {
         /**
          * System --> fixed size array
          */
-        byte[] systemTableBytes = new byte[LIMIT_SYSTEMTABLEBYTES];
-        clearBytes(systemTableBytes);
-        deviceMemory.setSystemTable(systemTableBytes);
+        byte[] systemTableBytes = deviceMemory.getSystemTable();
+        if (systemTableBytes == null) {
+            systemTableBytes = new byte[LIMIT_BYTES_SYSTEMTABLE];
+            clearBytes(systemTableBytes);
+            deviceMemory.setSystemTable(systemTableBytes);
+            log.debug("using clear system table for now");
+        }
+        log.debug("Writing systemtable bytes ({} bytes): {}", systemTableBytes.length, Helper.bytesToHex(systemTableBytes, true));
 
         /**
          * AddressTable --> fixed size table
          */
-        byte[] addressTable = new byte[LIMIT_ADDRESSTABLEBYTES];
+        byte[] addressTable = new byte[LIMIT_BYTES_ADDRESSTABLE];
         clearBytes(addressTable);
 
         // use hashset to easily add GAs without duplicates
@@ -916,12 +931,13 @@ public class DeviceConfigContainer {
             addrTableIndex += 2;
             i++;
         }
+        log.debug("Writing addressTable bytes ({} bytes): {}", addressTable.length, Helper.bytesToHex(addressTable, true));
         deviceMemory.setAddressTable(addressTable);
 
         /**
          * AssociationTable --> fixed size table
          */
-        byte[] associationTable = new byte[LIMIT_ASSOCIATIONTABLEBYTES];
+        byte[] associationTable = new byte[LIMIT_BYTES_ASSOCIATIONTABLE];
         clearBytes(associationTable);
 
         // sort by CommObj ID
@@ -952,17 +968,18 @@ public class DeviceConfigContainer {
         // insert size
         associationTable[0] = (byte) associationCount;
         log.info("AssociationTable size={}", associationCount);
+        log.debug("Writing associationTable bytes ({} bytes): {}", associationTable.length, Helper.bytesToHex(associationTable, true));
         deviceMemory.setAssociationTable(associationTable);
 
         /**
          * CommObjectTable --> fixed size table
          */
-        byte[] commObjTable = new byte[LIMIT_COMMOBJECTTABLEBYTES];
+        byte[] commObjTable = new byte[LIMIT_BYTES_COMMOBJECTTABLE];
         clearBytes(commObjTable);
 
         int comobjCount = getAllCommObjects().size();
-        if (comobjCount > LIMIT_COMMOBJECTTABLEENTRIES) {
-            throw new RuntimeException("CommObj limit exceeded: " + comobjCount + " of max. " + LIMIT_COMMOBJECTTABLEENTRIES);
+        if (comobjCount > LIMIT_ENTRIES_COMMOBJECTTABLE) {
+            throw new RuntimeException("CommObj limit exceeded: " + comobjCount + " of max. " + LIMIT_ENTRIES_COMMOBJECTTABLE);
         } else {
 
             // set size
@@ -975,17 +992,13 @@ public class DeviceConfigContainer {
 
             for (CommObject co : commObjList) {
                 byte flags = co.getFlags();
-                // start with default flags
-                byte configbyte = (byte) 0xbf; // 10111111 --> active = off
-                configbyte = (byte) (flags & (byte) 0x3f); // take B6..B0 of flags
+                // start with default: all comm flags "off", see https://wiki.konnekting.de/index.php?title=KONNEKTING_Protocol_Specification_0x01#CommObject_Table
+                byte configbyte = (byte) 0x00; // 00000000 
 
                 CommObjectConfiguration conf = getCommObjectConfiguration(co.getId());
                 if (conf != null) {
                     flags = conf.getFlags();
                     configbyte = (byte) (flags & (byte) 0x3f); // apply flags
-
-                    int active = conf.isActive() ? 1 : 0;
-                    configbyte = (byte) (configbyte & (active << 7));
                 }
                 commObjTable[commObjTableIndex] = configbyte;
 
@@ -994,39 +1007,47 @@ public class DeviceConfigContainer {
             }
 
         }
+        log.debug("Writing commObjTable bytes ({} bytes): {}", commObjTable.length, Helper.bytesToHex(commObjTable, true));
         deviceMemory.setCommObjectTable(commObjTable);
 
         /**
          * ParameterTable --> dynamic size table (fixed on xml setup)
          */
         List<Parameter> params = getAllParameters();
-        // get size of param table
-        int paramTableSize = 0;
-        for (Parameter parameter : params) {
-            ParamType type = parameter.getValue().getType();
-            paramTableSize += Helper.getParameterSize(type);
-        }
-        byte[] paramTable = new byte[paramTableSize];
 
-        if (paramTableSize > 0) {
-            List<ParameterConfiguration> parameterConfigurations = device.getConfiguration().getParameterConfigurations().getParameterConfiguration();
-            if (parameterConfigurations.size() != params.size()) {
-                throw new RuntimeException("The number of parameter configs do not match the number of available params!");
+        int paramsCount = params.size();
+        if (paramsCount > LIMIT_ENTRIES_PARAMETERTABLE) {
+            throw new RuntimeException("Parameter limit exceeded: " + paramsCount + " of max. " + LIMIT_ENTRIES_PARAMETERTABLE);
+        } else {
+
+            // get size of param table
+            int paramTableSize = 0;
+            for (Parameter parameter : params) {
+                ParamType type = parameter.getValue().getType();
+                paramTableSize += Helper.getParameterSize(type);
             }
-            int paramTableIndex = 0;
-            for (ParameterConfiguration parameterConfiguration : parameterConfigurations) {
-                byte[] value = parameterConfiguration.getValue();
-                System.arraycopy(value, 0, paramTable, paramTableIndex, value.length);
+            byte[] paramTable = new byte[paramTableSize];
 
-                log.info("ParameterTable index={}, length={}, value={}", new Object[]{paramTableIndex, value.length, Helper.bytesToHex(value)});
+            if (paramTableSize > 0) {
+                List<ParameterConfiguration> parameterConfigurations = device.getConfiguration().getParameterConfigurations().getParameterConfiguration();
+                if (parameterConfigurations.size() != params.size()) {
+                    throw new RuntimeException("The number of parameter configs do not match the number of available params!");
+                }
+                int paramTableIndex = 0;
+                for (ParameterConfiguration parameterConfiguration : parameterConfigurations) {
+                    byte[] value = parameterConfiguration.getValue();
+                    System.arraycopy(value, 0, paramTable, paramTableIndex, value.length);
 
-                paramTableIndex += value.length; // increment index for next param/value
+                    log.info("ParameterTable index={}, length={}, value={}", new Object[]{paramTableIndex, value.length, Helper.bytesToHex(value)});
+
+                    paramTableIndex += value.length; // increment index for next param/value
+                }
             }
+            log.debug("Writing paramTable bytes ({} bytes): {}", paramTable.length, Helper.bytesToHex(paramTable, true));
+            deviceMemory.setParameterTable(paramTable);
         }
-        deviceMemory.setParameterTable(paramTable);
 
     }
-    
 
     /**
      * fill array with 0xff
@@ -1056,11 +1077,11 @@ public class DeviceConfigContainer {
         System.out.println("AssociationTable = " + Helper.bytesToHex(deviceMemory.getAssociationTable(), true));
         System.out.println("CommObjectTable  = " + Helper.bytesToHex(deviceMemory.getCommObjectTable(), true));
         System.out.println("ParameterTable   = " + Helper.bytesToHex(deviceMemory.getParameterTable(), true));
-        
+
         Knx knx = new Knx("1.1.1");
-        
+
         DeviceManagement mgmt = new DeviceManagement(knx);
-        
+
         mgmt.program(dcc, true, false, false);
     }
 

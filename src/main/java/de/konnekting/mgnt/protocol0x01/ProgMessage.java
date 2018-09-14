@@ -64,7 +64,7 @@ abstract class ProgMessage {
         }
     }
     
-    void fillEmpty(int startIndex) {
+    void fillUnused(int startIndex) {
         for (int i=startIndex;i<data.length;i++) {
             data[i] = (byte)0xff;
         }

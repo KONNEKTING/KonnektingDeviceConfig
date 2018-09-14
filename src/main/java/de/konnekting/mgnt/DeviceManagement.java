@@ -89,6 +89,8 @@ public class DeviceManagement {
             if (!deviceConfigContainer.hasConfiguration()) {
                 throw new IllegalArgumentException("Device " + deviceConfigContainer + " has no programmable configuration");
             }
+            
+            deviceConfigContainer.updateDeviceMemory();
 
             KonnektingDevice konnektingDevice = deviceConfigContainer.getDevice();
             Device device = konnektingDevice.getDevice();
@@ -145,6 +147,9 @@ public class DeviceManagement {
             SystemTable systemTable = new SystemTable(memoryRead);
             systemTable.setIndividualAddress(individualAddress);
             log.debug("read system table: {}", systemTable);
+            
+            deviceMemory.setSystemTable(systemTable.getData());
+            deviceConfigContainer.updateDeviceMemory();
 
             checkAbort();
 
@@ -197,7 +202,7 @@ public class DeviceManagement {
     /**
      * Starts programming existing device with given address
      *
-     * @param individualAddress
+     * @param individualAddress address f device you want to program, or null if you program via progbutton
      * @param manufacturerId
      * @param deviceId
      * @param revision
@@ -288,7 +293,7 @@ public class DeviceManagement {
             int writeStep = (data.length - written > MEMORY_READWRITE_BYTES ? MEMORY_READWRITE_BYTES : data.length - written);
 
             log.debug("\twrite {} bytes to index {}", writeStep, String.format("0x%02x", addr));
-            protocol.memoryWrite(addr, Arrays.copyOfRange(data, written, written + writeStep - 1));
+            protocol.memoryWrite(addr, Arrays.copyOfRange(data, written, written + writeStep));
 
             addr += writeStep; // increment index for reading next block of 1..9 bytes
             written += writeStep;

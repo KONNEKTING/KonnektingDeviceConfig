@@ -96,6 +96,10 @@ public class SystemTable {
         data[17] = ia[1];
     }
     
+    public byte[] getData() {
+        return data;
+    }
+    
     public byte[] getWriteData() throws KnxException {
         byte[] memData = new byte[16];
         System.arraycopy(data, 16, memData, 0, 16);
@@ -116,6 +120,7 @@ public class SystemTable {
                 " parameterTable="+String.format("0x%04x", getParameterTableAddress())+
                 " ia="+getIndividualAddress()+"}";
     }
+
     
     
     

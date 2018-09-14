@@ -104,7 +104,7 @@ public class ProgProtocol0x01 {
                     }
 
                     if (version != PROTOCOL_VERSION) {
-                        throw new InvalidMessageException(String.format("Protocol version in telegram does not match. expected: 0x%02x, got: 0x%02x", PROTOCOL_VERSION, version));
+                        throw new InvalidMessageException(String.format("Protocol version in telegram does not match. expected: 0x%02x, got: 0x%02x. %s", PROTOCOL_VERSION, version, Helper.bytesToHex(data, true)));
                     }
                     byte type = data[1];
 

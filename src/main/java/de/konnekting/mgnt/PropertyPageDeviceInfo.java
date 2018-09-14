@@ -50,7 +50,7 @@ public class PropertyPageDeviceInfo {
     }
 
     public boolean isFactorySetting() {
-        return (deviceFlags & 0x80) == 1;
+        return (deviceFlags & 0x80) == 0x80;
     }
 
     public SystemType getSystemType() throws InvalidMessageException {
