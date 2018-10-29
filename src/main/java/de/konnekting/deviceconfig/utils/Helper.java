@@ -31,6 +31,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tuwien.auto.calimero.GroupAddress;
 
 /**
  *
@@ -318,4 +319,10 @@ public class Helper {
 //    public static int getFrom16bit(byte lo, byte hi) {
 //        return (int) ((hi << 8) + ((lo << 0) & 0xFF));
 //    }
+
+    public static int convertGaToInt(String ga) {
+        byte[] bytes = convertGaToBytes(ga);
+        int convertUINT16 = Bytes2ReadableValue.convertUINT16(bytes);
+        return convertUINT16;
+    }
 }

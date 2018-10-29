@@ -55,8 +55,11 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import javax.xml.bind.JAXBException;
@@ -80,6 +83,22 @@ public class DeviceConfigContainer {
     private KonnektingDevice deviceLastSave;
     private File f;
     private boolean defaultsFilled = false;
+
+    private final Comparator groupAddressComparator = new Comparator<String>() {
+        @Override
+        public int compare(String addr1, String addr2) {
+            int intaddr1 = Helper.convertGaToInt(addr1);
+            int intaddr2 = Helper.convertGaToInt(addr2);
+            if (intaddr1 < intaddr2) {
+                return -1;
+            } else if (intaddr1 > intaddr2) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+
+    };
 
     private int LIMIT_ENTRIES_ADDRESSTABLE = -1;
     private int LIMIT_ENTRIES_ASSOCIATIONTABLE = -1;
@@ -564,6 +583,7 @@ public class DeviceConfigContainer {
                 for (int i = 0; i < groupAddresses.size(); i++) {
                     groupAddresses.set(i, Helper.convertNullString(groupAddresses.get(i)));
                 }
+                Collections.sort(groupAddresses, groupAddressComparator);
                 return groupAddresses;
             }
         }
@@ -916,7 +936,7 @@ public class DeviceConfigContainer {
         // convert hashset to arraylist and sort alphanumeric
         List<String> addressTableList = new ArrayList<>();
         addressTableList.addAll(addrSet);
-        Collections.sort(addressTableList);
+        Collections.sort(addressTableList, groupAddressComparator);
 
         // insert size
         addressTable[0] = (byte) addressTableList.size();
@@ -944,7 +964,33 @@ public class DeviceConfigContainer {
         Collections.sort(commObjectConfigurations, new ReflectionIdComparator());
 
         int associationCount = 0;
-        int assoTableIndex = 1;
+        int assocTableIndex = 1;
+
+        class AssocTableEntry implements Comparable<AssocTableEntry> {
+
+            int addrId;
+            short comObjId;
+
+            public AssocTableEntry(int addrId, short comObjId) {
+                this.addrId = addrId;
+                this.comObjId = comObjId;
+            }
+
+            @Override
+            public int compareTo(AssocTableEntry o) {
+                if (addrId < o.addrId) {
+                    return -1;
+                } else if (addrId > o.addrId) {
+                    return +1;
+                } else {
+                    return 0;
+                }
+            }
+
+        }
+
+        List<AssocTableEntry> assocTable = new ArrayList<>();
+
         for (CommObjectConfiguration commObjectConfiguration : commObjectConfigurations) {
 
             List<String> associatedAddresses = commObjectConfiguration.getGroupAddress();
@@ -956,17 +1002,22 @@ public class DeviceConfigContainer {
                     if (addrID == -1) {
                         throw new RuntimeException("ComObj " + commObjectConfiguration.getId() + " has GA " + addr + " assigned, but GA is not in AddressTable!");
                     }
+                    assocTable.add(new AssocTableEntry(addrID, commObjectConfiguration.getId()));
 
-                    associationTable[assoTableIndex] = (byte) addrID;
-                    associationTable[assoTableIndex + 1] = (byte) commObjectConfiguration.getId();
-                    log.info("AssociationTable index={} addrID={} comObjID={}", assoTableIndex, addrID, commObjectConfiguration.getId());
-                    assoTableIndex += 2;
                 }
             }
         }
 
+        Collections.sort(assocTable);
+        for (AssocTableEntry assocTableEntry : assocTable) {
+            associationTable[assocTableIndex] = (byte) assocTableEntry.addrId;
+            associationTable[assocTableIndex + 1] = (byte) assocTableEntry.comObjId;
+            log.info("AssociationTable index={} addrID={} comObjID={}", assocTableIndex, assocTableEntry.addrId, assocTableEntry.comObjId);
+            assocTableIndex += 2;
+        }
         // insert size
         associationTable[0] = (byte) associationCount;
+        
         log.info("AssociationTable size={}", associationCount);
         log.debug("Writing associationTable bytes ({} bytes): {}", associationTable.length, Helper.bytesToHex(associationTable, true));
         deviceMemory.setAssociationTable(associationTable);

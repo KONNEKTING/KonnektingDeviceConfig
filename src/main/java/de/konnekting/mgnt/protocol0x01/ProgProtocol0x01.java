@@ -258,7 +258,7 @@ public class ProgProtocol0x01 {
     }
 
     private void expectAck(int timeout) throws KnxException {
-        MsgAck ack = expectSingleMessage(MsgAck.class);
+        MsgAck ack = expectSingleMessage(MsgAck.class, timeout);
         if (!ack.isAcknowledged()) {
             String exMsg = "Not acknowledged. " + ack.toString();
             throw new KnxException(exMsg);
@@ -266,11 +266,7 @@ public class ProgProtocol0x01 {
     }
 
     private void expectAck() throws KnxException {
-        MsgAck ack = expectSingleMessage(MsgAck.class);
-        if (!ack.isAcknowledged()) {
-            String exMsg = "Not acknowledged. " + ack.toString();
-            throw new KnxException(exMsg);
-        }
+        expectAck(WAIT_TIMEOUT);
     }
 
     private void sendMessage(ProgMessage msg) throws KnxException {
@@ -425,12 +421,12 @@ public class ProgProtocol0x01 {
 
     public void memoryWrite(int memoryAddress, byte[] data) throws KnxException {
         sendMessage(new MsgMemoryWrite(memoryAddress, data));
-        expectAck();
+        expectAck(WAIT_TIMEOUT*2); // writing data to memory may take some time
     }
 
     public byte[] memoryRead(int memoryAddress, int length) throws KnxException {
         sendMessage(new MsgMemoryRead(memoryAddress, length));
-        MsgMemoryResponse msg = expectSingleMessage(MsgMemoryResponse.class);
+        MsgMemoryResponse msg = expectSingleMessage(MsgMemoryResponse.class, WAIT_TIMEOUT*2); // reading from memory may take some time
         return msg.getData();
     }
 
@@ -443,7 +439,7 @@ public class ProgProtocol0x01 {
         sendMessage(new MsgProgrammingModeRead());
         List<String> addresses = new ArrayList<>();
         try {
-            // there may be responses, but maybe not. who knows. it's okay when nothting is responding.
+            // there may be responses, but maybe not. who knows. it's okay when nothing is responding.
             List<MsgProgrammingModeResponse> messages = expectMessages(MsgProgrammingModeResponse.class, WAIT_TIMEOUT);
             for (MsgProgrammingModeResponse msg : messages) {
                 addresses.add(msg.getAddress());
