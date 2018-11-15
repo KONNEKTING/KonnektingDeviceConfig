@@ -1,3 +1,6 @@
 nbactions.xml
 nb-configuration.xml
 *.kconfig.xml
+/.project
+/.classpath
+/.settings/
