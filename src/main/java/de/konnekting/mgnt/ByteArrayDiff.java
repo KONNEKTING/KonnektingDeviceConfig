@@ -12,7 +12,7 @@ import java.util.List;
  *
  * @author achristian
  */
-public class DiffTest {
+public class ByteArrayDiff {
     
     static class Block {
         public static final int UNDEFINED = -1;
@@ -95,6 +95,7 @@ public class DiffTest {
     public static void main(String[] args) {
         byte[] a = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
         byte[] b = {0, 1, 0, 0, 0, 5, 6, 7, 0, 9, 00, 00, 00, 12, 00, 15, 16, 17, 18, 00, 00};
+        
         List<Block> diff = getDiff(a, b);
         
         for (Block block : diff) {
