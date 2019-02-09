@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Alexander Christian <alex(at)root1.de>. All rights reserved.
+ * Copyright (C) 2019 Alexander Christian <alex(at)root1.de>. All rights reserved.
  * 
  * This file is part of KONNEKTING DeviceConfig.
  *

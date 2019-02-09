@@ -25,7 +25,11 @@ import java.io.UnsupportedEncodingException;
  * @author achristian
  */
 public class ReadableValue2Bytes {
-
+    
+    public static final long UINT32_MAX = 4294967295L;
+    public static final int UINT16_MAX = 65535;
+    
+    
     public static synchronized byte[] convertINT8(byte v) {
         return new byte[]{v};
     }

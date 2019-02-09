@@ -1,6 +1,5 @@
-
 /*
- * Copyright (C) 2018 Alexander Christian <alex(at)root1.de>. All rights reserved.
+ * Copyright (C) 2019 Alexander Christian <alex(at)root1.de>. All rights reserved.
  * 
  * This file is part of KONNEKTING DeviceConfig.
  *
@@ -19,13 +18,10 @@
  */
 package de.konnekting.mgnt;
 
-import de.konnekting.deviceconfig.utils.Bytes2ReadableValue;
 import de.konnekting.deviceconfig.utils.Helper;
-import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01;
 import de.root1.slicknx.KnxException;
 import static de.konnekting.deviceconfig.utils.Bytes2ReadableValue.*;
 import de.konnekting.deviceconfig.utils.NonReverseableFlag;
-import de.root1.slicknx.Utils;
 
 /**
  *

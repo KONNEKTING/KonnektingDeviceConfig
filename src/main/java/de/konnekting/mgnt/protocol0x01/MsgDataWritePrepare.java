@@ -19,37 +19,48 @@
 package de.konnekting.mgnt.protocol0x01;
 
 import de.konnekting.deviceconfig.utils.Helper;
-import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_MEMORY_READ;
+import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_DATA_WRITE_PREPARE;
 import static de.konnekting.deviceconfig.utils.ReadableValue2Bytes.*;
+import de.root1.slicknx.KnxException;
 
 /**
  *
  * @author achristian
  */
-class MsgMemoryRead extends ProgMessage {
-
+class MsgDataWritePrepare extends ProgMessage {
     
-    private int count;
-    private short address;
+    private DataType dt;
+    private byte dataId;
+    private long size;
     
-    public MsgMemoryRead(int memoryAddress, int count) {
-        super(MSGTYPE_MEMORY_READ);
+    public MsgDataWritePrepare(DataType dt, byte dataId, long size) throws KnxException {
+        super(MSGTYPE_DATA_WRITE_PREPARE);
+        this.dt = dt;
+        this.dataId = dataId;
+        this.size=size;
 
-        if (count<=0) {
-            throw new IllegalArgumentException("you must read at least one byte");
+        if (size > UINT32_MAX) {
+            throw new IllegalArgumentException("max. "+UINT32_MAX+" bytes of data!");
         }
         
-        this.count = count;
-        this.address = (short) (memoryAddress & 0xFFFF);
+        if (dt == DataType.UPDATE && dataId != 0x00) {
+            throw new IllegalArgumentException("for UPDATE, dataId must be 0x00, always!");
+        }
 
-        data[2] = (byte) count;
-        data[3] = convertUINT16(address)[0];
-        data[4] = convertUINT16(address)[1];
+        data[2] = (byte) dt.getValue();
+        data[3] = dataId;
+        data[4] = convertUINT32(size)[0];
+        data[5] = convertUINT32(size)[1];
+        data[6] = convertUINT32(size)[2];
+        data[7] = convertUINT32(size)[3];
+        fillUnused(8);
     }
 
     @Override
     public String toString() {
-        return "MsgMemoryRead{" + "count=" + count + ", address=" + String.format("0x%04x", address) + '}';
+        return "MsgDataWritePrepare{" + "dt=" + dt + ", dataId=" + dataId + ", size=" + size + "}";
     }
 
+    
+        
 }

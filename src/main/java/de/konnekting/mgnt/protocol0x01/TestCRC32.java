@@ -18,41 +18,22 @@
  */
 package de.konnekting.mgnt.protocol0x01;
 
-import de.root1.slicknx.KnxException;
-import de.root1.slicknx.Utils;
-import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_RESTART;
+import de.konnekting.deviceconfig.utils.Helper;
+import de.konnekting.deviceconfig.utils.ReadableValue2Bytes;
+import java.util.zip.CRC32;
 
 /**
  *
  * @author achristian
  */
-public class MsgRestart extends ProgMessage {
-
-    public MsgRestart(byte[] data) {
-        super(data);
-    }
-
-    MsgRestart(String individualAddress) throws KnxException {
-        super(MSGTYPE_RESTART);
-        System.arraycopy(Utils.getIndividualAddress(individualAddress).toByteArray(), 0, data, 2, 2);
-    }
+public class TestCRC32 {
     
-    public String getAddress() throws KnxException {
-        return Utils.getIndividualAddress(data[2], data[3]).toString();
+    public static void main(String[] args) {
+        CRC32 crc32 = new CRC32();
+        
+        byte[] data = new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,0x07,0x08,0x09, 0x0A, 0x0B};
+        crc32.update(data);
+        System.out.println("crc32="+crc32.getValue()+ " / "+Helper.bytesToHex(ReadableValue2Bytes.convertUINT32(crc32.getValue()), true));
     }
-
-    @Override
-    public String toString() {
-        String t;
-        try {
-            t = "Restart{"+getAddress()+"}";
-        } catch (KnxException ex) {
-            t = "Restart{!!!EXCEPTION!!!}";
-            log.error("Error parsing individual address ", ex);
-        }
-        return t;
-    }
-    
-    
     
 }

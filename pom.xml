@@ -6,11 +6,12 @@
     <version>1.0.0-BETA5-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>KONNEKTING DeviceConfig ${project.version}</name>
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>10</maven.compiler.source>
-        <maven.compiler.target>10</maven.compiler.target>
-    </properties>
+    
+    <parent>
+        <groupId>de.konnekting</groupId>
+        <artifactId>parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
     
     <dependencies>
         <dependency>
@@ -77,32 +78,14 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
+                <configuration>
+                    <showDeprecation>true</showDeprecation>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
-   
-    <repositories>
-        <repository>
-            <id>root1-releases</id>
-            <url>http://maven.root1.de/repository/releases/</url>
-        </repository>
-        <repository>
-            <id>root1-snapshots</id>
-            <url>http://maven.root1.de/repository/snapshots/</url>
-        </repository>
-    </repositories>
-
-    <!-- upload informations for deploying the jar -->
-    <distributionManagement>
-        <repository>
-            <id>root1-releases</id>
-            <name>internal releases</name>
-            <url>http://maven.root1.de/repository/releases/</url>
-        </repository>
-        <snapshotRepository>
-            <id>root1-snapshots</id>
-            <name>internal snapshots</name>
-            <url>http://maven.root1.de/repository/snapshots/</url>
-        </snapshotRepository>      
-    </distributionManagement>  
-    
 </project>

@@ -19,38 +19,43 @@
 package de.konnekting.mgnt.protocol0x01;
 
 import de.konnekting.deviceconfig.utils.Helper;
-import de.root1.slicknx.KnxException;
-import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_MEMORY_WRITE;
+import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_DATA_WRITE;
 import static de.konnekting.deviceconfig.utils.ReadableValue2Bytes.*;
-import static de.konnekting.deviceconfig.utils.Bytes2ReadableValue.*;
+import de.root1.slicknx.KnxException;
 
 /**
  *
  * @author achristian
  */
-class MsgMemoryWrite extends ProgMessage {
+class MsgDataWrite extends ProgMessage {
 
-    public MsgMemoryWrite(int address, byte[] b) throws KnxException {
-        super(MSGTYPE_MEMORY_WRITE);
+    private int count;
+    private byte[] data;
+    
+    public MsgDataWrite(int count, byte[] data) throws KnxException {
+        super(MSGTYPE_DATA_WRITE);
+        this.count = count;
+        this.data = data;
 
-        if (b.length > 9) {
-            throw new IllegalArgumentException("max. 1..9 bytes of data!");
+        if (count <= 0 || count > 11) {
+            throw new IllegalArgumentException("count must be within 1..11");
+        }
+        
+        if (data.length > 11) {
+            throw new IllegalArgumentException("canot handle more than 11 bytes");
         }
 
-        data[2] = (byte) b.length;
-        data[3] = convertUINT16(address)[0];
-        data[4] = convertUINT16(address)[1];
-        System.arraycopy(b, 0, data, 5, b.length);
-
+        data[2] = (byte) count;
+        System.arraycopy(data, 0, data, 3, data.length);
     }
 
     @Override
     public String toString() {
-        return "MsgMemoryWrite{"
-                + "count=" + (int) (data[2] & 0xff) + ", "
-                + "address=" + String.format("0x%04x", convertUINT16(data[3], data[4])) + ", "
-                + "data=" + Helper.bytesToHex(data, 5, (int) (data[2] & 0xff), true)
-                + "}";
+        return "MsgDataWrite{" + "count=" + count + ", data=" + Helper.bytesToHex(data, true) + '}';
     }
 
+    
+
+    
+        
 }

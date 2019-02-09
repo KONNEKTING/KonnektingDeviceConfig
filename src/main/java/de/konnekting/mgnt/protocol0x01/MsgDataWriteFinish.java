@@ -19,38 +19,33 @@
 package de.konnekting.mgnt.protocol0x01;
 
 import de.konnekting.deviceconfig.utils.Helper;
+import de.konnekting.deviceconfig.utils.ReadableValue2Bytes;
+import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_DATA_WRITE_FINISH;
 import de.root1.slicknx.KnxException;
-import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_MEMORY_WRITE;
-import static de.konnekting.deviceconfig.utils.ReadableValue2Bytes.*;
-import static de.konnekting.deviceconfig.utils.Bytes2ReadableValue.*;
+import java.util.zip.CRC32;
 
 /**
  *
  * @author achristian
  */
-class MsgMemoryWrite extends ProgMessage {
+class MsgDataWriteFinish extends ProgMessage {
+    
+    private byte[] crc32bytes;
+    
+    public MsgDataWriteFinish(CRC32 crc32) throws KnxException {
+        super(MSGTYPE_DATA_WRITE_FINISH);
+        
+        crc32bytes = ReadableValue2Bytes.convertUINT32(crc32.getValue());
 
-    public MsgMemoryWrite(int address, byte[] b) throws KnxException {
-        super(MSGTYPE_MEMORY_WRITE);
-
-        if (b.length > 9) {
-            throw new IllegalArgumentException("max. 1..9 bytes of data!");
-        }
-
-        data[2] = (byte) b.length;
-        data[3] = convertUINT16(address)[0];
-        data[4] = convertUINT16(address)[1];
-        System.arraycopy(b, 0, data, 5, b.length);
-
+        data[2] = crc32bytes[0];
+        data[3] = crc32bytes[1];
+        data[4] = crc32bytes[2];
+        data[5] = crc32bytes[3];
     }
 
     @Override
     public String toString() {
-        return "MsgMemoryWrite{"
-                + "count=" + (int) (data[2] & 0xff) + ", "
-                + "address=" + String.format("0x%04x", convertUINT16(data[3], data[4])) + ", "
-                + "data=" + Helper.bytesToHex(data, 5, (int) (data[2] & 0xff), true)
-                + "}";
+        return "MsgDataWriteFinish{" + "crc32bytes=" + Helper.bytesToHex(crc32bytes, true) + '}';
     }
-
+        
 }

@@ -18,41 +18,23 @@
  */
 package de.konnekting.mgnt.protocol0x01;
 
-import de.root1.slicknx.KnxException;
-import de.root1.slicknx.Utils;
-import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_RESTART;
-
 /**
  *
  * @author achristian
  */
-public class MsgRestart extends ProgMessage {
-
-    public MsgRestart(byte[] data) {
-        super(data);
-    }
-
-    MsgRestart(String individualAddress) throws KnxException {
-        super(MSGTYPE_RESTART);
-        System.arraycopy(Utils.getIndividualAddress(individualAddress).toByteArray(), 0, data, 2, 2);
-    }
+public enum DataType {
     
-    public String getAddress() throws KnxException {
-        return Utils.getIndividualAddress(data[2], data[3]).toString();
-    }
-
-    @Override
-    public String toString() {
-        String t;
-        try {
-            t = "Restart{"+getAddress()+"}";
-        } catch (KnxException ex) {
-            t = "Restart{!!!EXCEPTION!!!}";
-            log.error("Error parsing individual address ", ex);
-        }
-        return t;
-    }
+    UPDATE(0x00), DATA(0x01);
+    
+    private int value;
     
     
+    public int getValue() {
+        return value;
+    }
+    
+    private DataType(int value) {
+        this.value = value;
+    }
     
 }
