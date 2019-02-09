@@ -25,13 +25,20 @@ import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
 import de.konnekting.mgnt.PropertyPageDeviceInfo;
 import de.konnekting.mgnt.SystemTable;
+import de.konnekting.mgnt.protocol0x01.DataType;
 import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01;
 import de.konnekting.xml.konnektingdevice.v0.Device;
 import de.konnekting.xml.konnektingdevice.v0.DeviceMemory;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.zip.CRC32;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +57,10 @@ public class DeviceManagement {
      * Number of bytes memoryread/memorywrite can handle at once
      */
     private static final int MEMORY_READWRITE_BYTES = 9;
+    /**
+     * Number of bytes datawrite can handle at once
+     */
+    private static final int DATA_WRITE_BYTES = 11;
 
     private boolean abort;
     private final ProgProtocol0x01 protocol;
@@ -103,23 +114,23 @@ public class DeviceManagement {
             fireIncreaseMaxSteps(5);
             fireProgressStatusMessage(getLangString("readingSystemTable"));
             byte[] systemTableBytes = deviceMemory.getSystemTable();
-            fireDone();
+            fireSingleStepDone();
 
             fireProgressStatusMessage(getLangString("readingAddressTable"));
             byte[] addressTableBytes = deviceMemory.getAddressTable();
-            fireDone();
+            fireSingleStepDone();
 
             fireProgressStatusMessage(getLangString("readingAssociationTable"));
             byte[] associationTableBytes = deviceMemory.getAssociationTable();
-            fireDone();
+            fireSingleStepDone();
 
             fireProgressStatusMessage(getLangString("readingCommObjectTable"));
             byte[] commObjectTableBytes = deviceMemory.getCommObjectTable();
-            fireDone();
+            fireSingleStepDone();
 
             fireProgressStatusMessage(getLangString("readingParameterTable"));
             byte[] parameterTableBytes = deviceMemory.getParameterTable();
-            fireDone();
+            fireSingleStepDone();
             // --------------
 
             checkAbort();
@@ -143,7 +154,7 @@ public class DeviceManagement {
 
             fireIncreaseMaxSteps(1);
             byte[] memoryRead = memoryRead(SystemTable.SYSTEMTABLE_ADDRESS, SystemTable.SIZE);
-            fireDone();
+            fireSingleStepDone();
             SystemTable systemTable = new SystemTable(memoryRead);
             systemTable.setIndividualAddress(individualAddress);
             log.debug("read system table: {}", systemTable);
@@ -183,12 +194,12 @@ public class DeviceManagement {
             log.info("Stopping programming");
             fireProgressStatusMessage(getLangString("stoppingProgramming"));//Stopping programming...");
             stopProgramming(individualAddress);
-            fireDone();
+            fireSingleStepDone();
 
             log.info("Restart device");
             fireProgressStatusMessage(getLangString("triggerDeviceRestart"));//Trigger device restart...");
             protocol.restart(individualAddress);
-            fireDone();
+            fireSingleStepDone();
 
             log.info("All done.");
             fireProgressStatusMessage(getLangString("done"));//All done.");
@@ -198,17 +209,72 @@ public class DeviceManagement {
         }
 
     }
+    
+    /**
+     * Send firmware over the bus, requires started prog-mode
+     * @param f firmwarefile to send to the device
+     */
+    public void sendFOTB(File f) throws DeviceManagementException {
+        if(isProgramming) {
+            fireIncreaseMaxSteps(2);
+            try {
+                CRC32 crc32 = new CRC32();
+                protocol.dataWritePrepare(DataType.UPDATE, (byte)0x00, f.length());
+                fireSingleStepDone();
+                
+                FileInputStream fis = new FileInputStream(f);
+                BufferedInputStream bis = new BufferedInputStream(fis);
+                
+                byte[] buffer = new byte[11];
+                
+                long length = f.length();
+                
+                //----
+                int written = 0;
+                
+                
+                fireIncreaseMaxSteps((int) Math.ceil((double) length / (double) DATA_WRITE_BYTES));
+                
+                while (written != length) {
+
+                    int writeStep = (int) (length - written > DATA_WRITE_BYTES ? DATA_WRITE_BYTES : length - written);
+
+                    log.debug("\twriting {} bytes. {} of {} bytes done", writeStep, written, length);
+                    
+                    buffer = bis.readNBytes(writeStep);
+                    protocol.dataWrite(progressCurrent, buffer);
+
+                    written += writeStep;
+                    fireSingleStepDone();
+                }
+                // ----
+                
+                fis.close();
+                
+                protocol.dataWriteFinish(crc32);
+                fireSingleStepDone();
+            } catch (KnxException | IOException ex) {
+                throw new DeviceManagementException("FOTB failed", ex);
+            } 
+        } else {
+            throw new IllegalStateException("Device is not set to prog mode via API");
+        }
+    }
 
     /**
      * Starts programming existing device with given address
      *
-     * @param individualAddress address f device you want to program, or null if you program via progbutton
+     * @param individualAddress address of device you want to program, or null if you program via progbutton
      * @param manufacturerId
      * @param deviceId
      * @param revision
      * @throws de.root1.slicknx.KnxException
      */
     private void startProgMode(String individualAddress, int manufacturerId, short deviceId, short revision) throws KnxException, DeviceManagementException {
+        
+        progressMaxSteps=0;
+        progressCurrent=0;
+        
         if (isProgramming) {
             throw new IllegalStateException("Already in programming mode. Please call stopProgramming() first.");
         }
@@ -220,13 +286,13 @@ public class DeviceManagement {
             if (!devices.isEmpty()) {
                 throw new KnxException("Programming via IA. There are devices in prog-mode. Aborting.");
             }
-            fireDone();
+            fireSingleStepDone();
 
             protocol.programmingModeWrite(individualAddress, true);
-            fireDone();
+            fireSingleStepDone();
 
             devices = protocol.programmingModeRead();
-            fireDone();
+            fireSingleStepDone();
 
             if (devices.size() != 1) {
                 throw new KnxException("Programming via IA. Not able to enable just one single device. Found " + devices + " in prog mode. Aborting.");
@@ -237,7 +303,7 @@ public class DeviceManagement {
 
             log.debug("Program with help of ProgButton");
             List<String> devices = protocol.programmingModeRead();
-            fireDone();
+            fireSingleStepDone();
 
             if (devices.isEmpty()) {
                 throw new KnxException("Programming with Button. No device found in prog mode. Aborting.");
@@ -251,7 +317,7 @@ public class DeviceManagement {
 
         log.debug("Reading device info ...");
         PropertyPageDeviceInfo ppdi = readDeviceInfo(individualAddress);
-        fireDone();
+        fireSingleStepDone();
 
         // check for correct device
         if (ppdi.getManufacturerId() != manufacturerId || ppdi.getDeviceId() != deviceId || ppdi.getRevision() != revision) {
@@ -275,7 +341,7 @@ public class DeviceManagement {
         }
         fireIncreaseMaxSteps(1);
         protocol.programmingModeWrite(individualAddress, false);
-        fireDone();
+        fireSingleStepDone();
         isProgramming = false;
     }
 
@@ -297,7 +363,7 @@ public class DeviceManagement {
 
             addr += writeStep; // increment index for reading next block of 1..9 bytes
             written += writeStep;
-            fireDone();
+            fireSingleStepDone();
         }
         log.debug("Done writing.");
     }
@@ -322,7 +388,7 @@ public class DeviceManagement {
 
             addr += readStep; // increment index for reading next block of 1..9 bytes
             read += readStep;
-            fireDone();
+            fireSingleStepDone();
         }
         log.debug("Done reading. data={}", Helper.bytesToHex(result, true));
         return result;
@@ -347,7 +413,7 @@ public class DeviceManagement {
         fireProgressUpdate(progressCurrent, progressMaxSteps);
     }
 
-    private void fireDone() {
+    private void fireSingleStepDone() {
         fireDone(1);
     }
 

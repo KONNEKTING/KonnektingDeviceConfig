@@ -25,6 +25,7 @@ import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.CRC32;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -424,6 +425,21 @@ public class ProgProtocol0x01 {
     public void memoryWrite(int memoryAddress, byte[] data) throws KnxException {
         sendMessage(new MsgMemoryWrite(memoryAddress, data));
         expectAck(WAIT_TIMEOUT*2); // writing data to memory may take some time
+    }
+    
+    public void dataWritePrepare(DataType dt, byte dataId, long size) throws KnxException {
+        sendMessage(new MsgDataWritePrepare(dt, dataId, size));
+        expectAck(WAIT_TIMEOUT);
+    }
+    
+    public void dataWrite(int count, byte[] data) throws KnxException {
+        sendMessage(new MsgDataWrite(count, data));
+        expectAck(WAIT_TIMEOUT);
+    }
+    
+    public void dataWriteFinish(CRC32 crc32) throws KnxException {
+        sendMessage(new MsgDataWriteFinish(crc32));
+        expectAck(WAIT_TIMEOUT);
     }
 
     public byte[] memoryRead(int memoryAddress, int length) throws KnxException {
