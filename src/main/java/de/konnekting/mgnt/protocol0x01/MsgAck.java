@@ -30,6 +30,10 @@ class MsgAck extends ProgMessage {
         super(data);
         validateEmpty(4, 13);
     }
+    
+    MsgAck() {
+        super(ACK);
+    }
 
     @Override
     public String toString() {

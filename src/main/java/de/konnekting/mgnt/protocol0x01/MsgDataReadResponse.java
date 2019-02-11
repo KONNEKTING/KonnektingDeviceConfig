@@ -41,6 +41,24 @@ class MsgDataReadResponse extends ProgMessage {
         crc32 = convertUINT32(data[8], data[9], data[10], data[11]);
     }
 
+    public byte getDataType() {
+        return dataType;
+    }
+
+    public byte getDataId() {
+        return dataId;
+    }
+
+    public long getSize() {
+        return size;
+    }
+
+    public long getCrc32() {
+        return crc32;
+    }
+    
+    
+
     @Override
     public String toString() {
         return "MsgDataReadResponse{dataType=" + dataType + ", dataId=" + dataId + ", size=" + size + ", crc32=" + Helper.bytesToHex(ReadableValue2Bytes.convertUINT32(crc32), true) + '}';

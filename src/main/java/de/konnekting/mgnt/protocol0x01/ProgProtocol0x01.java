@@ -23,8 +23,14 @@ import de.root1.slicknx.GroupAddressEvent;
 import de.root1.slicknx.GroupAddressListener;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.zip.CRC32;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,12 +43,26 @@ public class ProgProtocol0x01 {
 
     private static final Logger log = LoggerFactory.getLogger(ProgProtocol0x01.class);
     private static final Logger plog = LoggerFactory.getLogger("ProgrammingLogger");
-    
+
     public static final byte UPDATE_DATATYPE = (byte) 0x00;
     public static final byte UPDATE_DATAID = (byte) 0x00;
 
+    /**
+     * Number of bytes memoryread/memorywrite can handle at once
+     */
+    public static final int MEMORY_READWRITE_BYTES_MAX = 9;
+    /**
+     * Number of bytes datawrite can handle at once
+     */
+    public static final int DATA_WRITE_BYTES_MAX = 11;
+
+    /**
+     * Number of bytes in one read package
+     */
+    public static final int DATA_READ_BYTES_MAX = 11;
+
     public static ProgProtocol0x01 getInstance(Knx knx) {
-        boolean debug = Boolean.getBoolean("de.root1.slicknx.konnekting.debug");
+//        boolean debug = Boolean.getBoolean("de.root1.slicknx.konnekting.debug");
 //        if (debug) {
 //            WAIT_TIMEOUT = 5000;
 //            log.info("###### RUNNING DEBUG MODE #######");
@@ -74,11 +94,11 @@ public class ProgProtocol0x01 {
     public static final byte MSGTYPE_DATA_WRITE_PREPARE = 0x28;
     public static final byte MSGTYPE_DATA_WRITE = 0x29;
     public static final byte MSGTYPE_DATA_WRITE_FINISH = 0x2A;
-    
+
     public static final byte MSGTYPE_DATA_READ = 0x2B;
     public static final byte MSGTYPE_DATA_READ_RESPONSE = 0x2C;
-    public static final byte MSGTYPE_DATA_READ_DATA = 0x2D;  
-    
+    public static final byte MSGTYPE_DATA_READ_DATA = 0x2D;
+
     public static final byte MSGTYPE_DATA_REMOVE = 0x2E;
 
     private final List<ProgMessage> receivedMessages = new ArrayList<>();
@@ -129,6 +149,12 @@ public class ProgProtocol0x01 {
                         case MSGTYPE_MEMORY_RESPONSE:
                             msg = new MsgMemoryResponse(data);
                             break;
+                        case MSGTYPE_DATA_READ_RESPONSE:
+                            msg = new MsgDataReadResponse(data);
+                            break;
+                        case MSGTYPE_DATA_READ_DATA:
+                            msg = new MsgDataReadData(data);
+                            break;
 
                         // log everything else     
                         default:
@@ -172,7 +198,7 @@ public class ProgProtocol0x01 {
                 try {
 
                     if (receivedMessages.isEmpty()) {
-                        log.debug("Waiting {}ms", timeout/10);
+                        log.debug("Waiting {}ms", timeout / 10);
                         receivedMessages.wait(timeout / 10);
                     } else {
                         log.debug("messages available, continue");
@@ -182,7 +208,7 @@ public class ProgProtocol0x01 {
 
                         if (returnOnFirstMsg) {
                             list.add(receivedMessages.remove(0));
-                            log.debug("got one, return 1st. duration={} ms", (System.currentTimeMillis()-start));
+                            log.debug("got one, return 1st. duration={} ms", (System.currentTimeMillis() - start));
                             return list;
                         } else {
                             log.debug("got {}, clear and return", receivedMessages.size());
@@ -195,7 +221,7 @@ public class ProgProtocol0x01 {
                 }
             }
         }
-        log.debug("done. duration={} ms", (System.currentTimeMillis()-start));
+        log.debug("done. duration={} ms", (System.currentTimeMillis() - start));
         return list;
     }
 
@@ -427,27 +453,55 @@ public class ProgProtocol0x01 {
 
     public void memoryWrite(int memoryAddress, byte[] data) throws KnxException {
         sendMessage(new MsgMemoryWrite(memoryAddress, data));
-        expectAck(WAIT_TIMEOUT*2); // writing data to memory may take some time
+        expectAck(WAIT_TIMEOUT * 2); // writing data to memory may take some time
     }
-    
+
     public void dataWritePrepare(byte dataType, byte dataId, long size) throws KnxException {
         sendMessage(new MsgDataWritePrepare(dataType, dataId, size));
         expectAck(WAIT_TIMEOUT);
     }
-    
+
     public void dataWrite(int count, byte[] data) throws KnxException {
         sendMessage(new MsgDataWrite(count, data));
         expectAck(WAIT_TIMEOUT);
     }
-    
+
     public void dataWriteFinish(CRC32 crc32) throws KnxException {
         sendMessage(new MsgDataWriteFinish(crc32));
         expectAck(WAIT_TIMEOUT);
     }
 
+    /**
+     * 
+     * @param f file to store received data
+     * @param dataType data type to request
+     * @param dataId data d to request
+     * @return true, if file received error free, false if crc mismatches
+     * @throws KnxException
+     * @throws FileNotFoundException if given file is not useable
+     * @throws IOException if IO error happens
+     */
+    public DataReadResponse startDataRead(byte dataType, byte dataId) throws KnxException, FileNotFoundException, IOException {
+        log.debug("initiate reading data...");
+        sendMessage(new MsgDataRead(dataType, dataId));
+        MsgDataReadResponse drr = expectSingleMessage(MsgDataReadResponse.class);
+        return new DataReadResponse(drr.getSize(), drr.getCrc32());
+    }
+    
+    /**
+     * waits for data to receive. this call is expected to block until data is received, although the blocking time is veeeeery short.
+     * @return received data
+     * @throws KnxException
+     */
+    public byte[] dataRead() throws KnxException, FileNotFoundException, IOException {
+        MsgDataReadData drd = expectSingleMessage(MsgDataReadData.class);
+        return drd.getReceivedData();
+    }
+    
+
     public byte[] memoryRead(int memoryAddress, int length) throws KnxException {
         sendMessage(new MsgMemoryRead(memoryAddress, length));
-        MsgMemoryResponse msg = expectSingleMessage(MsgMemoryResponse.class, WAIT_TIMEOUT*2); // reading from memory may take some time
+        MsgMemoryResponse msg = expectSingleMessage(MsgMemoryResponse.class, WAIT_TIMEOUT * 2); // reading from memory may take some time
         return msg.getData();
     }
 
@@ -466,7 +520,7 @@ public class ProgProtocol0x01 {
                 addresses.add(msg.getAddress());
             }
         } catch (KnxException ex) {
-            log.info("",ex);
+            log.warn("Exception during waiting for progmoderesponse messages", ex);
         }
         return addresses;
     }
@@ -474,6 +528,31 @@ public class ProgProtocol0x01 {
     public void restart(String individualAddress) throws KnxException {
         sendMessage(new MsgRestart(individualAddress));
 //        expectAck();
+    }
+
+    public void sendAck() throws KnxException {
+        sendMessage(new MsgAck());
+    }
+
+    public class DataReadResponse {
+
+        private long size;
+        private long crc32;
+        
+        public DataReadResponse(long size, long crc32) {
+            this.size = size;
+            this.crc32 = crc32;
+        }
+
+        public long getSize() {
+            return size;
+        }
+
+        public long getCrc32() {
+            return crc32;
+        }
+        
+        
     }
 
 }

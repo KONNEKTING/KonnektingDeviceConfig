@@ -30,17 +30,21 @@ import java.util.Arrays;
 class MsgDataReadData extends ProgMessage {
 
     private int count;
-    private byte[] data;
+    private byte[] receivedData;
 
     public MsgDataReadData(byte[] data) {
         super(data);
         count = data[2];
         data = Arrays.copyOfRange(data, 3, 3 + count - 1);
     }
+    
+    public byte[] getReceivedData(){
+        return receivedData;
+    }
 
     @Override
     public String toString() {
-        return "MsgDataReadData{" + "count=" + count + ", data=" + Helper.bytesToHex(data, true) + '}';
+        return "MsgDataReadData{" + "count=" + count + ", receivedData=" + Helper.bytesToHex(receivedData, true) + '}';
     }
 
 }

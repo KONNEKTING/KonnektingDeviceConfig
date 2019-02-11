@@ -26,17 +26,18 @@ import de.root1.slicknx.KnxException;
 import de.konnekting.mgnt.PropertyPageDeviceInfo;
 import de.konnekting.mgnt.SystemTable;
 import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01;
+import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.DataReadResponse;
 import de.konnekting.xml.konnektingdevice.v0.Device;
 import de.konnekting.xml.konnektingdevice.v0.DeviceMemory;
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.zip.CRC32;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,15 +52,6 @@ public class DeviceManagement {
     private final java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("de/konnekting/deviceconfig/i18n/language"); // NOI18N
     private final List<ProgramProgressListener> listeners = new ArrayList<>();
     private final Knx knx;
-
-    /**
-     * Number of bytes memoryread/memorywrite can handle at once
-     */
-    private static final int MEMORY_READWRITE_BYTES_MAX = 9;
-    /**
-     * Number of bytes datawrite can handle at once
-     */
-    private static final int DATA_WRITE_BYTES_MAX = 11;
 
     private boolean abort;
     private final ProgProtocol0x01 protocol;
@@ -99,7 +91,7 @@ public class DeviceManagement {
             if (!deviceConfigContainer.hasConfiguration()) {
                 throw new IllegalArgumentException("Device " + deviceConfigContainer + " has no programmable configuration");
             }
-            
+
             deviceConfigContainer.updateDeviceMemory();
 
             KonnektingDevice konnektingDevice = deviceConfigContainer.getDevice();
@@ -157,7 +149,7 @@ public class DeviceManagement {
             SystemTable systemTable = new SystemTable(memoryRead);
             systemTable.setIndividualAddress(individualAddress);
             log.debug("read system table: {}", systemTable);
-            
+
             deviceMemory.setSystemTable(systemTable.getData());
             deviceConfigContainer.updateDeviceMemory();
 
@@ -208,38 +200,47 @@ public class DeviceManagement {
         }
 
     }
-    
+
     /**
      * Send firmware over the bus, requires started prog-mode
+     *
      * @param f firmwarefile to send to the device
      */
     public void sendFOTB(File f) throws DeviceManagementException {
-        if(isProgramming) {
+        sendData(f, ProgProtocol0x01.UPDATE_DATATYPE, ProgProtocol0x01.UPDATE_DATAID);
+    }
+
+    /**
+     * Send data over the bus, requires started prog-mode
+     *
+     * @param f file to send to the device
+     */
+    public void sendData(File f, byte dataType, byte dataId) throws DeviceManagementException {
+        if (isProgramming) {
             fireIncreaseMaxSteps(2);
             try {
                 CRC32 crc32 = new CRC32();
-                protocol.dataWritePrepare(ProgProtocol0x01.UPDATE_DATATYPE, ProgProtocol0x01.UPDATE_DATAID, f.length());
+                protocol.dataWritePrepare(dataType, dataId, f.length());
                 fireSingleStepDone();
-                
+
                 FileInputStream fis = new FileInputStream(f);
                 BufferedInputStream bis = new BufferedInputStream(fis);
-                
-                byte[] buffer = new byte[DATA_WRITE_BYTES_MAX];
-                
+
+                byte[] buffer = new byte[ProgProtocol0x01.DATA_WRITE_BYTES_MAX];
+
                 long length = f.length();
-                
+
                 //----
                 int written = 0;
-                
-                
-                fireIncreaseMaxSteps((int) Math.ceil((double) length / (double) DATA_WRITE_BYTES_MAX));
-                
+
+                fireIncreaseMaxSteps((int) Math.ceil((double) length / (double) ProgProtocol0x01.DATA_WRITE_BYTES_MAX));
+
                 while (written != length) {
 
-                    int writeStep = (int) (length - written > DATA_WRITE_BYTES_MAX ? DATA_WRITE_BYTES_MAX : length - written);
+                    int writeStep = (int) (length - written > ProgProtocol0x01.DATA_WRITE_BYTES_MAX ? ProgProtocol0x01.DATA_WRITE_BYTES_MAX : length - written);
 
                     log.debug("\twriting {} bytes. {} of {} bytes done", writeStep, written, length);
-                    
+
                     buffer = bis.readNBytes(writeStep);
                     protocol.dataWrite(progressCurrent, buffer);
 
@@ -247,14 +248,55 @@ public class DeviceManagement {
                     fireSingleStepDone();
                 }
                 // ----
-                
+
                 fis.close();
-                
+
                 protocol.dataWriteFinish(crc32);
                 fireSingleStepDone();
             } catch (KnxException | IOException ex) {
-                throw new DeviceManagementException("FOTB failed", ex);
-            } 
+                throw new DeviceManagementException("writing data failed", ex);
+            }
+        } else {
+            throw new IllegalStateException("Device is not set to prog mode via API");
+        }
+    }
+
+    /**
+     * read data over the bus, requires started prog-mode
+     *
+     * @param f file to write received data to
+     */
+    public void readData(File f, byte dataType, byte dataId) throws DeviceManagementException {
+        if (isProgramming) {
+            fireIncreaseMaxSteps(2);
+            try {
+                DataReadResponse drr = protocol.startDataRead(dataType, dataId);
+
+                log.debug("got response: {}", drr.toString());
+                FileOutputStream fos = new FileOutputStream(f);
+                BufferedOutputStream bos = new BufferedOutputStream(fos);
+                long size = drr.getSize();
+                CRC32 crc32 = new CRC32();
+                int dataMsgCount = Math.round(size / ProgProtocol0x01.DATA_READ_BYTES_MAX);
+                log.debug("will receive {} read data messages based on {} bytes of data", dataMsgCount, size);
+                for (int i = 0; i < dataMsgCount; i++) {
+                    byte[] data = protocol.dataRead();
+                    log.debug("Got data #{}: {}", Helper.bytesToHex(data, true));
+                    crc32.update(data);
+                    bos.write(data);
+                    protocol.sendAck();
+                }
+                bos.close();
+                log.debug("data read done");
+                if (crc32.getValue() == drr.getCrc32()) {
+                    log.debug("CRC match!");
+                } else {
+                    log.error("CRC mismatch!");
+                }
+
+            } catch (KnxException | IOException ex) {
+                throw new DeviceManagementException("reading data failed", ex);
+            }
         } else {
             throw new IllegalStateException("Device is not set to prog mode via API");
         }
@@ -263,17 +305,18 @@ public class DeviceManagement {
     /**
      * Starts programming existing device with given address
      *
-     * @param individualAddress address of device you want to program, or null if you program via progbutton
+     * @param individualAddress address of device you want to program, or null
+     * if you program via progbutton
      * @param manufacturerId
      * @param deviceId
      * @param revision
      * @throws de.root1.slicknx.KnxException
      */
     private void startProgMode(String individualAddress, int manufacturerId, short deviceId, short revision) throws KnxException, DeviceManagementException {
-        
-        progressMaxSteps=0;
-        progressCurrent=0;
-        
+
+        progressMaxSteps = 0;
+        progressCurrent = 0;
+
         if (isProgramming) {
             throw new IllegalStateException("Already in programming mode. Please call stopProgramming() first.");
         }
@@ -352,10 +395,10 @@ public class DeviceManagement {
 
         int written = 0;
 
-        fireIncreaseMaxSteps((int) Math.ceil((double) data.length / (double) MEMORY_READWRITE_BYTES_MAX));
+        fireIncreaseMaxSteps((int) Math.ceil((double) data.length / (double) ProgProtocol0x01.MEMORY_READWRITE_BYTES_MAX));
         while (written != data.length) {
 
-            int writeStep = (data.length - written > MEMORY_READWRITE_BYTES_MAX ? MEMORY_READWRITE_BYTES_MAX : data.length - written);
+            int writeStep = (data.length - written > ProgProtocol0x01.MEMORY_READWRITE_BYTES_MAX ? ProgProtocol0x01.MEMORY_READWRITE_BYTES_MAX : data.length - written);
 
             log.debug("\twrite {} bytes to index {}", writeStep, String.format("0x%02x", addr));
             protocol.memoryWrite(addr, Arrays.copyOfRange(data, written, written + writeStep));
@@ -375,10 +418,10 @@ public class DeviceManagement {
 
         byte[] result = new byte[lenght];
         int read = 0;
-        fireIncreaseMaxSteps((int) Math.ceil((double) lenght / (double) MEMORY_READWRITE_BYTES_MAX));
+        fireIncreaseMaxSteps((int) Math.ceil((double) lenght / (double) ProgProtocol0x01.MEMORY_READWRITE_BYTES_MAX));
 
         while (lenght != 0) {
-            int readStep = (lenght > MEMORY_READWRITE_BYTES_MAX ? MEMORY_READWRITE_BYTES_MAX : lenght);
+            int readStep = (lenght > ProgProtocol0x01.MEMORY_READWRITE_BYTES_MAX ? ProgProtocol0x01.MEMORY_READWRITE_BYTES_MAX : lenght);
             lenght -= readStep;
             log.debug("\tRead {} bytes from addr {}", readStep, String.format("0x%02x", addr));
             byte[] data = protocol.memoryRead(addr, readStep);
@@ -439,7 +482,7 @@ public class DeviceManagement {
         try {
             return bundle.getString(completeKey);
         } catch (Exception ex) {
-            log.error("Problem reading/using key '" + completeKey + "': "+ex.getMessage());
+            log.error("Problem reading/using key '" + completeKey + "': " + ex.getMessage());
             return "<" + completeKey + ">";
         }
     }
@@ -466,7 +509,7 @@ public class DeviceManagement {
 
     private void checkAbort() throws DeviceManagementException {
         if (abort) {
-            abort=false;
+            abort = false;
             throw new DeviceManagementException("Programming aborted");
         }
     }
@@ -476,7 +519,7 @@ public class DeviceManagement {
         byte b1 = (byte) 0xff;
         String ia = "15/7/0";
         byte[] convertIaToBytes = Helper.convertIaToBytes(ia);
-        System.out.println("b0="+String.format("0x%02x",convertIaToBytes[0]));
-        System.out.println("b1="+String.format("0x%02x",convertIaToBytes[1]));
+        System.out.println("b0=" + String.format("0x%02x", convertIaToBytes[0]));
+        System.out.println("b1=" + String.format("0x%02x", convertIaToBytes[1]));
     }
 }

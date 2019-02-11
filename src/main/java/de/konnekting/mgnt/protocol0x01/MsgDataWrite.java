@@ -30,28 +30,28 @@ import de.root1.slicknx.KnxException;
 class MsgDataWrite extends ProgMessage {
 
     private int count;
-    private byte[] data;
+    private byte[] sendData;
     
-    public MsgDataWrite(int count, byte[] data) throws KnxException {
+    public MsgDataWrite(int count, byte[] sendData) throws KnxException {
         super(MSGTYPE_DATA_WRITE);
         this.count = count;
-        this.data = data;
+        this.sendData = sendData;
 
         if (count <= 0 || count > 11) {
             throw new IllegalArgumentException("count must be within 1..11");
         }
         
-        if (data.length > 11) {
+        if (sendData.length > 11) {
             throw new IllegalArgumentException("canot handle more than 11 bytes");
         }
 
-        data[2] = (byte) count;
-        System.arraycopy(data, 0, data, 3, data.length);
+        sendData[2] = (byte) count;
+        System.arraycopy(sendData, 0, sendData, 3, sendData.length);
     }
 
     @Override
     public String toString() {
-        return "MsgDataWrite{" + "count=" + count + ", data=" + Helper.bytesToHex(data, true) + '}';
+        return "MsgDataWrite{" + "count=" + count + ", sendData=" + Helper.bytesToHex(sendData, true) + '}';
     }
 
     
