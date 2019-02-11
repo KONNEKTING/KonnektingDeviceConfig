@@ -18,23 +18,29 @@
  */
 package de.konnekting.mgnt.protocol0x01;
 
+import de.konnekting.deviceconfig.utils.Helper;
+import static de.konnekting.deviceconfig.utils.Bytes2ReadableValue.*;
+import de.konnekting.deviceconfig.utils.ReadableValue2Bytes;
+import java.util.Arrays;
+
 /**
  *
  * @author achristian
  */
-public enum DataType {
-    
-    UPDATE(0x00), DATA(0x01);
-    
-    private int value;
-    
-    
-    public int getValue() {
-        return value;
+class MsgDataReadData extends ProgMessage {
+
+    private int count;
+    private byte[] data;
+
+    public MsgDataReadData(byte[] data) {
+        super(data);
+        count = data[2];
+        data = Arrays.copyOfRange(data, 3, 3 + count - 1);
     }
-    
-    private DataType(int value) {
-        this.value = value;
+
+    @Override
+    public String toString() {
+        return "MsgDataReadData{" + "count=" + count + ", data=" + Helper.bytesToHex(data, true) + '}';
     }
-    
+
 }

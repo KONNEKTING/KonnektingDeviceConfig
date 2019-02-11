@@ -37,6 +37,9 @@ public class ProgProtocol0x01 {
 
     private static final Logger log = LoggerFactory.getLogger(ProgProtocol0x01.class);
     private static final Logger plog = LoggerFactory.getLogger("ProgrammingLogger");
+    
+    public static final byte UPDATE_DATATYPE = (byte) 0x00;
+    public static final byte UPDATE_DATAID = (byte) 0x00;
 
     public static ProgProtocol0x01 getInstance(Knx knx) {
         boolean debug = Boolean.getBoolean("de.root1.slicknx.konnekting.debug");
@@ -427,8 +430,8 @@ public class ProgProtocol0x01 {
         expectAck(WAIT_TIMEOUT*2); // writing data to memory may take some time
     }
     
-    public void dataWritePrepare(DataType dt, byte dataId, long size) throws KnxException {
-        sendMessage(new MsgDataWritePrepare(dt, dataId, size));
+    public void dataWritePrepare(byte dataType, byte dataId, long size) throws KnxException {
+        sendMessage(new MsgDataWritePrepare(dataType, dataId, size));
         expectAck(WAIT_TIMEOUT);
     }
     

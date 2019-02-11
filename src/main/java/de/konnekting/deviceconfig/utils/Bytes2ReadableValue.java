@@ -70,6 +70,10 @@ public class Bytes2ReadableValue {
             + ((b[2] & 0XFF) << 8)
             + ((b[3] & 0XFF) << 0));
     }
+    
+    public static synchronized long convertUINT32(byte b0, byte b1, byte b2, byte b3) {
+        return convertUINT32(new byte[]{b0, b1, b2, b3});
+    }
 
     public static synchronized float convertFLOAT32(byte[] b) {
 

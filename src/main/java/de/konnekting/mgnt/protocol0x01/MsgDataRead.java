@@ -18,7 +18,8 @@
  */
 package de.konnekting.mgnt.protocol0x01;
 
-import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_DATA_WRITE_PREPARE;
+import de.konnekting.deviceconfig.utils.Helper;
+import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_DATA_READ;
 import static de.konnekting.deviceconfig.utils.ReadableValue2Bytes.*;
 import de.root1.slicknx.KnxException;
 
@@ -26,40 +27,28 @@ import de.root1.slicknx.KnxException;
  *
  * @author achristian
  */
-class MsgDataWritePrepare extends ProgMessage {
-    
+class MsgDataRead extends ProgMessage {
+
     private byte dataType;
     private byte dataId;
-    private long size;
     
-    public MsgDataWritePrepare(byte dataType, byte dataId, long size) throws KnxException {
-        super(MSGTYPE_DATA_WRITE_PREPARE);
+    public MsgDataRead(byte dataType, byte dataId) throws KnxException {
+        super(MSGTYPE_DATA_READ);
         this.dataType = dataType;
-        this.dataId = dataId;
-        this.size=size;
-
-        if (size > UINT32_MAX) {
-            throw new IllegalArgumentException("max. "+UINT32_MAX+" bytes of data!");
-        }
+        this.dataId= dataId;
         
-        if (dataType == ProgProtocol0x01.UPDATE_DATATYPE && dataId != 0x00) {
-            throw new IllegalArgumentException("for UPDATE, dataId must be 0x00, always!");
+        if (dataType==ProgProtocol0x01.UPDATE_DATATYPE) {
+            throw new IllegalArgumentException("Cannot read data type update.");
         }
 
-        data[2] = dataType;
+        data[2] = (byte) dataType;
         data[3] = dataId;
-        data[4] = convertUINT32(size)[0];
-        data[5] = convertUINT32(size)[1];
-        data[6] = convertUINT32(size)[2];
-        data[7] = convertUINT32(size)[3];
-        fillUnused(8);
+        
     }
 
     @Override
     public String toString() {
-        return "MsgDataWritePrepare{" + "dataType=" + dataType + ", dataId=" + dataId + ", size=" + size + "}";
+        return "MsgDataRead{" + "dataType=" + dataType + ", dataId=" + dataId + '}';
     }
-
-    
         
 }

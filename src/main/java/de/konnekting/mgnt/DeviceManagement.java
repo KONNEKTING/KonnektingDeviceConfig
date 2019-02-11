@@ -25,7 +25,6 @@ import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
 import de.konnekting.mgnt.PropertyPageDeviceInfo;
 import de.konnekting.mgnt.SystemTable;
-import de.konnekting.mgnt.protocol0x01.DataType;
 import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01;
 import de.konnekting.xml.konnektingdevice.v0.Device;
 import de.konnekting.xml.konnektingdevice.v0.DeviceMemory;
@@ -56,11 +55,11 @@ public class DeviceManagement {
     /**
      * Number of bytes memoryread/memorywrite can handle at once
      */
-    private static final int MEMORY_READWRITE_BYTES = 9;
+    private static final int MEMORY_READWRITE_BYTES_MAX = 9;
     /**
      * Number of bytes datawrite can handle at once
      */
-    private static final int DATA_WRITE_BYTES = 11;
+    private static final int DATA_WRITE_BYTES_MAX = 11;
 
     private boolean abort;
     private final ProgProtocol0x01 protocol;
@@ -219,13 +218,13 @@ public class DeviceManagement {
             fireIncreaseMaxSteps(2);
             try {
                 CRC32 crc32 = new CRC32();
-                protocol.dataWritePrepare(DataType.UPDATE, (byte)0x00, f.length());
+                protocol.dataWritePrepare(ProgProtocol0x01.UPDATE_DATATYPE, ProgProtocol0x01.UPDATE_DATAID, f.length());
                 fireSingleStepDone();
                 
                 FileInputStream fis = new FileInputStream(f);
                 BufferedInputStream bis = new BufferedInputStream(fis);
                 
-                byte[] buffer = new byte[11];
+                byte[] buffer = new byte[DATA_WRITE_BYTES_MAX];
                 
                 long length = f.length();
                 
@@ -233,11 +232,11 @@ public class DeviceManagement {
                 int written = 0;
                 
                 
-                fireIncreaseMaxSteps((int) Math.ceil((double) length / (double) DATA_WRITE_BYTES));
+                fireIncreaseMaxSteps((int) Math.ceil((double) length / (double) DATA_WRITE_BYTES_MAX));
                 
                 while (written != length) {
 
-                    int writeStep = (int) (length - written > DATA_WRITE_BYTES ? DATA_WRITE_BYTES : length - written);
+                    int writeStep = (int) (length - written > DATA_WRITE_BYTES_MAX ? DATA_WRITE_BYTES_MAX : length - written);
 
                     log.debug("\twriting {} bytes. {} of {} bytes done", writeStep, written, length);
                     
@@ -353,10 +352,10 @@ public class DeviceManagement {
 
         int written = 0;
 
-        fireIncreaseMaxSteps((int) Math.ceil((double) data.length / (double) MEMORY_READWRITE_BYTES));
+        fireIncreaseMaxSteps((int) Math.ceil((double) data.length / (double) MEMORY_READWRITE_BYTES_MAX));
         while (written != data.length) {
 
-            int writeStep = (data.length - written > MEMORY_READWRITE_BYTES ? MEMORY_READWRITE_BYTES : data.length - written);
+            int writeStep = (data.length - written > MEMORY_READWRITE_BYTES_MAX ? MEMORY_READWRITE_BYTES_MAX : data.length - written);
 
             log.debug("\twrite {} bytes to index {}", writeStep, String.format("0x%02x", addr));
             protocol.memoryWrite(addr, Arrays.copyOfRange(data, written, written + writeStep));
@@ -376,10 +375,10 @@ public class DeviceManagement {
 
         byte[] result = new byte[lenght];
         int read = 0;
-        fireIncreaseMaxSteps((int) Math.ceil((double) lenght / (double) MEMORY_READWRITE_BYTES));
+        fireIncreaseMaxSteps((int) Math.ceil((double) lenght / (double) MEMORY_READWRITE_BYTES_MAX));
 
         while (lenght != 0) {
-            int readStep = (lenght > MEMORY_READWRITE_BYTES ? MEMORY_READWRITE_BYTES : lenght);
+            int readStep = (lenght > MEMORY_READWRITE_BYTES_MAX ? MEMORY_READWRITE_BYTES_MAX : lenght);
             lenght -= readStep;
             log.debug("\tRead {} bytes from addr {}", readStep, String.format("0x%02x", addr));
             byte[] data = protocol.memoryRead(addr, readStep);
