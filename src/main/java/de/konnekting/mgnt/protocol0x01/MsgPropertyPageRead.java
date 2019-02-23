@@ -55,7 +55,7 @@ class MsgPropertyPageRead extends ProgMessage {
     @Override
     public String toString() {
         try {
-            return "MsgPropertyPageRead{individualAddress=" +Utils.getIndividualAddress(data[2], data[3])+ "pagenum="+String.format("0x%02x", data[4])+"}";
+            return "MsgPropertyPageRead{individualAddress=" +Utils.getIndividualAddress(data[2], data[3])+ " pagenum="+String.format("0x%02x", data[4])+"}";
         } catch (KnxException ex) {
             return "MsgPropertyPageRead{individualAddress=invalid(" +String.format("0x%02x", data[2])+", "+String.format("0x%02x", data[3])+ "pagenum="+String.format("0x%02x", data[4])+", exMsg="+ex.getCause().getMessage()+"}";
         }

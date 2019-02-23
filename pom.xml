@@ -25,6 +25,11 @@
             <version>1.0.1</version>
         </dependency>
         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.8.0-beta2</version>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>konnekting-xml-schema</artifactId>
             <version>${project.version}</version>

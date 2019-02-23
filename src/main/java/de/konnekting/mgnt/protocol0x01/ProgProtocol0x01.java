@@ -458,17 +458,17 @@ public class ProgProtocol0x01 {
 
     public void dataWritePrepare(byte dataType, byte dataId, long size) throws KnxException {
         sendMessage(new MsgDataWritePrepare(dataType, dataId, size));
-        expectAck(WAIT_TIMEOUT);
+        expectAck(2*WAIT_TIMEOUT);
     }
 
     public void dataWrite(int count, byte[] data) throws KnxException {
         sendMessage(new MsgDataWrite(count, data));
-        expectAck(WAIT_TIMEOUT);
+        expectAck(5*WAIT_TIMEOUT);
     }
 
     public void dataWriteFinish(CRC32 crc32) throws KnxException {
         sendMessage(new MsgDataWriteFinish(crc32));
-        expectAck(WAIT_TIMEOUT);
+        expectAck(5*WAIT_TIMEOUT);
     }
 
     /**

@@ -45,8 +45,8 @@ class MsgDataWrite extends ProgMessage {
             throw new IllegalArgumentException("canot handle more than 11 bytes");
         }
 
-        sendData[2] = (byte) count;
-        System.arraycopy(sendData, 0, sendData, 3, sendData.length);
+        data[2] = (byte) count;
+        System.arraycopy(sendData, 0, data, 3, count);
     }
 
     @Override

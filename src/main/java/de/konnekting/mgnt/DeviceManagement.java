@@ -29,6 +29,8 @@ import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01;
 import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.DataReadResponse;
 import de.konnekting.xml.konnektingdevice.v0.Device;
 import de.konnekting.xml.konnektingdevice.v0.DeviceMemory;
+import de.root1.logging.DebugUtils;
+import de.root1.logging.JulFormatter;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -51,7 +53,6 @@ public class DeviceManagement {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("de/konnekting/deviceconfig/i18n/language"); // NOI18N
     private final List<ProgramProgressListener> listeners = new ArrayList<>();
-    private final Knx knx;
 
     private boolean abort;
     private final ProgProtocol0x01 protocol;
@@ -60,7 +61,6 @@ public class DeviceManagement {
     private int progressCurrent = 0;
 
     public DeviceManagement(Knx knx) {
-        this.knx = knx;
         protocol = ProgProtocol0x01.getInstance(knx);
     }
 
@@ -214,6 +214,8 @@ public class DeviceManagement {
      * Send data over the bus, requires started prog-mode
      *
      * @param f file to send to the device
+     * @param dataType
+     * @param dataId
      */
     public void sendData(File f, byte dataType, byte dataId) throws DeviceManagementException {
         if (isProgramming) {
@@ -239,10 +241,11 @@ public class DeviceManagement {
 
                     int writeStep = (int) (length - written > ProgProtocol0x01.DATA_WRITE_BYTES_MAX ? ProgProtocol0x01.DATA_WRITE_BYTES_MAX : length - written);
 
-                    log.debug("\twriting {} bytes. {} of {} bytes done", writeStep, written, length);
+                    log.info("\twriting {} bytes. {} of {} bytes done", writeStep, written, length);
 
                     buffer = bis.readNBytes(writeStep);
-                    protocol.dataWrite(progressCurrent, buffer);
+                    crc32.update(buffer, 0, writeStep);
+                    protocol.dataWrite(writeStep, buffer);
 
                     written += writeStep;
                     fireSingleStepDone();
@@ -250,7 +253,7 @@ public class DeviceManagement {
                 // ----
 
                 fis.close();
-
+                log.info("\tfinishing with crc32: {}", crc32.getValue());
                 protocol.dataWriteFinish(crc32);
                 fireSingleStepDone();
             } catch (KnxException | IOException ex) {
@@ -517,12 +520,15 @@ public class DeviceManagement {
         }
     }
 
-    public static void main(String[] args) {
-        byte b0 = (byte) 0x00;
-        byte b1 = (byte) 0xff;
-        String ia = "15/7/0";
-        byte[] convertIaToBytes = Helper.convertIaToBytes(ia);
-        System.out.println("b0=" + String.format("0x%02x", convertIaToBytes[0]));
-        System.out.println("b1=" + String.format("0x%02x", convertIaToBytes[1]));
+    public static void main(String[] args) throws KnxException, DeviceManagementException {
+        
+        DebugUtils.checkEnableDebug();
+        Knx knx = new Knx("1.1.1");
+        DeviceManagement dm = new DeviceManagement(knx);
+        
+        dm.startProgMode("1.1.254", 0xDEAD, (short) 0xFF, (short) 0x00);
+        File f = new File("test.dat");
+        dm.sendData(f, (byte)1, (byte)0);
+        dm.stopProgramming("1.1.254");
     }
 }
