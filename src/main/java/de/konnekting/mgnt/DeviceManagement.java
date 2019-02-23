@@ -270,13 +270,16 @@ public class DeviceManagement {
         if (isProgramming) {
             fireIncreaseMaxSteps(2);
             try {
-                DataReadResponse drr = protocol.startDataRead(dataType, dataId);
+                DataReadResponse dataReadResponse = protocol.startDataRead(dataType, dataId);
 
-                log.debug("got response: {}", drr.toString());
+                log.debug("got response: {}", dataReadResponse.toString());
+                
                 FileOutputStream fos = new FileOutputStream(f);
                 BufferedOutputStream bos = new BufferedOutputStream(fos);
-                long size = drr.getSize();
+                
+                long size = dataReadResponse.getSize();
                 CRC32 crc32 = new CRC32();
+                
                 int dataMsgCount = Math.round(size / ProgProtocol0x01.DATA_READ_BYTES_MAX);
                 log.debug("will receive {} read data messages based on {} bytes of data", dataMsgCount, size);
                 for (int i = 0; i < dataMsgCount; i++) {
@@ -288,7 +291,7 @@ public class DeviceManagement {
                 }
                 bos.close();
                 log.debug("data read done");
-                if (crc32.getValue() == drr.getCrc32()) {
+                if (crc32.getValue() == dataReadResponse.getCrc32()) {
                     log.debug("CRC match!");
                 } else {
                     log.error("CRC mismatch!");
