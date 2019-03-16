@@ -33,6 +33,8 @@ class MsgAck extends ProgMessage {
     
     MsgAck() {
         super(ACK);
+        data[2] = (byte) 0x00 /* ACK */;
+        data[3] = (byte) 0x00 /* No Error */;
     }
 
     @Override

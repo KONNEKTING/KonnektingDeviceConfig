@@ -37,8 +37,8 @@ class MsgDataReadResponse extends ProgMessage {
         super(data);
         dataType = data[2];
         dataId = data[3];
-        size = convertUINT32(data[4], data[5], data[6], data[7]);
-        crc32 = convertUINT32(data[8], data[9], data[10], data[11]);
+        size = convertUINT32(data[7], data[6], data[5], data[4]);
+        crc32 = convertUINT32(data[11], data[10], data[9], data[8]);
     }
 
     public byte getDataType() {
@@ -61,7 +61,7 @@ class MsgDataReadResponse extends ProgMessage {
 
     @Override
     public String toString() {
-        return "MsgDataReadResponse{dataType=" + dataType + ", dataId=" + dataId + ", size=" + size + ", crc32=" + Helper.bytesToHex(ReadableValue2Bytes.convertUINT32(crc32), true) + '}';
+        return "MsgDataReadResponse{data="+Helper.bytesToHex(data, true)+" dataType=" + dataType + ", dataId=" + dataId + ", size=" + size + ", crc32=" + Helper.bytesToHex(ReadableValue2Bytes.convertUINT32(crc32), true) + '}';
     }
     
 }

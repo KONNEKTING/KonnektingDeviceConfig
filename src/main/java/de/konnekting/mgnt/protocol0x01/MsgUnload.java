@@ -18,33 +18,45 @@
  */
 package de.konnekting.mgnt.protocol0x01;
 
-import de.konnekting.deviceconfig.utils.Helper;
-import static de.konnekting.deviceconfig.utils.Bytes2ReadableValue.*;
-import de.konnekting.deviceconfig.utils.ReadableValue2Bytes;
-import java.util.Arrays;
+import de.root1.slicknx.KnxException;
+import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_UNLOAD;
 
 /**
  *
  * @author achristian
  */
-class MsgDataReadData extends ProgMessage {
+public class MsgUnload extends ProgMessage {
 
-    private int count;
-    private byte[] receivedData;
+    private static final byte TRUE = (byte) 0xFF;
+    private static final byte FALSE = (byte) 0x00;
+    
+    private boolean ia;
+    private boolean co;
+    private boolean params;
+    private boolean datastorage;
 
-    public MsgDataReadData(byte[] data) {
+    public MsgUnload(byte[] data) {
         super(data);
-        count = data[2];
-        receivedData = Arrays.copyOfRange(data, 3, 3 + count);
+    }
+
+    MsgUnload(boolean ia, boolean co, boolean params, boolean datastorage) throws KnxException {
+        super(MSGTYPE_UNLOAD);
+        
+        this.ia = ia;
+        this.co = co;
+        this.params = params;
+        this.datastorage = datastorage;
+        
+        data[2] = ia ? TRUE : FALSE;
+        data[3] = co ? TRUE : FALSE;
+        data[4] = params ? TRUE : FALSE;
+        data[5] = datastorage ? TRUE : FALSE;
     }
     
-    public byte[] getReceivedData(){
-        return receivedData;
-    }
-
     @Override
     public String toString() {
-        return "MsgDataReadData{" + "count=" + count + ", receivedData=" + Helper.bytesToHex(receivedData, true) + '}';
+        return "MsgUnload{ia=" + ia+" co="+co+" params="+params+" datastorage="+datastorage+"}";
     }
+
 
 }

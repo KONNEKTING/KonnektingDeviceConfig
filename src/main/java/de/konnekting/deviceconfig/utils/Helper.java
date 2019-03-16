@@ -115,8 +115,9 @@ public class Helper {
 
     /**
      * uses big endian
+     *
      * @param ga
-     * @return 
+     * @return
      */
     public static byte[] convertGaToBytes(String ga) {
         try {
@@ -129,9 +130,10 @@ public class Helper {
 
     /**
      * uses big endian
+     *
      * @param b0
      * @param b1
-     * @return 
+     * @return
      */
     public static String convertBytesToIA(byte b0, byte b1) {
         try {
@@ -145,8 +147,9 @@ public class Helper {
 
     /**
      * uses big endian
+     *
      * @param ia
-     * @return 
+     * @return
      */
     public static byte[] convertIaToBytes(String ia) {
         if (isParkedAddress(ia)) {
@@ -296,11 +299,11 @@ public class Helper {
         createTempFile.deleteOnExit();
         return createTempFile.getName();
     }
-    
+
     public static boolean setByte(byte[] dst, int dstIndex, byte in) {
         boolean dirty = false;
-        if (dst[dstIndex]!=in) {
-            dst[dstIndex]=in;
+        if (dst[dstIndex] != in) {
+            dst[dstIndex] = in;
             dirty = true;
         }
         return dirty;
@@ -317,10 +320,13 @@ public class Helper {
 //    public static int getFrom16bit(byte lo, byte hi) {
 //        return (int) ((hi << 8) + ((lo << 0) & 0xFF));
 //    }
-
     public static int convertGaToInt(String ga) {
         byte[] bytes = convertGaToBytes(ga);
         int convertUINT16 = Bytes2ReadableValue.convertUINT16(bytes);
         return convertUINT16;
+    }
+
+    public static long roundUp(long num, long divisor) {
+        return (num + divisor - 1) / divisor;
     }
 }

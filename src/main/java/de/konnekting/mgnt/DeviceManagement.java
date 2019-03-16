@@ -265,7 +265,7 @@ public class DeviceManagement {
     }
 
     /**
-     * read data over the bus, requires started prog-mode
+     * read data from device over the bus, requires started prog-mode
      *
      * @param f file to write received data to
      */
@@ -283,21 +283,21 @@ public class DeviceManagement {
                 long size = dataReadResponse.getSize();
                 CRC32 crc32 = new CRC32();
                 
-                int dataMsgCount = Math.round(size / ProgProtocol0x01.DATA_READ_BYTES_MAX);
-                log.debug("will receive {} read data messages based on {} bytes of data", dataMsgCount, size);
+                int dataMsgCount = (int) Helper.roundUp(size, ProgProtocol0x01.DATA_READ_BYTES_MAX);
+                log.info("will receive {} read data messages based on {} bytes of data", dataMsgCount, size);
                 for (int i = 0; i < dataMsgCount; i++) {
                     byte[] data = protocol.dataRead();
                     log.debug("Got data #{}: {}", Helper.bytesToHex(data, true));
                     crc32.update(data);
                     bos.write(data);
-                    protocol.sendAck();
                 }
                 bos.close();
                 log.debug("data read done");
+                dataReadResponse =  protocol.dataReadFinalize();
                 if (crc32.getValue() == dataReadResponse.getCrc32()) {
                     log.debug("CRC match!");
                 } else {
-                    log.error("CRC mismatch!");
+                    log.error("CRC mismatch! via protocol: {} self-calculated: {}", dataReadResponse.getCrc32(), crc32.getValue());
                 }
 
             } catch (KnxException | IOException ex) {
@@ -349,17 +349,7 @@ public class DeviceManagement {
 
         } else {
 
-            log.debug("Program with help of ProgButton");
-            List<String> devices = protocol.programmingModeRead();
-            fireSingleStepDone();
-
-            if (devices.isEmpty()) {
-                throw new KnxException("Programming with Button. No device found in prog mode. Aborting.");
-            } else if (devices.size() > 1) {
-                throw new KnxException("Programming with Button. More than one device in prog-mode. aborting.");
-            } else {
-                log.debug("One device with prog button found.");
-            }
+            ensureProgButtonOnDevice();
 
         }
 
@@ -381,6 +371,20 @@ public class DeviceManagement {
         }
         log.debug("Got device info: {}", ppdi);
         isProgramming = true;
+    }
+
+    private void ensureProgButtonOnDevice() throws KnxException {
+        log.debug("Program with help of ProgButton");
+        List<String> devices = protocol.programmingModeRead();
+        fireSingleStepDone();
+        
+        if (devices.isEmpty()) {
+            throw new KnxException("Programming with Button. No device found in prog mode. Aborting.");
+        } else if (devices.size() > 1) {
+            throw new KnxException("Programming with Button. More than one device in prog-mode. aborting.");
+        } else {
+            log.debug("One device with prog button found.");
+        }
     }
 
     private void stopProgramming(String individualAddress) throws KnxException {
@@ -519,16 +523,33 @@ public class DeviceManagement {
             throw new DeviceManagementException("Programming aborted");
         }
     }
+    
+    public void unload(boolean ia, boolean co, boolean params, boolean datastorage) throws KnxException {
+        if (isProgramming) {
+            throw new IllegalStateException("Already in prog-mode. Cannot unload. Stop programming mode first.");
+        }
+        ensureProgButtonOnDevice();
+        protocol.unload(ia, co, params, datastorage);
+    }
 
     public static void main(String[] args) throws KnxException, DeviceManagementException {
         
-        DebugUtils.checkEnableDebug();
+        
+        DebugUtils.enableDebug(null);
+        
         Knx knx = new Knx("1.1.1");
         DeviceManagement dm = new DeviceManagement(knx);
         
         dm.startProgMode("1.1.254", 0xDEAD, (short) 0xFF, (short) 0x00);
+        
         File f = new File("test.dat");
         dm.sendData(f, (byte)1, (byte)0);
+        
+        System.out.println("########################################################################");
+        
+        File f2 = new File("testrx.dat");
+        dm.readData(f2, (byte)1, (byte)0);
+        
         dm.stopProgramming("1.1.254");
     }
 }
