@@ -24,10 +24,10 @@ pipeline {
         //          no matter what the status is'
         //}
         success {
-            slackSend color: 'good', message: 'Build succeeded: ${env.JOB_NAME} - ${env.BUILD_ID}'
+            slackSend color: 'good', message: "Build succeeded: ${env.JOB_NAME} - ${env.BUILD_ID}"
         }
         failure {
-            slackSend color: 'red', message: 'Build failed: ${env.JOB_NAME} - ${env.BUILD_ID}'
+            slackSend color: 'red', message: "Build failed: ${env.JOB_NAME} - ${env.BUILD_ID}"
         }
     }
 }
