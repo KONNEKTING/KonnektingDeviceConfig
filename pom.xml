@@ -6,11 +6,12 @@
     <version>1.0.0-BETA5-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>KONNEKTING DeviceConfig ${project.version}</name>
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-    </properties>
+    
+    <parent>
+        <groupId>de.konnekting</groupId>
+        <artifactId>parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
     
     <dependencies>
         <dependency>
@@ -22,6 +23,11 @@
             <groupId>de.root1</groupId>
             <artifactId>jul-formatter</artifactId>
             <version>1.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.8.0-beta2</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -77,32 +83,34 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
+                <configuration>
+                    <showDeprecation>true</showDeprecation>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
-   
-    <repositories>
+    <repositories>      
         <repository>
             <id>root1-releases</id>
+            <name>root1.de Releases Repository</name>
+            <layout>default</layout>
             <url>http://maven.root1.de/repository/releases/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
         </repository>
         <repository>
             <id>root1-snapshots</id>
+            <name>root1.de Snapshots Repository</name>
+            <layout>default</layout>
             <url>http://maven.root1.de/repository/snapshots/</url>
-        </repository>
-    </repositories>
-
-    <!-- upload informations for deploying the jar -->
-    <distributionManagement>
-        <repository>
-            <id>root1-releases</id>
-            <name>internal releases</name>
-            <url>http://maven.root1.de/repository/releases/</url>
-        </repository>
-        <snapshotRepository>
-            <id>root1-snapshots</id>
-            <name>internal snapshots</name>
-            <url>http://maven.root1.de/repository/snapshots/</url>
-        </snapshotRepository>      
-    </distributionManagement>  
-    
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>    
+    </repositories>  
 </project>

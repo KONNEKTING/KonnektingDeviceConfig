@@ -23,32 +23,37 @@ import java.io.UnsupportedEncodingException;
 /**
  *
  * @author achristian
+ * uses big endian
  */
 public class Bytes2ReadableValue {
 
-    public synchronized byte convertINT8(byte[] b) {
+    public static synchronized byte convertINT8(byte[] b) {
         return b[0];
     }
 
-    public synchronized short convertUINT8(byte[] b) {
+    public static synchronized short convertUINT8(byte[] b) {
         int ch = b[0] & 0xff;
         return (short) ch;
 
     }
 
-    public synchronized short convertINT16(byte[] b) {
+    public static synchronized short convertINT16(byte[] b) {
         int ch1 = b[0];
         int ch2 = b[1];
         return (short) ((ch1 << 8) + ((ch2 << 0) & 0xFF));
     }
 
-    public synchronized int convertUINT16(byte[] b) {
+    public static synchronized int convertUINT16(byte[] b) {
         int ch1 = b[0];
         int ch2 = b[1];
         return ((ch1 << 8) & 0xff00) + ((ch2 << 0) & 0xFF);
     }
+    
+    public static synchronized int convertUINT16(byte hi, byte lo) {
+        return convertUINT16(new byte[]{hi, lo});
+    }
 
-    public synchronized int convertINT32(byte[] b) {
+    public static synchronized int convertINT32(byte[] b) {
         int ch1 = b[0];
         int ch2 = b[1];
         int ch3 = b[2];
@@ -59,14 +64,18 @@ public class Bytes2ReadableValue {
             + ((ch4 << 0) & 0x000000FF));
     }
 
-    public synchronized long convertUINT32(byte[] b) {
+    public static synchronized long convertUINT32(byte[] b) {
         return (((long) (b[0] & 0XFF) << 24)
             + ((b[1] & 0XFF) << 16)
             + ((b[2] & 0XFF) << 8)
             + ((b[3] & 0XFF) << 0));
     }
+    
+    public static synchronized long convertUINT32(byte b0, byte b1, byte b2, byte b3) {
+        return convertUINT32(new byte[]{b0, b1, b2, b3});
+    }
 
-    public synchronized float convertFLOAT32(byte[] b) {
+    public static synchronized float convertFLOAT32(byte[] b) {
 
         int i = (((int) (b[0] & 0XFF) << 24)
             + ((b[1] & 0XFF) << 16)
@@ -76,7 +85,7 @@ public class Bytes2ReadableValue {
         return Float.intBitsToFloat(i);
     }
 
-    public synchronized String convertString11(byte[] b) throws UnsupportedEncodingException {
+    public static synchronized String convertString11(byte[] b) throws UnsupportedEncodingException {
         // search for terminating 0x00 and cut string off
         int indexOf = -1;
         for (int i = 0; i < b.length; i++) {

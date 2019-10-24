@@ -23,6 +23,7 @@ import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -66,23 +67,29 @@ public class Helper {
 
     /**
      * return upper case hex!
+     *
      * @param bytes
-     * @return 
+     * @return
      */
     public static String bytesToHex(byte[] bytes) {
         return bytesToHex(bytes, false);
     }
 
+    public static String bytesToHex(byte[] bytes, int index, int length, boolean whitespace) {
+        return bytesToHex(Arrays.copyOfRange(bytes, index, index + length - 1), whitespace);
+    }
+
     /**
      * returns upper case hex
+     *
      * @param bytearray
      * @param whitespace
-     * @return 
+     * @return
      */
     public static String bytesToHex(byte[] bytearray, boolean whitespace) {
         StringBuilder sb = new StringBuilder(bytearray.length * 2);
         for (int i = 0; i < bytearray.length; i++) {
-            sb.append(String.format(whitespace?"%02x ":"%02x", bytearray[i] & 0xff));
+            sb.append(String.format(whitespace ? "%02x " : "%02x", bytearray[i] & 0xff));
         }
         return sb.toString().trim().toUpperCase();
     }
@@ -96,8 +103,8 @@ public class Helper {
         int sLen = s.length();
         byte[] bytearray = new byte[sLen / 2];
         for (int i = 0; i < sLen; i += 2) {
-            bytearray[i / 2] = (byte) ( /* left hex-char: shift 4 bits the the left*/ (Character.digit(s.charAt(i), 16) << 4)  
-                + /* right hex-char: no need to shift, as value is already "low" enough */ Character.digit(s.charAt(i + 1), 16) );
+            bytearray[i / 2] = (byte) ( /* left hex-char: shift 4 bits the the left*/(Character.digit(s.charAt(i), 16) << 4)
+                    + /* right hex-char: no need to shift, as value is already "low" enough */ Character.digit(s.charAt(i + 1), 16));
         }
         return bytearray;
     }
@@ -106,6 +113,12 @@ public class Helper {
     private static final Pattern PA_PARKED_PATTERN = Pattern.compile("\\A\\d{1,2}\\.\\d{1,2}\\.\\z");
     private static final Pattern GA_PATTERN = Pattern.compile("\\A\\d{1,2}/\\d{1,2}/\\d{1,3}\\z");
 
+    /**
+     * uses big endian
+     *
+     * @param ga
+     * @return
+     */
     public static byte[] convertGaToBytes(String ga) {
         try {
             return Utils.getGroupAddress(ga).toByteArray();
@@ -115,6 +128,29 @@ public class Helper {
         }
     }
 
+    /**
+     * uses big endian
+     *
+     * @param b0
+     * @param b1
+     * @return
+     */
+    public static String convertBytesToIA(byte b0, byte b1) {
+        try {
+            // TODO check corect endianess
+            return Utils.getIndividualAddress(b1, b0).toString();
+        } catch (KnxException ex) {
+            // will never happen, cause we fix the byte-array
+            return "input.not.valid";
+        }
+    }
+
+    /**
+     * uses big endian
+     *
+     * @param ia
+     * @return
+     */
     public static byte[] convertIaToBytes(String ia) {
         if (isParkedAddress(ia)) {
             LOG.error("Individual address is parked. Cannot convert");
@@ -263,5 +299,34 @@ public class Helper {
         createTempFile.deleteOnExit();
         return createTempFile.getName();
     }
-    
+
+    public static boolean setByte(byte[] dst, int dstIndex, byte in) {
+        boolean dirty = false;
+        if (dst[dstIndex] != in) {
+            dst[dstIndex] = in;
+            dirty = true;
+        }
+        return dirty;
+    }
+
+//    public static byte getHI(int v) {
+//        return (byte)((v >>> 8) & 0xFF);
+//    }
+//    
+//    public static byte getLO(int v) {
+//        return (byte)((v >>> 0) & 0xFF);
+//    }
+//    
+//    public static int getFrom16bit(byte lo, byte hi) {
+//        return (int) ((hi << 8) + ((lo << 0) & 0xFF));
+//    }
+    public static int convertGaToInt(String ga) {
+        byte[] bytes = convertGaToBytes(ga);
+        int convertUINT16 = Bytes2ReadableValue.convertUINT16(bytes);
+        return convertUINT16;
+    }
+
+    public static long roundUp(long num, long divisor) {
+        return (num + divisor - 1) / divisor;
+    }
 }

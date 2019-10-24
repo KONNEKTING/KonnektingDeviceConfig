@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Alexander Christian <alex(at)root1.de>. All rights reserved.
+ * Copyright (C) 2019 Alexander Christian <alex(at)root1.de>. All rights reserved.
  * 
  * This file is part of KONNEKTING DeviceConfig.
  *
@@ -16,24 +16,24 @@
  *   You should have received a copy of the GNU General Public License
  *   along with KONNEKTING DeviceConfig.  If not, see <http://www.gnu.org/licenses/>.
  */
-package de.konnekting.deviceconfig;
+package de.konnekting.mgnt.protocol0x01;
+
+import de.konnekting.deviceconfig.utils.Helper;
+import de.konnekting.deviceconfig.utils.ReadableValue2Bytes;
+import java.util.zip.CRC32;
 
 /**
  *
  * @author achristian
  */
-public class ProgramException extends Exception {
-
-    public ProgramException(String message) {
-        super(message);
-    }
-
-    public ProgramException(Throwable cause) {
-        super(cause);
-    }
-
-    public ProgramException(String message, Throwable cause) {
-        super(message, cause);
+public class TestCRC32 {
+    
+    public static void main(String[] args) {
+        CRC32 crc32 = new CRC32();
+        
+        byte[] data = new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,0x07,0x08,0x09, 0x0A, 0x0B};
+        crc32.update(data);
+        System.out.println("crc32="+crc32.getValue()+ " / "+Helper.bytesToHex(ReadableValue2Bytes.convertUINT32(crc32.getValue()), true));
     }
     
 }

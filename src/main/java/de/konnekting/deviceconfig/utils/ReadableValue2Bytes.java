@@ -21,32 +21,36 @@ package de.konnekting.deviceconfig.utils;
 import java.io.UnsupportedEncodingException;
 
 /**
- *
+ * big endian
  * @author achristian
  */
 public class ReadableValue2Bytes {
-
-    public synchronized byte[] convertINT8(byte v) {
+    
+    public static final long UINT32_MAX = 4294967295L;
+    public static final int UINT16_MAX = 65535;
+    
+    
+    public static synchronized byte[] convertINT8(byte v) {
         return new byte[]{v};
     }
 
-    public synchronized byte[] convertUINT8(short v) {
+    public static synchronized byte[] convertUINT8(int v) {
         return new byte[]{(byte)((v) & 0xFF)};
     }
 
-    public synchronized byte[] convertINT16(short v) {
+    public static synchronized byte[] convertINT16(int v) {
         byte b0 = (byte)((v >>> 8) & 0xFF);
         byte b1 = (byte)((v >>> 0) & 0xFF);
         return new byte[]{b0, b1};
     }
 
-    public synchronized byte[] convertUINT16(int v) {
+    public static synchronized byte[] convertUINT16(int v) {
         byte b0 = (byte)(v >>>  8);
         byte b1 = (byte)(v >>>  0);
         return new byte[]{b0, b1};
     }
 
-    public synchronized byte[] convertINT32(int v) {
+    public static synchronized byte[] convertINT32(int v) {
         byte b0 = (byte)((v >>> 24) & 0xFF);
         byte b1 = (byte)((v >>> 16) & 0xFF);
         byte b2 = (byte)((v >>> 8) & 0xFF);
@@ -54,7 +58,7 @@ public class ReadableValue2Bytes {
         return new byte[]{b0, b1, b2, b3};
     }
 
-    public synchronized byte[] convertUINT32(long v) {
+    public static synchronized byte[] convertUINT32(long v) {
         byte b0 = (byte)(v >>> 24);
         byte b1 = (byte)(v >>> 16);
         byte b2 = (byte)(v >>>  8);
@@ -62,7 +66,7 @@ public class ReadableValue2Bytes {
         return new byte[]{b0, b1, b2, b3};
     }
     
-    public synchronized byte[] convertFLOAT32(float v) {
+    public static synchronized byte[] convertFLOAT32(float v) {
         
         int floatToIntBits = Float.floatToIntBits(v);
         
@@ -79,7 +83,7 @@ public class ReadableValue2Bytes {
      * @return
      * @throws UnsupportedEncodingException 
      */
-    public synchronized byte[] convertString11(String s) throws UnsupportedEncodingException {
+    public static synchronized byte[] convertString11(String s) throws UnsupportedEncodingException {
         /* 
          * init resulting array with 0x00
          * so that unused tailing chars of string11 are 0x00

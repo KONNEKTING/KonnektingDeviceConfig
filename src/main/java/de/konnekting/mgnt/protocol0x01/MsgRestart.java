@@ -1,50 +1,58 @@
 /*
- * Copyright (C) 2015 Alexander Christian <alex(at)root1.de>. All rights reserved.
+ * Copyright (C) 2019 Alexander Christian <alex(at)root1.de>. All rights reserved.
  * 
- * This file is part of slicKnx.
+ * This file is part of KONNEKTING DeviceConfig.
  *
- *   slicKnx is free software: you can redistribute it and/or modify
+ *   KONNEKTING DeviceConfig is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
  *   the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
- *   slicKnx is distributed in the hope that it will be useful,
+ *   KONNEKTING DeviceConfig is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *   GNU General Public License for more details.
  *
  *   You should have received a copy of the GNU General Public License
- *   along with slicKnx.  If not, see <http://www.gnu.org/licenses/>.
+ *   along with KONNEKTING DeviceConfig.  If not, see <http://www.gnu.org/licenses/>.
  */
-package de.konnekting.mgnt.protocol0x00;
+package de.konnekting.mgnt.protocol0x01;
 
 import de.root1.slicknx.KnxException;
 import de.root1.slicknx.Utils;
+import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_RESTART;
 
 /**
  *
  * @author achristian
  */
-class MsgAnswerIndividualAddress extends ProgMessage {
+public class MsgRestart extends ProgMessage {
 
-    public MsgAnswerIndividualAddress(byte[] data) {
+    public MsgRestart(byte[] data) {
         super(data);
+    }
+
+    MsgRestart(String individualAddress) throws KnxException {
+        super(MSGTYPE_RESTART);
+        System.arraycopy(Utils.getIndividualAddress(individualAddress).toByteArray(), 0, data, 2, 2);
     }
     
     public String getAddress() throws KnxException {
         return Utils.getIndividualAddress(data[2], data[3]).toString();
     }
-    
+
     @Override
     public String toString() {
         String t;
         try {
-            t = "AnswerIndividualAddress{individualAddress="+getAddress()+"}";
+            t = "Restart{"+getAddress()+"}";
         } catch (KnxException ex) {
-            t = "AnswerIndividualAddress{!!!EXCEPTION!!!}";
+            t = "Restart{!!!EXCEPTION!!!}";
             log.error("Error parsing individual address ", ex);
         }
         return t;
     }
+    
+    
     
 }

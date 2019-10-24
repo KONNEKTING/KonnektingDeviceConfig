@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Alexander Christian <alex(at)root1.de>. All rights reserved.
+ * Copyright (C) 2019 Alexander Christian <alex(at)root1.de>. All rights reserved.
  * 
  * This file is part of KONNEKTING DeviceConfig.
  *
@@ -16,16 +16,23 @@
  *   You should have received a copy of the GNU General Public License
  *   along with KONNEKTING DeviceConfig.  If not, see <http://www.gnu.org/licenses/>.
  */
-package de.konnekting.deviceconfig;
+package de.konnekting.mgnt.protocol0x01;
 
 /**
  *
  * @author achristian
  */
-public interface ProgramProgressListener {
+class MsgProgrammingModeRead extends ProgMessage {
 
-    public void onStatusMessage(String statusMsg);
+    public MsgProgrammingModeRead() {
+        super(ProgProtocol0x01.MSGTYPE_PROGRAMMING_MODE_READ);
+    }
 
-    public void onProgressUpdate(int currentStep, int steps);
+    @Override
+    public String toString() {
+        return "MsgProgrammingModeRead{}";
+    }
+    
+    
     
 }

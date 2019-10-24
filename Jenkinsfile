@@ -18,4 +18,16 @@ pipeline {
             }
         }
     }
+    post {
+        //always {
+        //    echo 'I will do this 
+        //          no matter what the status is'
+        //}
+        success {
+            slackSend color: 'good', message: "Build succeeded! Job: ${env.JOB_NAME} - Link: ${env.BUILD_URL}"
+        }
+        failure {
+            slackSend color: 'red', message: "Build failed! Job: ${env.JOB_NAME} - Link: ${env.BUILD_URL}"
+        }
+    }
 }
