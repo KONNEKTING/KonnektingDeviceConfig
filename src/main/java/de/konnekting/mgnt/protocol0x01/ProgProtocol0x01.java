@@ -23,14 +23,10 @@ import de.root1.slicknx.GroupAddressEvent;
 import de.root1.slicknx.GroupAddressListener;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
-import java.io.BufferedOutputStream;
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.zip.CRC32;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -330,7 +326,7 @@ public class ProgProtocol0x01 {
 
     /**
      *
-     * @return true, if exactly one device responds to read-device-info -->
+     * @return true, if exactly one device responds to read-device-info 
      * @throws KnxException
      */
     public List<String> findDevicesInProgMode() throws KnxException {
@@ -375,7 +371,6 @@ public class ProgProtocol0x01 {
 
     /**
      *
-     * @param f file to store received data
      * @param dataType data type to request
      * @param dataId data d to request
      * @return true, if file received error free, false if crc mismatches
