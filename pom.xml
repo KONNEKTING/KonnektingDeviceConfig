@@ -89,28 +89,10 @@
                 <version>2.3.2</version>
                 <configuration>
                     <showDeprecation>true</showDeprecation>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.source}</target>
                 </configuration>
             </plugin>
         </plugins>
     </build>
-    <repositories>      
-        <repository>
-            <id>root1-releases</id>
-            <name>root1.de Releases Repository</name>
-            <layout>default</layout>
-            <url>http://maven.root1.de/repository/releases/</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>root1-snapshots</id>
-            <name>root1.de Snapshots Repository</name>
-            <layout>default</layout>
-            <url>http://maven.root1.de/repository/snapshots/</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>    
-    </repositories>  
 </project>
