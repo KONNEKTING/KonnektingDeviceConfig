@@ -531,7 +531,6 @@ public class DeviceManagement {
 
     public static void main(String[] args) throws KnxException, DeviceManagementException {
         
-        
         DebugUtils.enableDebug(null);
         
         Knx knx = new Knx("1.1.1");
