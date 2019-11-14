@@ -89,7 +89,7 @@ public class PropertyPageDeviceInfo {
                 ", deviceId=" + String.format("0x%02x", deviceId) + 
                 ", revision=" + String.format("0x%02x", revision) + 
                 ", deviceFlags=" + String.format("0x%02x", deviceFlags) + 
-                ", systemType=" + String.format("0x%02x", systemType) + '}';
+                ", systemType=" + systemType + '}';
     }
     
 

@@ -27,7 +27,6 @@ import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01;
 import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.DataReadResponse;
 import de.konnekting.xml.konnektingdevice.v0.Device;
 import de.konnekting.xml.konnektingdevice.v0.DeviceMemory;
-import de.root1.logging.DebugUtils;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -238,7 +237,7 @@ public class DeviceManagement {
 
                     int writeStep = (int) (length - written > ProgProtocol0x01.DATA_WRITE_BYTES_MAX ? ProgProtocol0x01.DATA_WRITE_BYTES_MAX : length - written);
 
-                    log.info("\twriting {} bytes. {} of {} bytes done", writeStep, written, length);
+                    log.info("\twriting {} bytes. {} of {} bytes done so far", writeStep, written, length);
 
                     buffer = bis.readNBytes(writeStep);
                     crc32.update(buffer, 0, writeStep);
@@ -530,13 +529,10 @@ public class DeviceManagement {
     }
 
     public static void main(String[] args) throws KnxException, DeviceManagementException {
-        
-        DebugUtils.enableDebug(null);
-        
-        Knx knx = new Knx("1.1.1");
+        Knx knx = new Knx("1.1.200");
         DeviceManagement dm = new DeviceManagement(knx);
         
-        dm.startProgMode("1.1.254", 0xDEAD, (short) 0xFF, (short) 0x00);
+        dm.startProgMode("1.1.1", 0xDEAD, (short) 0xFF, (short) 0x00);
         
         File f = new File("test.dat");
         dm.sendData(f, (byte)1, (byte)0);
@@ -546,6 +542,6 @@ public class DeviceManagement {
         File f2 = new File("testrx.dat");
         dm.readData(f2, (byte)1, (byte)0);
         
-        dm.stopProgramming("1.1.254");
+        dm.stopProgramming("1.1.1");
     }
 }
