@@ -44,7 +44,6 @@ import de.konnekting.xml.konnektingdevice.v0.ParameterDependency;
 import de.konnekting.xml.konnektingdevice.v0.ParameterGroupDependency;
 import de.konnekting.xml.konnektingdevice.v0.Parameters;
 import de.konnekting.xml.konnektingdevice.v0.TestType;
-import de.root1.logging.JulFormatter;
 import de.root1.rooteventbus.RootEventBus;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
@@ -1113,7 +1112,6 @@ public class DeviceConfigContainer {
 
     public static void main(String[] args) throws JAXBException, SAXException, KnxException, DeviceManagementException {
 
-        JulFormatter.set();
         File fin = new File("test.kconfig.xml");
         File fout = new File("testout.kconfig.xml");
         DeviceConfigContainer dcc = new DeviceConfigContainer(fin);
