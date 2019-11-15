@@ -196,7 +196,7 @@ public class ProgProtocol0x01 {
                 try {
                     
                     if (receivedMessages.isEmpty()) {
-                        log.debug("Waiting {}ms", timeout / 10);
+                        log.debug("Waiting for at most {}ms", timeout / 10);
                         receivedMessages.wait(timeout / 10);
                     } else {
                         log.debug("messages available, continue");
@@ -206,7 +206,7 @@ public class ProgProtocol0x01 {
                         
                         if (returnOnFirstMsg) {
                             list.add(receivedMessages.remove(0));
-                            log.debug("got one, return 1st. duration={} ms", (System.currentTimeMillis() - start));
+                            log.debug("got message(s), return 1st. duration={} ms", (System.currentTimeMillis() - start));
                             return list;
                         } else {
                             log.debug("got {}, clear and return", receivedMessages.size());

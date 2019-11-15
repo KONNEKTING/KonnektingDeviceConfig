@@ -27,7 +27,6 @@ import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01;
 import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.DataReadResponse;
 import de.konnekting.xml.konnektingdevice.v0.Device;
 import de.konnekting.xml.konnektingdevice.v0.DeviceMemory;
-import de.root1.logging.DebugUtils;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -181,7 +180,7 @@ public class DeviceManagement {
             fireIncreaseMaxSteps(2);
             log.info("Stopping programming");
             fireProgressStatusMessage(getLangString("stoppingProgramming"));//Stopping programming...");
-            stopProgramming(individualAddress);
+            stopProgMode(individualAddress);
             fireSingleStepDone();
 
             log.info("Restart device");
@@ -238,7 +237,7 @@ public class DeviceManagement {
 
                     int writeStep = (int) (length - written > ProgProtocol0x01.DATA_WRITE_BYTES_MAX ? ProgProtocol0x01.DATA_WRITE_BYTES_MAX : length - written);
 
-                    log.info("\twriting {} bytes. {} of {} bytes done", writeStep, written, length);
+                    log.info("\twriting {} bytes. {} of {} bytes done so far", writeStep, written, length);
 
                     buffer = bis.readNBytes(writeStep);
                     crc32.update(buffer, 0, writeStep);
@@ -315,7 +314,7 @@ public class DeviceManagement {
      * @param revision
      * @throws de.root1.slicknx.KnxException
      */
-    private void startProgMode(String individualAddress, int manufacturerId, short deviceId, short revision) throws KnxException, DeviceManagementException {
+    void startProgMode(String individualAddress, int manufacturerId, short deviceId, short revision) throws KnxException, DeviceManagementException {
 
         progressMaxSteps = 0;
         progressCurrent = 0;
@@ -384,7 +383,7 @@ public class DeviceManagement {
         }
     }
 
-    private void stopProgramming(String individualAddress) throws KnxException {
+    void stopProgMode(String individualAddress) throws KnxException {
         if (!isProgramming) {
             throw new IllegalStateException("Not in programming-state. Call startProgramming() first.");
         }
@@ -529,24 +528,4 @@ public class DeviceManagement {
         protocol.unload(ia, co, params, datastorage);
     }
 
-    public static void main(String[] args) throws KnxException, DeviceManagementException {
-        
-        
-        DebugUtils.enableDebug(null);
-        
-        Knx knx = new Knx("1.1.1");
-        DeviceManagement dm = new DeviceManagement(knx);
-        
-        dm.startProgMode("1.1.254", 0xDEAD, (short) 0xFF, (short) 0x00);
-        
-        File f = new File("test.dat");
-        dm.sendData(f, (byte)1, (byte)0);
-        
-        System.out.println("########################################################################");
-        
-        File f2 = new File("testrx.dat");
-        dm.readData(f2, (byte)1, (byte)0);
-        
-        dm.stopProgramming("1.1.254");
-    }
 }
