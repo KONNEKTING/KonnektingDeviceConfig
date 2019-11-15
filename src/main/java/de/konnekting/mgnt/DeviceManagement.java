@@ -180,7 +180,7 @@ public class DeviceManagement {
             fireIncreaseMaxSteps(2);
             log.info("Stopping programming");
             fireProgressStatusMessage(getLangString("stoppingProgramming"));//Stopping programming...");
-            stopProgramming(individualAddress);
+            stopProgMode(individualAddress);
             fireSingleStepDone();
 
             log.info("Restart device");
@@ -314,7 +314,7 @@ public class DeviceManagement {
      * @param revision
      * @throws de.root1.slicknx.KnxException
      */
-    private void startProgMode(String individualAddress, int manufacturerId, short deviceId, short revision) throws KnxException, DeviceManagementException {
+    void startProgMode(String individualAddress, int manufacturerId, short deviceId, short revision) throws KnxException, DeviceManagementException {
 
         progressMaxSteps = 0;
         progressCurrent = 0;
@@ -383,7 +383,7 @@ public class DeviceManagement {
         }
     }
 
-    private void stopProgramming(String individualAddress) throws KnxException {
+    void stopProgMode(String individualAddress) throws KnxException {
         if (!isProgramming) {
             throw new IllegalStateException("Not in programming-state. Call startProgramming() first.");
         }
@@ -528,20 +528,4 @@ public class DeviceManagement {
         protocol.unload(ia, co, params, datastorage);
     }
 
-    public static void main(String[] args) throws KnxException, DeviceManagementException {
-        Knx knx = new Knx("1.1.200");
-        DeviceManagement dm = new DeviceManagement(knx);
-        
-        dm.startProgMode("1.1.1", 0xDEAD, (short) 0xFF, (short) 0x00);
-        
-        File f = new File("test.dat");
-        dm.sendData(f, (byte)1, (byte)0);
-        
-        System.out.println("########################################################################");
-        
-        File f2 = new File("testrx.dat");
-        dm.readData(f2, (byte)1, (byte)0);
-        
-        dm.stopProgramming("1.1.1");
-    }
 }
