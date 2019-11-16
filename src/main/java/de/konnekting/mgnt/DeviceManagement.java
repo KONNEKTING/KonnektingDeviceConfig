@@ -345,7 +345,7 @@ public class DeviceManagement {
 
         } else {
 
-            ensureProgButtonOnDevice();
+            ensureProgButtonOneDevice();
 
         }
 
@@ -369,7 +369,7 @@ public class DeviceManagement {
         isProgramming = true;
     }
 
-    private void ensureProgButtonOnDevice() throws KnxException {
+    private void ensureProgButtonOneDevice() throws KnxException {
         log.debug("Program with help of ProgButton");
         List<String> devices = protocol.programmingModeRead();
         fireSingleStepDone();
@@ -392,7 +392,7 @@ public class DeviceManagement {
         fireSingleStepDone();
         isProgramming = false;
     }
-
+    
     private void memoryWrite(int addr, byte[] data) throws KnxException {
         if (!isProgramming) {
             throw new IllegalStateException("Not in programming-state- Call startProgramming() first.");
@@ -520,12 +520,12 @@ public class DeviceManagement {
         }
     }
     
-    public void unload(boolean ia, boolean co, boolean params, boolean datastorage) throws KnxException {
+    public void unload(boolean factoryreset, boolean ia, boolean co, boolean params, boolean datastorage) throws KnxException {
         if (isProgramming) {
             throw new IllegalStateException("Already in prog-mode. Cannot unload. Stop programming mode first.");
         }
-        ensureProgButtonOnDevice();
-        protocol.unload(ia, co, params, datastorage);
+        ensureProgButtonOneDevice();
+        protocol.unload(factoryreset, ia, co, params, datastorage);
     }
 
 }

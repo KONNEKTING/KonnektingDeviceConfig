@@ -34,6 +34,8 @@ public class SandboxDeviceManagementDataTest {
         dm.readData(f2, (byte)1, (byte)0);
         
         dm.stopProgMode("1.1.1");
+        
+        //dm.unload(true, true, true, true);
     }
     
 }

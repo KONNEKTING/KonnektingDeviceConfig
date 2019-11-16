@@ -134,7 +134,7 @@ public class ProgProtocol0x01 {
                     
                     switch (type) {
 
-                        // handle answer messages
+                        // handle only answer messages
                         case MSGTYPE_ACK:
                             msg = new MsgAck(data);
                             break;
@@ -438,9 +438,9 @@ public class ProgProtocol0x01 {
         return addresses;
     }
     
-    public void unload(boolean ia, boolean co, boolean params, boolean datastorage) throws KnxException {
-        sendMessage(new MsgUnload(ia, co, params, datastorage));
-        expectAck(5 * WAIT_TIMEOUT);
+    public void unload(boolean factoryreset, boolean ia, boolean co, boolean params, boolean datastorage) throws KnxException {
+        sendMessage(new MsgUnload(factoryreset, ia, co, params, datastorage));
+        expectAck(60 * WAIT_TIMEOUT); // erasing can take very long
     }
     
     public void restart(String individualAddress) throws KnxException {
