@@ -272,13 +272,13 @@ public class DeviceManagement {
                 DataReadResponse dataReadResponse = protocol.startDataRead(dataType, dataId);
 
                 log.debug("got response: {}", dataReadResponse.toString());
-                
+
                 FileOutputStream fos = new FileOutputStream(f);
                 BufferedOutputStream bos = new BufferedOutputStream(fos);
-                
+
                 long size = dataReadResponse.getSize();
                 CRC32 crc32 = new CRC32();
-                
+
                 int dataMsgCount = (int) Helper.roundUp(size, ProgProtocol0x01.DATA_READ_BYTES_MAX);
                 log.info("will receive {} read data messages based on {} bytes of data", dataMsgCount, size);
                 for (int i = 0; i < dataMsgCount; i++) {
@@ -289,7 +289,7 @@ public class DeviceManagement {
                 }
                 bos.close();
                 log.debug("data read done");
-                dataReadResponse =  protocol.dataReadFinalize();
+                dataReadResponse = protocol.dataReadFinalize();
                 if (crc32.getValue() == dataReadResponse.getCrc32()) {
                     log.debug("CRC match!");
                 } else {
@@ -302,6 +302,16 @@ public class DeviceManagement {
         } else {
             throw new IllegalStateException("Device is not set to prog mode via API");
         }
+    }
+    
+    /**
+     * Starts prog mode without verifying correctness of manufacturer and deviceid and revision. This is only useful if only IA is programmed. Therefore, this method is private access.
+     * @param individualAddress
+     * @throws KnxException
+     * @throws DeviceManagementException 
+     */
+    private void startProgMode(String individualAddress) throws KnxException, DeviceManagementException {
+        startProgMode(individualAddress, -1, (short) -1, (short) -1);
     }
 
     /**
@@ -348,24 +358,26 @@ public class DeviceManagement {
             ensureProgButtonOneDevice();
 
         }
+        if (manufacturerId != -1 && deviceId != -1 && revision != -1) {
 
-        log.debug("Reading device info ...");
-        PropertyPageDeviceInfo ppdi = readDeviceInfo(individualAddress);
-        fireSingleStepDone();
+            log.debug("Reading device info ...");
+            PropertyPageDeviceInfo ppdi = readDeviceInfo(individualAddress);
+            fireSingleStepDone();
 
-        // check for correct device
-        if (ppdi.getManufacturerId() != manufacturerId || ppdi.getDeviceId() != deviceId || ppdi.getRevision() != revision) {
-            throw new DeviceManagementException("Device does not match to configuration.\n"
-                    + " KONNEKTING reported: \n"
-                    + "  manufacturer: " + String.format("0x%04x", ppdi.getManufacturerId()) + "\n"
-                    + "  device: " + String.format("0x%02x", ppdi.getDeviceId()) + "\n"
-                    + "  revision: " + String.format("0x%02x", ppdi.getRevision()) + "\n"
-                    + " Configuration requires:\n"
-                    + "  manufacturer: " + String.format("0x%04x", manufacturerId) + "\n"
-                    + "  device: " + String.format("0x%02x", deviceId) + "\n"
-                    + "  revision: " + String.format("0x%02x", revision));
+            // check for correct device
+            if (ppdi.getManufacturerId() != manufacturerId || ppdi.getDeviceId() != deviceId || ppdi.getRevision() != revision) {
+                throw new DeviceManagementException("Device does not match to configuration.\n"
+                        + " KONNEKTING reported: \n"
+                        + "  manufacturer: " + String.format("0x%04x", ppdi.getManufacturerId()) + "\n"
+                        + "  device: " + String.format("0x%02x", ppdi.getDeviceId()) + "\n"
+                        + "  revision: " + String.format("0x%02x", ppdi.getRevision()) + "\n"
+                        + " Configuration requires:\n"
+                        + "  manufacturer: " + String.format("0x%04x", manufacturerId) + "\n"
+                        + "  device: " + String.format("0x%02x", deviceId) + "\n"
+                        + "  revision: " + String.format("0x%02x", revision));
+            }
+            log.debug("Got device info: {}", ppdi);
         }
-        log.debug("Got device info: {}", ppdi);
         isProgramming = true;
     }
 
@@ -373,7 +385,7 @@ public class DeviceManagement {
         log.debug("Program with help of ProgButton");
         List<String> devices = protocol.programmingModeRead();
         fireSingleStepDone();
-        
+
         if (devices.isEmpty()) {
             throw new KnxException("Programming with Button. No device found in prog mode. Aborting.");
         } else if (devices.size() > 1) {
@@ -392,7 +404,7 @@ public class DeviceManagement {
         fireSingleStepDone();
         isProgramming = false;
     }
-    
+
     private void memoryWrite(int addr, byte[] data) throws KnxException {
         if (!isProgramming) {
             throw new IllegalStateException("Not in programming-state- Call startProgramming() first.");
@@ -519,13 +531,46 @@ public class DeviceManagement {
             throw new DeviceManagementException("Programming aborted");
         }
     }
-    
+
     public void unload(boolean factoryreset, boolean ia, boolean co, boolean params, boolean datastorage) throws KnxException {
         if (isProgramming) {
             throw new IllegalStateException("Already in prog-mode. Cannot unload. Stop programming mode first.");
         }
         ensureProgButtonOneDevice();
         protocol.unload(factoryreset, ia, co, params, datastorage);
+    }
+
+    public void restart(String individualAddress) throws KnxException {
+        protocol.restart(individualAddress);
+    }
+
+    public void writeIndividualAddress(DeviceConfigContainer deviceConfigContainer, String individualAddress, String newIndividualAddress) throws KnxException, DeviceManagementException {
+        if (individualAddress != null) {
+            startProgMode(individualAddress);
+        }
+        ensureProgButtonOneDevice();
+        isProgramming = true;
+        
+        byte[] memoryRead = memoryRead(SystemTable.SYSTEMTABLE_ADDRESS, SystemTable.SIZE);
+        
+        SystemTable systemTable = new SystemTable(memoryRead);
+        log.debug("read system table: {}", systemTable);
+        systemTable.setIndividualAddress(newIndividualAddress);
+        log.debug("updated system table: {}", systemTable);
+
+        if (deviceConfigContainer!=null) {
+            KonnektingDevice konnektingDevice = deviceConfigContainer.getDevice();
+            DeviceMemory deviceMemory = konnektingDevice.getConfiguration().getDeviceMemory();
+            deviceMemory.setSystemTable(systemTable.getData());
+            deviceConfigContainer.updateDeviceMemory();
+        }
+
+        if (systemTable.hasChanged()) {
+            log.debug("Writing table");
+            memoryWrite(SystemTable.SYSTEMTABLE_WRITE_ADDRESS, systemTable.getWriteData());
+        }
+        stopProgMode(newIndividualAddress);
+        restart(newIndividualAddress);
     }
 
 }
