@@ -445,7 +445,7 @@ public class ProgProtocol0x01 {
     
     public void restart(String individualAddress) throws KnxException {
         sendMessage(new MsgRestart(individualAddress));
-//        expectAck();
+        expectAck();
     }
     
     public void sendAck() throws KnxException {
