@@ -303,12 +303,27 @@ public class DeviceManagement {
             throw new IllegalStateException("Device is not set to prog mode via API");
         }
     }
-    
+
+    public void removeData(byte dataType, byte dataId) throws DeviceManagementException {
+        if (isProgramming) {
+            try {
+                protocol.dataRemove(dataType, dataId);
+            } catch (KnxException ex) {
+                throw new DeviceManagementException("removing data failed", ex);
+            }
+        } else {
+            throw new IllegalStateException("Device is not set to prog mode via API");
+        }
+    }
+
     /**
-     * Starts prog mode without verifying correctness of manufacturer and deviceid and revision. This is only useful if only IA is programmed. Therefore, this method is private access.
+     * Starts prog mode without verifying correctness of manufacturer and
+     * deviceid and revision. This is only useful if only IA is programmed.
+     * Therefore, this method is private access.
+     *
      * @param individualAddress
      * @throws KnxException
-     * @throws DeviceManagementException 
+     * @throws DeviceManagementException
      */
     private void startProgMode(String individualAddress) throws KnxException, DeviceManagementException {
         startProgMode(individualAddress, -1, (short) -1, (short) -1);
@@ -533,9 +548,6 @@ public class DeviceManagement {
     }
 
     public void unload(boolean factoryreset, boolean ia, boolean co, boolean params, boolean datastorage) throws KnxException {
-        if (isProgramming) {
-            throw new IllegalStateException("Already in prog-mode. Cannot unload. Stop programming mode first.");
-        }
         ensureProgButtonOneDevice();
         protocol.unload(factoryreset, ia, co, params, datastorage);
     }
@@ -550,15 +562,15 @@ public class DeviceManagement {
         }
         ensureProgButtonOneDevice();
         isProgramming = true;
-        
+
         byte[] memoryRead = memoryRead(SystemTable.SYSTEMTABLE_ADDRESS, SystemTable.SIZE);
-        
+
         SystemTable systemTable = new SystemTable(memoryRead);
         log.debug("read system table: {}", systemTable);
         systemTable.setIndividualAddress(newIndividualAddress);
         log.debug("updated system table: {}", systemTable);
 
-        if (deviceConfigContainer!=null) {
+        if (deviceConfigContainer != null) {
             KonnektingDevice konnektingDevice = deviceConfigContainer.getDevice();
             DeviceMemory deviceMemory = konnektingDevice.getConfiguration().getDeviceMemory();
             deviceMemory.setSystemTable(systemTable.getData());

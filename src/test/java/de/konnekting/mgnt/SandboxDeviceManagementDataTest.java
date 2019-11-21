@@ -47,25 +47,39 @@ public class SandboxDeviceManagementDataTest {
         Knx knx = new Knx("1.1.200");
         DeviceManagement dm = new DeviceManagement(knx);
         
-        dm.writeIndividualAddress(null, null, "1.1.1");
+//        dm.writeIndividualAddress(null, null, "1.1.1");
         
 //        dm.startProgMode("1.1.1", 0xDEAD, (short) 0xFF, (short) 0x00);
-//        
-//        File f = new File("test.jpg");
+        
+//        File f = new File("test.dat");
 //        dm.sendData(f, (byte)1, (byte)0);
 //        
-//        System.out.println("########################################################################");
+//        System.out.println("Read 1 ########################################################################");
 //        
 //        File f2 = new File("testrx.dat");
 //        dm.readData(f2, (byte)1, (byte)0);
 //        
-//        dm.stopProgMode("1.1.1");
+//        System.out.println("Remove ########################################################################");
+//        
+//        dm.removeData((byte)1, (byte)0);
+//        
+//
+//        System.out.println("Read 2 ########################################################################");
+//        
+//        File f3 = new File("testrx2.dat");
+//        dm.readData(f3, (byte)1, (byte)0);
+//        
+//        System.out.println("Stop ########################################################################");
 
+        //dm.unload(false, true, true, true, true);
+        //System.out.println("factory reset ##################################################################");
+        dm.unload(true, false, false, false, false);
         
+//        dm.stopProgMode("1.1.1");
         
         //dm.unload(true, true, true, true);
         
-//        knx.close();
+        knx.close();
     }
     
 }

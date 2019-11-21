@@ -326,7 +326,7 @@ public class ProgProtocol0x01 {
 
     /**
      *
-     * @return true, if exactly one device responds to read-device-info 
+     * @return true, if exactly one device responds to read-device-info
      * @throws KnxException
      */
     public List<String> findDevicesInProgMode() throws KnxException {
@@ -367,6 +367,11 @@ public class ProgProtocol0x01 {
     public void dataWriteFinish(CRC32 crc32) throws KnxException {
         sendMessage(new MsgDataWriteFinish(crc32));
         expectAck(5 * WAIT_TIMEOUT);
+    }
+    
+    public void dataRemove(byte dataType, byte dataId) throws KnxException {
+        sendMessage(new MsgDataRemove(dataType, dataId));
+        expectAck(2 * WAIT_TIMEOUT);
     }
 
     /**
