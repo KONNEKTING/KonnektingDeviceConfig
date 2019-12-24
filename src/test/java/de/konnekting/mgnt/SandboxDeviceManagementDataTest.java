@@ -73,7 +73,7 @@ public class SandboxDeviceManagementDataTest {
 
         //dm.unload(false, true, true, true, true);
         //System.out.println("factory reset ##################################################################");
-        dm.unload(true, false, false, false, false);
+        dm.unload(true, false, false, false, true);
         
 //        dm.stopProgMode("1.1.1");
         

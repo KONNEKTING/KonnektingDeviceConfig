@@ -34,6 +34,7 @@ import de.konnekting.xml.konnektingdevice.v0.Dependencies;
 import de.konnekting.xml.konnektingdevice.v0.DeviceMemory;
 import de.konnekting.xml.konnektingdevice.v0.IndividualAddress;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDevice;
+import de.konnekting.xml.konnektingdevice.v0.KonnektingDeviceXmlHelper;
 import de.konnekting.xml.konnektingdevice.v0.Parameter;
 import de.konnekting.xml.konnektingdevice.v0.ParameterConfiguration;
 import de.konnekting.xml.konnektingdevice.v0.ParameterConfigurations;
@@ -213,7 +214,7 @@ public class DeviceConfigContainer {
                 if (parameters != null) {
                     List<ParameterGroup> paramGroups = parameters.getParameterGroup();
                     for (ParameterGroup paramGroup : paramGroups) {
-                        List<Parameter> params = paramGroup.getParameter();
+                        List<Parameter> params = KonnektingDeviceXmlHelper.getParameters(paramGroup);
                         for (Parameter param : params) {
                             ParameterConfiguration paramConf = new ParameterConfiguration();
                             paramConf.setId(param.getId());
@@ -626,7 +627,7 @@ public class DeviceConfigContainer {
         List<Parameter> params = new ArrayList<>();
         List<ParameterGroup> paramGroups = device.getDevice().getParameters().getParameterGroup();
         for (ParameterGroup paramGroup : paramGroups) {
-            params.addAll(paramGroup.getParameter());
+            params.addAll(KonnektingDeviceXmlHelper.getParameters(paramGroup));
         }
         return params;
     }
@@ -639,7 +640,7 @@ public class DeviceConfigContainer {
     public Parameter getParameter(int id) {
         List<ParameterGroup> groups = device.getDevice().getParameters().getParameterGroup();
         for (ParameterGroup group : groups) {
-            List<Parameter> params = group.getParameter();
+            List<Parameter> params = KonnektingDeviceXmlHelper.getParameters(group);
             for (Parameter param : params) {
                 if (param.getId() == id) {
                     return param;
