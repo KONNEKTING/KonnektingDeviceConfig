@@ -134,7 +134,7 @@ public class ProgProtocol0x01 {
                     
                     switch (type) {
 
-                        // handle answer messages
+                        // handle only answer messages
                         case MSGTYPE_ACK:
                             msg = new MsgAck(data);
                             break;
@@ -326,7 +326,7 @@ public class ProgProtocol0x01 {
 
     /**
      *
-     * @return true, if exactly one device responds to read-device-info 
+     * @return true, if exactly one device responds to read-device-info
      * @throws KnxException
      */
     public List<String> findDevicesInProgMode() throws KnxException {
@@ -367,6 +367,11 @@ public class ProgProtocol0x01 {
     public void dataWriteFinish(CRC32 crc32) throws KnxException {
         sendMessage(new MsgDataWriteFinish(crc32));
         expectAck(5 * WAIT_TIMEOUT);
+    }
+    
+    public void dataRemove(byte dataType, byte dataId) throws KnxException {
+        sendMessage(new MsgDataRemove(dataType, dataId));
+        expectAck(2 * WAIT_TIMEOUT);
     }
 
     /**
@@ -438,14 +443,14 @@ public class ProgProtocol0x01 {
         return addresses;
     }
     
-    public void unload(boolean ia, boolean co, boolean params, boolean datastorage) throws KnxException {
-        sendMessage(new MsgUnload(ia, co, params, datastorage));
-        expectAck(5 * WAIT_TIMEOUT);
+    public void unload(boolean factoryreset, boolean ia, boolean co, boolean params, boolean datastorage) throws KnxException {
+        sendMessage(new MsgUnload(factoryreset, ia, co, params, datastorage));
+        expectAck(60 * WAIT_TIMEOUT); // erasing can take very long
     }
     
     public void restart(String individualAddress) throws KnxException {
         sendMessage(new MsgRestart(individualAddress));
-//        expectAck();
+        expectAck();
     }
     
     public void sendAck() throws KnxException {

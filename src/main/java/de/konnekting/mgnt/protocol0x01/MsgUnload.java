@@ -27,9 +27,16 @@ import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_UNLOAD;
  */
 public class MsgUnload extends ProgMessage {
 
-    private static final byte TRUE = (byte) 0xFF;
-    private static final byte FALSE = (byte) 0x00;
+    /**
+     * SET 0xFF
+     */
+    private static final byte SET = (byte) 0xFF;
+    /**
+     * UNSET 0x00
+     */
+    private static final byte UNSET = (byte) 0x00;
     
+    private boolean factoryreset;
     private boolean ia;
     private boolean co;
     private boolean params;
@@ -39,24 +46,24 @@ public class MsgUnload extends ProgMessage {
         super(data);
     }
 
-    MsgUnload(boolean ia, boolean co, boolean params, boolean datastorage) throws KnxException {
+    MsgUnload(boolean factoryreset, boolean ia, boolean co, boolean params, boolean datastorage) throws KnxException {
         super(MSGTYPE_UNLOAD);
-        
+        this.factoryreset = factoryreset;
         this.ia = ia;
         this.co = co;
         this.params = params;
         this.datastorage = datastorage;
         
-        data[2] = ia ? TRUE : FALSE;
-        data[3] = co ? TRUE : FALSE;
-        data[4] = params ? TRUE : FALSE;
-        data[5] = datastorage ? TRUE : FALSE;
-    }
-    
-    @Override
-    public String toString() {
-        return "MsgUnload{ia=" + ia+" co="+co+" params="+params+" datastorage="+datastorage+"}";
+        data[2] = factoryreset ? SET : UNSET;
+        data[3] = ia ? SET : UNSET;
+        data[4] = co ? SET : UNSET;
+        data[5] = params ? SET : UNSET;
+        data[6] = datastorage ? SET : UNSET;
     }
 
+    @Override
+    public String toString() {
+        return "MsgUnload{" + "factoryreset=" + factoryreset + ", ia=" + ia + ", co=" + co + ", params=" + params + ", datastorage=" + datastorage + '}';
+    }
 
 }

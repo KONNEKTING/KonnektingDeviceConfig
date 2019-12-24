@@ -18,9 +18,7 @@
  */
 package de.konnekting.mgnt.protocol0x01;
 
-import de.konnekting.deviceconfig.utils.Helper;
-import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_DATA_READ;
-import static de.konnekting.deviceconfig.utils.ReadableValue2Bytes.*;
+import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_DATA_REMOVE;
 import de.root1.slicknx.KnxException;
 
 /**
@@ -33,12 +31,12 @@ class MsgDataRemove extends ProgMessage {
     private byte dataId;
     
     public MsgDataRemove(byte dataType, byte dataId) throws KnxException {
-        super(MSGTYPE_DATA_READ);
+        super(MSGTYPE_DATA_REMOVE);
         this.dataType = dataType;
         this.dataId= dataId;
         
         if (dataType==ProgProtocol0x01.UPDATE_DATATYPE) {
-            throw new IllegalArgumentException("Cannot read data type update.");
+            throw new IllegalArgumentException("Cannot remove data type update.");
         }
 
         data[2] = dataType;
