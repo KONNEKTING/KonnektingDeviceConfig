@@ -46,6 +46,21 @@ import org.slf4j.LoggerFactory;
  */
 public class DeviceManagement {
 
+    /**
+     * Describes the available progamming tasks that can be choosen from
+     */
+    public enum ProgrammingTask {
+        
+        /** Programs all: IA, CommObj, Params*/
+        ALL,
+        
+        /** Programms delta since last programming */
+        PARTIAL,
+        
+        /** Programs only CommObj and Params */
+        APPDATA
+        
+    }
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("de/konnekting/deviceconfig/i18n/language"); // NOI18N
     private final List<ProgramProgressListener> listeners = new ArrayList<>();
@@ -74,13 +89,54 @@ public class DeviceManagement {
      * occured
      *
      * @param deviceConfigContainer
-     * @param doIndividualAddress
-     * @param doComObjects
-     * @param doParams
+     * @param programmingTask the task to run for programming
      * @throws de.konnekting.deviceconfig.ProgramException
      */
-    public void program(DeviceConfigContainer deviceConfigContainer, boolean doIndividualAddress, boolean doComObjects, boolean doParams) throws DeviceManagementException {
+    public void program(DeviceConfigContainer deviceConfigContainer, ProgrammingTask programmingTask) throws DeviceManagementException {
 
+        boolean doIndividualAddress = false;
+        boolean doCommObjects = false;
+        boolean doParams = false;
+        
+        /*
+        You need to ensure that the memory update did not yet happen. 
+        Possible Process A
+        - read settings,
+        - create temporary memory data
+        - compare last know memory data with temp memory data
+        - do delta programming
+        
+        Possible Process B
+        - update memory -> store in memory section
+        - make diff between memory section and last memory section
+        - do delta programming
+        - copy memory section to last memory section
+        -> make it's good idea to name sections: DeviceMemory + ProgrammedMemory ??
+        
+        */
+        boolean partial = false;
+        
+        switch(programmingTask) {
+            default:
+            case ALL:
+                doIndividualAddress = true;
+                doCommObjects = true;
+                doParams = true;
+                partial = false;
+                break;
+            case PARTIAL:
+                doIndividualAddress = true;
+                doCommObjects = true;
+                doParams = true;
+                partial = true;
+                break;
+            case APPDATA:
+                doIndividualAddress = false;
+                doCommObjects = true;
+                doParams = true;
+                partial = false;
+                break;
+        }
         try {
             fireProgressStatusMessage(getLangString("initialize")); // "Initialize..."
 
@@ -159,7 +215,7 @@ public class DeviceManagement {
             checkAbort();
 
             // FIXME How do I know that table has changed? extra flag in XML that is set when successfully programmed? Keep track of last table to get real diff?
-            if (doComObjects) {
+            if (doCommObjects) {
                 fireProgressStatusMessage(getLangString("writingAddressTable"));
                 memoryWrite(systemTable.getAddressTableAddress(), addressTableBytes);
                 fireProgressStatusMessage(getLangString("writingAssociationTable"));

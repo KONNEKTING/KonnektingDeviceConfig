@@ -30,7 +30,7 @@ import de.konnekting.deviceconfig.utils.NonReverseableFlag;
 public class SystemTable {
 
     
-    private NonReverseableFlag dirty = new NonReverseableFlag();
+    private final NonReverseableFlag dirty = new NonReverseableFlag();
 
     /**
      * Size of system table

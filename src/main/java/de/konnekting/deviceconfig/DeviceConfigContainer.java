@@ -894,6 +894,9 @@ public class DeviceConfigContainer {
         return true;
     }
 
+    /**
+     * Updates the device memory section in config part, based on the given settings
+     */
     public void updateDeviceMemory() {
 
         if (f.getName().endsWith(".kdevice.xml")) {
@@ -1101,13 +1104,13 @@ public class DeviceConfigContainer {
     }
 
     /**
-     * fill array with 0xff
+     * fill array with 0xFF bytes
      *
      * @param bytearray
      */
     private void clearBytes(byte[] bytearray) {
         for (int i = 0; i < bytearray.length; i++) {
-            bytearray[i] = (byte) 0xff;
+            bytearray[i] = (byte) 0xFF;
         }
     }
 
@@ -1132,7 +1135,7 @@ public class DeviceConfigContainer {
 
         DeviceManagement mgmt = new DeviceManagement(knx);
 
-        mgmt.program(dcc, true, false, false);
+        mgmt.program(dcc, DeviceManagement.ProgrammingTask.PARTIAL);
     }
 
 }

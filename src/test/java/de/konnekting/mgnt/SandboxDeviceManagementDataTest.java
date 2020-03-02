@@ -1,12 +1,15 @@
 package de.konnekting.mgnt;
 
 
+import de.konnekting.deviceconfig.DeviceConfigContainer;
 import de.konnekting.deviceconfig.utils.Helper;
 import de.konnekting.mgnt.DeviceManagement;
 import de.konnekting.mgnt.DeviceManagementException;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
 import java.io.File;
+import javax.xml.bind.JAXBException;
+import org.xml.sax.SAXException;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -29,7 +32,7 @@ public class SandboxDeviceManagementDataTest {
         return s;
     }
     
-    public static void main(String[] args) throws KnxException, DeviceManagementException {
+    public static void main(String[] args) throws KnxException, DeviceManagementException, JAXBException, SAXException {
         
 //        byte DEVICEFLAG_FACTORY_BIT = (byte) 0x80;
 //        
@@ -78,6 +81,9 @@ public class SandboxDeviceManagementDataTest {
 //        dm.stopProgMode("1.1.1");
         
         //dm.unload(true, true, true, true);
+        
+        DeviceConfigContainer dcc = new DeviceConfigContainer(new File("KONNEKTING_M0dularisPlus_Testsuite_@_Beta5.kconfig.xml"));
+        dcc.updateDeviceMemory();
         
         knx.close();
     }
