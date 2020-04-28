@@ -38,9 +38,10 @@ import org.slf4j.LoggerFactory;
 public class Helper {
 
     private static final Logger LOG = LoggerFactory.getLogger(Helper.class);
-    private static Map<ParamType, Integer> PARAM_SIZE_MAP = new HashMap<>();
+    private static Map<ParamType, Integer> PARAM_SIZE_MAP;
 
     static {
+        PARAM_SIZE_MAP = new HashMap<>();
         PARAM_SIZE_MAP.put(ParamType.INT_8, 1);
         PARAM_SIZE_MAP.put(ParamType.UINT_8, 1);
 

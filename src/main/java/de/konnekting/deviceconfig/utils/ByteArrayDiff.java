@@ -27,7 +27,7 @@ import java.util.List;
  */
 public class ByteArrayDiff {
     
-    static class Block {
+    public static class Block {
         public static final int UNDEFINED = -1;
         int index=UNDEFINED;
         int length=UNDEFINED;
@@ -69,10 +69,69 @@ public class ByteArrayDiff {
             return "Block{" + "index=" + index + ", length=" + length + '}';
         }
         
+    }
+    
+    public static class DataBlock {
+        public static final int UNDEFINED = -1;
+        int index=UNDEFINED;
+        byte[] data;
+
+        public DataBlock() {
+        }
         
+        public DataBlock(int index, byte[] data) {
+            this.index = index;
+            this.data = data;
+        }
+
+        public void setIndex(int index) {
+            this.index = index;
+        }
+
+        public void setData(byte[] data) {
+            this.data = data;
+        }
         
+        public int getIndex() {
+            return index;
+        }
+
+        public byte[] getData() {
+            return data;
+        }
+        
+        public boolean isInvalid() {
+            return (index==UNDEFINED) && (data==null);
+        }
+        
+        public boolean isPartialValid() {
+            return (index!=UNDEFINED) || (data!=null);
+        }
+
+        @Override
+        public String toString() {
+            return "DataBlock{" + "index=" + index + ", data.length=" + data.length + ", data(hex)="+Helper.bytesToHex(data, true)+'}';
+        }
         
     }
+    
+    /**
+     * Returns the data blocks which are different in newData, compared to oldData
+     * @param oldData
+     * @param newData
+     * @return the diferent datablocks from newData, compared to oldData
+     */
+    public static List<DataBlock> getDiffData(byte[] oldData, byte[] newData) {
+        List<Block> diff = getDiff(oldData, newData);
+        List<DataBlock> dataBlocks = new ArrayList<>();
+        diff.forEach(blk -> {
+            byte[] d = new byte[blk.length];
+            System.arraycopy(newData, blk.index, d, 0, blk.length);
+            dataBlocks.add(new DataBlock(blk.index, d));
+        });
+        return dataBlocks;
+    }
+        
     
     public static List<Block> getDiff(byte[] data1, byte[] data2) {
         if (data1==null || data2==null) {
@@ -106,12 +165,22 @@ public class ByteArrayDiff {
     }
     
     public static void main(String[] args) {
-        byte[] a = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
-        byte[] b = {0, 1, 0, 0, 0, 5, 6, 7, 0, 9, 00, 00, 00, 12, 00, 15, 16, 17, 18, 00, 00};
+        byte[] oldData = {0, 1, 0, 0, 0, 5, 6, 7, 0, 9, 00, 00, 00, 12, 00, 15, 16, 17, 18, 00, 00};
+        byte[] newData = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
         
-        List<Block> diff = getDiff(a, b);
+        System.out.println(Helper.bytesToHex(oldData, true));
+        System.out.println(Helper.bytesToHex(newData, true));
+        
+        List<Block> diff = getDiff(oldData, newData);
         
         for (Block block : diff) {
+            System.out.println(block);
+        }
+        
+        
+        List<DataBlock> diffData = getDiffData(oldData, newData);
+        
+        for (DataBlock block : diffData) {
             System.out.println(block);
         }
     }

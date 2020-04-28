@@ -58,8 +58,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import javax.xml.bind.JAXBException;
@@ -83,6 +81,13 @@ public class DeviceConfigContainer {
     private KonnektingDevice deviceLastSave;
     private File f;
     private boolean defaultsFilled = false;
+
+    /* current, unwritten tables, initialized by setLimits() */
+    private byte[] systemTableBytes;
+    private byte[] addressTableBytes;
+    private byte[] associationTableBytes;
+    private byte[] commObjTableBytes;
+    private byte[] paramTableBytes;
 
     private final Comparator groupAddressComparator = new Comparator<String>() {
         @Override
@@ -110,6 +115,11 @@ public class DeviceConfigContainer {
     private int LIMIT_BYTES_ASSOCIATIONTABLE = -1;
     private int LIMIT_BYTES_COMMOBJECTTABLE = -1;
 
+    /**
+     * Called by constructor to set limits based on system type
+     *
+     * @param systemType
+     */
     private void setLimits(int systemType) {
 
         // same for all system types
@@ -138,6 +148,26 @@ public class DeviceConfigContainer {
         LIMIT_BYTES_ADDRESSTABLE = 1 + (2 * LIMIT_ENTRIES_ADDRESSTABLE);
         LIMIT_BYTES_ASSOCIATIONTABLE = 1 + (2 * LIMIT_ENTRIES_ASSOCIATIONTABLE);
         LIMIT_BYTES_COMMOBJECTTABLE = 1 + LIMIT_ENTRIES_COMMOBJECTTABLE;
+
+        systemTableBytes = new byte[LIMIT_BYTES_SYSTEMTABLE];
+        addressTableBytes = new byte[LIMIT_BYTES_ADDRESSTABLE];
+        associationTableBytes = new byte[LIMIT_BYTES_ASSOCIATIONTABLE];
+        commObjTableBytes = new byte[LIMIT_BYTES_COMMOBJECTTABLE];
+
+        List<Parameter> params = getAllParameters();
+        int paramsCount = params.size();
+        if (paramsCount > LIMIT_ENTRIES_PARAMETERTABLE) {
+            throw new RuntimeException("Parameter limit exceeded: " + paramsCount + " of max. " + LIMIT_ENTRIES_PARAMETERTABLE);
+        } else {
+
+            // get size of param table
+            int paramTableSize = 0;
+            for (Parameter parameter : params) {
+                ParamType type = parameter.getValue().getType();
+                paramTableSize += Helper.getParameterSize(type);
+            }
+            paramTableBytes = new byte[paramTableSize];
+        }
 
     }
 
@@ -228,7 +258,8 @@ public class DeviceConfigContainer {
         }
 
         // update active/inactive dependencie check
-        updateDeviceMemory();
+        // --> what? --> active/inactive dependency check?
+        //setDeviceMemory();
 
         if (dirty) {
             log.info("Writing configuration due to dirty flag");
@@ -895,9 +926,10 @@ public class DeviceConfigContainer {
     }
 
     /**
-     * Updates the device memory section in config part, based on the given settings
+     * Updates the device memory section in config part, based on the given
+     * settings
      */
-    public void updateDeviceMemory() {
+    private void updateDeviceMemory() {
 
         if (f.getName().endsWith(".kdevice.xml")) {
             return;
@@ -910,17 +942,18 @@ public class DeviceConfigContainer {
             device.getConfiguration().setDeviceMemory(deviceMemory);
         }
 
-        /**
-         * System --> fixed size array
-         */
-        byte[] systemTableBytes = deviceMemory.getSystemTable();
-        if (systemTableBytes == null) {
-            systemTableBytes = new byte[LIMIT_BYTES_SYSTEMTABLE];
-            clearBytes(systemTableBytes);
-            deviceMemory.setSystemTable(systemTableBytes);
-            log.debug("using clear system table for now");
-        }
-        log.debug("Writing systemtable bytes ({} bytes): {}", systemTableBytes.length, Helper.bytesToHex(systemTableBytes, true));
+        /** system table is set from outside with helper class {@link de.konnekting.mgnt.SystemTable */
+//        /**
+//         * System --> fixed size array
+//         */
+//        byte[] systemTableBytes = deviceMemory.getSystemTable();
+//        if (systemTableBytes == null) {
+//            systemTableBytes = new byte[LIMIT_BYTES_SYSTEMTABLE];
+//            clearBytes(systemTableBytes);
+//            deviceMemory.setSystemTable(systemTableBytes);
+//            log.debug("using clear system table for now");
+//        }
+//        log.debug("Writing systemtable bytes ({} bytes): {}", systemTableBytes.length, Helper.bytesToHex(systemTableBytes, true));
 
         /**
          * AddressTable --> fixed size table
@@ -1020,7 +1053,7 @@ public class DeviceConfigContainer {
         }
         // insert size
         associationTable[0] = (byte) associationCount;
-        
+
         log.info("AssociationTable size={}", associationCount);
         log.debug("Writing associationTable bytes ({} bytes): {}", associationTable.length, Helper.bytesToHex(associationTable, true));
         deviceMemory.setAssociationTable(associationTable);
@@ -1100,6 +1133,197 @@ public class DeviceConfigContainer {
             log.debug("Writing paramTable bytes ({} bytes): {}", paramTable.length, Helper.bytesToHex(paramTable, true));
             deviceMemory.setParameterTable(paramTable);
         }
+
+    }
+
+    class AssocTableEntry implements Comparable<AssocTableEntry> {
+
+        int addrId;
+        short comObjId;
+
+        public AssocTableEntry(int addrId, short comObjId) {
+            this.addrId = addrId;
+            this.comObjId = comObjId;
+        }
+
+        @Override
+        public int compareTo(AssocTableEntry o) {
+            if (addrId < o.addrId) {
+                return -1;
+            } else if (addrId > o.addrId) {
+                return +1;
+            } else {
+                return 0;
+            }
+        }
+
+    }
+
+    /**
+     * Updates the device memory image(s) of unwritten configuration and returns this unwritten working copy
+     */
+    public DeviceMemory getWorkingCopyDeviceMemory() {
+        
+        DeviceMemory deviceMemory = new DeviceMemory();
+
+        if (f.getName().endsWith(".kdevice.xml")) {
+            // do nothing, just return null, as in this case we cannot provide device memory
+            return null;
+        }
+
+        // system table is read from device and new data is injected during programming.
+//        /**
+//         * System --> fixed size array
+//         */
+//        if (systemTableBytes == null) {
+//            systemTableBytes = new byte[LIMIT_BYTES_SYSTEMTABLE];
+//            clearBytes(systemTableBytes);
+//            log.debug("using clear system table for now");
+//        }
+
+        /**
+         * AddressTable --> fixed size table
+         */
+        clearBytes(addressTableBytes);
+
+        // use hashset to easily add GAs without duplicates
+        Set<String> addrSet = new HashSet<>();
+        List<CommObjectConfiguration> commObjectConfigurations = device.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration();
+        for (CommObjectConfiguration commObjConfig : commObjectConfigurations) {
+            List<String> groupAddress = commObjConfig.getGroupAddress();
+            addrSet.addAll(groupAddress);
+        }
+
+        // convert hashset to arraylist and sort alphanumeric
+        List<String> addressTableList = new ArrayList<>();
+        addressTableList.addAll(addrSet);
+        Collections.sort(addressTableList, groupAddressComparator);
+
+        // insert size
+        addressTableBytes[0] = (byte) addressTableList.size();
+
+        // insert all GAs
+        int addrTableIndex = 1;
+        int i = 0;
+        for (String addr : addressTableList) {
+            log.info("AddressTable index={} addrID={} GA={}", addrTableIndex, i, addr);
+            byte[] ga = Helper.convertGaToBytes(addr);
+            System.arraycopy(ga, 0, addressTableBytes, addrTableIndex, 2);
+            addrTableIndex += 2;
+            i++;
+        }
+        deviceMemory.setAddressTable(addressTableBytes);
+
+        /**
+         * AssociationTable --> fixed size table
+         */
+        clearBytes(associationTableBytes);
+
+        // sort by CommObj ID
+        Collections.sort(commObjectConfigurations, new ReflectionIdComparator());
+
+        int associationCount = 0;
+        int assocTableIndex = 1;
+
+        List<AssocTableEntry> assocTable = new ArrayList<>();
+
+        for (CommObjectConfiguration commObjectConfiguration : commObjectConfigurations) {
+
+            List<String> associatedAddresses = commObjectConfiguration.getGroupAddress();
+
+            if (!associatedAddresses.isEmpty()) {
+                associationCount += associatedAddresses.size();
+                for (String addr : associatedAddresses) {
+                    int addrID = addressTableList.indexOf(addr);
+                    if (addrID == -1) {
+                        throw new RuntimeException("ComObj " + commObjectConfiguration.getId() + " has GA " + addr + " assigned, but GA is not in AddressTable!");
+                    }
+                    assocTable.add(new AssocTableEntry(addrID, commObjectConfiguration.getId()));
+
+                }
+            }
+        }
+
+        Collections.sort(assocTable);
+        for (AssocTableEntry assocTableEntry : assocTable) {
+            associationTableBytes[assocTableIndex] = (byte) assocTableEntry.addrId;
+            associationTableBytes[assocTableIndex + 1] = (byte) assocTableEntry.comObjId;
+            log.info("AssociationTable index={} addrID={} comObjID={}", assocTableIndex, assocTableEntry.addrId, assocTableEntry.comObjId);
+            assocTableIndex += 2;
+        }
+        // insert size
+        associationTableBytes[0] = (byte) associationCount;
+        deviceMemory.setAssociationTable(associationTableBytes);
+
+        log.info("AssociationTable count={}", associationCount);
+
+
+        /**
+         * CommObjectTable --> fixed size table
+         */
+        clearBytes(commObjTableBytes);
+
+        int comobjCount = getAllCommObjects().size();
+        if (comobjCount > LIMIT_ENTRIES_COMMOBJECTTABLE) {
+            throw new RuntimeException("CommObj limit exceeded: " + comobjCount + " of max. " + LIMIT_ENTRIES_COMMOBJECTTABLE);
+        } else {
+
+            // set size
+            commObjTableBytes[0] = (byte) comobjCount;
+
+            int commObjTableIndex = 1;
+
+            List<CommObject> commObjList = device.getDevice().getCommObjects().getCommObject();
+            Collections.sort(commObjList, new ReflectionIdComparator());
+
+            for (CommObject co : commObjList) {
+                byte flags = co.getFlags();
+                // start with default: all comm flags "off", see https://wiki.konnekting.de/index.php?title=KONNEKTING_Protocol_Specification_0x01#CommObject_Table
+                byte configbyte = (byte) 0x00; // 00000000 
+
+                CommObjectConfiguration conf = getCommObjectConfiguration(co.getId());
+                if (conf != null) {
+                    flags = conf.getFlags();
+                    configbyte = (byte) (flags & (byte) 0x3f); // apply flags
+                }
+                commObjTableBytes[commObjTableIndex] = configbyte;
+
+                log.info("CommObjectTable index={} coID={} configbyte={}, userflags={}", new Object[]{commObjTableIndex, co.getId(), Helper.bytesToHex(new byte[]{configbyte}), conf != null});
+                commObjTableIndex++;
+            }
+
+        }
+        deviceMemory.setCommObjectTable(commObjTableBytes);
+
+        /**
+         * ParameterTable --> dynamic size table (fixed on xml setup)
+         */
+        List<Parameter> params = getAllParameters();
+
+        // get size of param table
+        int paramTableSize = 0;
+        for (Parameter parameter : params) {
+            ParamType type = parameter.getValue().getType();
+            paramTableSize += Helper.getParameterSize(type);
+        }
+
+        if (paramTableSize > 0) {
+            List<ParameterConfiguration> parameterConfigurations = device.getConfiguration().getParameterConfigurations().getParameterConfiguration();
+            if (parameterConfigurations.size() != params.size()) {
+                throw new RuntimeException("The number of parameter configs do not match the number of available params!");
+            }
+            int paramTableIndex = 0;
+            for (ParameterConfiguration parameterConfiguration : parameterConfigurations) {
+                byte[] value = parameterConfiguration.getValue();
+                System.arraycopy(value, 0, paramTableBytes, paramTableIndex, value.length);
+
+                log.info("ParameterTable index={}, length={}, value={}", new Object[]{paramTableIndex, value.length, Helper.bytesToHex(value)});
+
+                paramTableIndex += value.length; // increment index for next param/value
+            }
+        }
+        deviceMemory.setParameterTable(paramTableBytes);
+        return deviceMemory;
 
     }
 

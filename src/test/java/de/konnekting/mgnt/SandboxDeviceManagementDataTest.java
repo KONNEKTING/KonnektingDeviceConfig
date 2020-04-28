@@ -82,8 +82,7 @@ public class SandboxDeviceManagementDataTest {
         
         //dm.unload(true, true, true, true);
         
-        DeviceConfigContainer dcc = new DeviceConfigContainer(new File("KONNEKTING_M0dularisPlus_Testsuite_@_Beta5.kconfig.xml"));
-        dcc.updateDeviceMemory();
+//        DeviceConfigContainer dcc = new DeviceConfigContainer(new File("KONNEKTING_M0dularisPlus_Testsuite_@_Beta5.kconfig.xml"));
         
         knx.close();
     }
