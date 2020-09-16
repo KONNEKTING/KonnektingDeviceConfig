@@ -118,7 +118,7 @@ public class DeviceManagement {
                 partial = false;
                 break;
             case PARTIAL:
-                doIndividualAddress = true;
+                doIndividualAddress = false;
                 doCommObjects = true;
                 doParams = true;
                 partial = true;
@@ -177,11 +177,11 @@ public class DeviceManagement {
 
             try {
                 if (doIndividualAddress) {
+                    log.info("About to program with new individual address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
+                    fireProgressStatusMessage(getLangString("pleasePressProgButton"));//Please press 'program' button...
                     fireIncreaseMaxSteps(2);
                     startProgMode(null, device.getManufacturerId(), device.getDeviceId(), device.getRevision());
                 } else {
-                    log.info("About to program with individual address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
-                    fireProgressStatusMessage(getLangString("pleasePressProgButton"));//Please press 'program' button...
                     fireIncreaseMaxSteps(4);
                     startProgMode(individualAddress, device.getManufacturerId(), device.getDeviceId(), device.getRevision());
                 }

@@ -1184,7 +1184,7 @@ public class DeviceConfigContainer {
      * Create a new "working copy" of XML Device Memory Section, based on the
      * current settings of DeviceConfigurationContainer
      *
-     * This can be used to create a new & up2date working copy memory image for
+     * This can be used to create a new %amp; up2date working copy memory image for
      * the device for programming, without changing the device memory section of
      * the XML.
      */
