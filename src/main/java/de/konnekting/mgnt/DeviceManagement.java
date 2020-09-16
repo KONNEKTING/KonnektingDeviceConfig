@@ -20,6 +20,7 @@ package de.konnekting.mgnt;
 
 import de.konnekting.deviceconfig.DeviceConfigContainer;
 import de.konnekting.deviceconfig.exception.InvalidAddressFormatException;
+import de.konnekting.deviceconfig.exception.XMLFormatException;
 import de.konnekting.deviceconfig.utils.ByteArrayDiff;
 import de.konnekting.deviceconfig.utils.Helper;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDevice;
@@ -268,8 +269,9 @@ public class DeviceManagement {
 
             log.info("All done.");
             fireProgressStatusMessage(getLangString("done"));//All done.");
+            deviceConfigContainer.writeConfig();
 
-        } catch (KnxException | IllegalArgumentException ex) {
+        } catch (KnxException | IllegalArgumentException | XMLFormatException ex) {
             throw new DeviceManagementException("Programming failed", ex);
         }
 

@@ -1416,7 +1416,6 @@ public class DeviceConfigContainer {
         System.out.println("AssociationTable = " + Helper.bytesToHex(deviceMemory.getAssociationTable(), true));
         System.out.println("CommObjectTable  = " + Helper.bytesToHex(deviceMemory.getCommObjectTable(), true));
         System.out.println("ParameterTable   = " + Helper.bytesToHex(deviceMemory.getParameterTable(), true));
-        dcc.writeConfig(new File("testout.kconfig.xml"), false);
 
     }
 
