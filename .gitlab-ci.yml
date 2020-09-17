@@ -10,15 +10,19 @@ image: maven:3.6.2-jdk-13
 cache:
   paths:
     - .m2/repository
+    - target/
+    
+build:
+  stage: build
+  script:
+    - 'mvn $MAVEN_CLI_OPTS compile'
 
 # For merge requests do not `deploy` but only run `verify`.
 # See https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
-verify:
+test:
   stage: test
   script:
     - 'mvn $MAVEN_CLI_OPTS verify'
-  except:
-    - master
 
 # For `master` and `develop` branch run `mvn deploy` automatically.
 deploy:
