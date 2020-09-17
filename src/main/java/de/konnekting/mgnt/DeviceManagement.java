@@ -19,6 +19,8 @@
 package de.konnekting.mgnt;
 
 import de.konnekting.deviceconfig.DeviceConfigContainer;
+import de.konnekting.deviceconfig.exception.InvalidAddressFormatException;
+import de.konnekting.deviceconfig.utils.ByteArrayDiff;
 import de.konnekting.deviceconfig.utils.Helper;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDevice;
 import de.root1.slicknx.Knx;
@@ -27,6 +29,7 @@ import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01;
 import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.DataReadResponse;
 import de.konnekting.xml.konnektingdevice.v0.Device;
 import de.konnekting.xml.konnektingdevice.v0.DeviceMemory;
+import de.konnekting.xml.konnektingdevice.v0.IndividualAddress;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -36,6 +39,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.zip.CRC32;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +50,25 @@ import org.slf4j.LoggerFactory;
  */
 public class DeviceManagement {
 
+    /**
+     * Describes the available progamming tasks that can be choosen from
+     */
+    public enum ProgrammingTask {
+
+        /**
+         * Programs all: IA, CommObj, Params
+         */
+        ALL,
+        /**
+         * Programms delta since last programming
+         */
+        PARTIAL,
+        /**
+         * Programs only CommObj and Params
+         */
+        APPDATA
+
+    }
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("de/konnekting/deviceconfig/i18n/language"); // NOI18N
     private final List<ProgramProgressListener> listeners = new ArrayList<>();
@@ -74,13 +97,38 @@ public class DeviceManagement {
      * occured
      *
      * @param deviceConfigContainer
-     * @param doIndividualAddress
-     * @param doComObjects
-     * @param doParams
+     * @param programmingTask the task to run for programming
      * @throws de.konnekting.deviceconfig.ProgramException
      */
-    public void program(DeviceConfigContainer deviceConfigContainer, boolean doIndividualAddress, boolean doComObjects, boolean doParams) throws DeviceManagementException {
+    public void program(DeviceConfigContainer deviceConfigContainer, ProgrammingTask programmingTask) throws DeviceManagementException {
 
+        boolean doIndividualAddress = false;
+        boolean doCommObjects = false;
+        boolean doParams = false;
+
+        boolean partial = false;
+
+        switch (programmingTask) {
+            default:
+            case ALL:
+                doIndividualAddress = true;
+                doCommObjects = true;
+                doParams = true;
+                partial = false;
+                break;
+            case PARTIAL:
+                doIndividualAddress = true;
+                doCommObjects = true;
+                doParams = true;
+                partial = true;
+                break;
+            case APPDATA:
+                doIndividualAddress = false;
+                doCommObjects = true;
+                doParams = true;
+                partial = false;
+                break;
+        }
         try {
             fireProgressStatusMessage(getLangString("initialize")); // "Initialize..."
 
@@ -88,36 +136,40 @@ public class DeviceManagement {
                 throw new IllegalArgumentException("Device " + deviceConfigContainer + " has no programmable configuration");
             }
 
-            deviceConfigContainer.updateDeviceMemory();
-
             KonnektingDevice konnektingDevice = deviceConfigContainer.getDevice();
             Device device = konnektingDevice.getDevice();
 
-            // use helper method of DCC
             String individualAddress = deviceConfigContainer.getIndividualAddress();
-            DeviceMemory deviceMemory = konnektingDevice.getConfiguration().getDeviceMemory();
+            DeviceMemory lastDeviceMemory = konnektingDevice.getConfiguration().getDeviceMemory();
+            DeviceMemory newDeviceMemory = deviceConfigContainer.createWorkingCopyDeviceMemory();
 
             // --------------
-            fireIncreaseMaxSteps(5);
-            fireProgressStatusMessage(getLangString("readingSystemTable"));
-            byte[] systemTableBytes = deviceMemory.getSystemTable();
-            fireSingleStepDone();
+            fireIncreaseMaxSteps(4);
 
             fireProgressStatusMessage(getLangString("readingAddressTable"));
-            byte[] addressTableBytes = deviceMemory.getAddressTable();
+            byte[] lastAddressTableBytes = lastDeviceMemory == null ? new byte[]{} : lastDeviceMemory.getAddressTable();
+            byte[] newAddressTableBytes = newDeviceMemory.getAddressTable();
             fireSingleStepDone();
 
             fireProgressStatusMessage(getLangString("readingAssociationTable"));
-            byte[] associationTableBytes = deviceMemory.getAssociationTable();
+            byte[] lastAssociationTableBytes = lastDeviceMemory == null ? new byte[]{} : lastDeviceMemory.getAssociationTable();
+            byte[] newAssociationTableBytes = newDeviceMemory.getAssociationTable();
             fireSingleStepDone();
 
             fireProgressStatusMessage(getLangString("readingCommObjectTable"));
-            byte[] commObjectTableBytes = deviceMemory.getCommObjectTable();
+            byte[] lastCommObjectTableBytes = lastDeviceMemory == null ? new byte[]{} : lastDeviceMemory.getCommObjectTable();
+            byte[] newCommObjectTableBytes = newDeviceMemory.getCommObjectTable();
             fireSingleStepDone();
 
             fireProgressStatusMessage(getLangString("readingParameterTable"));
-            byte[] parameterTableBytes = deviceMemory.getParameterTable();
+            byte[] lastParameterTableBytes = lastDeviceMemory == null ? new byte[]{} : lastDeviceMemory.getParameterTable();
+            byte[] newParameterTableBytes = newDeviceMemory.getParameterTable();
             fireSingleStepDone();
+
+            if (lastDeviceMemory == null && partial) {
+                log.warn("Need to force partial=false due to missing device memory section in configuration. ");
+                partial = false;
+            }
             // --------------
 
             checkAbort();
@@ -140,39 +192,62 @@ public class DeviceManagement {
             checkAbort();
 
             fireIncreaseMaxSteps(1);
-            byte[] memoryRead = memoryRead(SystemTable.SYSTEMTABLE_ADDRESS, SystemTable.SIZE);
+            // read system table bytes from arduino... create local system table object to make table "human readable"
+            fireProgressStatusMessage(getLangString("readingSystemTable"));
+            SystemTable systemTable = new SystemTable(memoryRead(SystemTable.SYSTEMTABLE_ADDRESS, SystemTable.SIZE));
             fireSingleStepDone();
-            SystemTable systemTable = new SystemTable(memoryRead);
+            // set IA in system table            
             systemTable.setIndividualAddress(individualAddress);
             log.debug("read system table: {}", systemTable);
-
-            deviceMemory.setSystemTable(systemTable.getData());
-            deviceConfigContainer.updateDeviceMemory();
 
             checkAbort();
 
             if (systemTable.hasChanged()) {
-                fireProgressStatusMessage(getLangString("writingSystemTable"));//Writing system table ...
+                //Writing system table ... if changed. It's not required to write table partially, it's anyhow only 16 bytes
+                fireProgressStatusMessage(getLangString("writingSystemTable"));
                 memoryWrite(SystemTable.SYSTEMTABLE_WRITE_ADDRESS, systemTable.getWriteData());
             }
 
             checkAbort();
 
-            // FIXME How do I know that table has changed? extra flag in XML that is set when successfully programmed? Keep track of last table to get real diff?
-            if (doComObjects) {
-                fireProgressStatusMessage(getLangString("writingAddressTable"));
-                memoryWrite(systemTable.getAddressTableAddress(), addressTableBytes);
-                fireProgressStatusMessage(getLangString("writingAssociationTable"));
-                memoryWrite(systemTable.getAssociationTableAddress(), associationTableBytes);
-                fireProgressStatusMessage(getLangString("writingCommObjectTable"));
-                memoryWrite(systemTable.getCommobjectTableAddress(), commObjectTableBytes);
+            if (doCommObjects) {
+                if (partial) {
+
+                    fireProgressStatusMessage(getLangString("writingAddressTable"));
+                    List<ByteArrayDiff.DataBlock> addressTableDiff = ByteArrayDiff.getDiffData(lastAddressTableBytes, newAddressTableBytes);
+                    writeDataBlocks(systemTable.getAddressTableAddress(), addressTableDiff);
+
+                    fireProgressStatusMessage(getLangString("writingAssociationTable"));
+                    List<ByteArrayDiff.DataBlock> assocTableDiff = ByteArrayDiff.getDiffData(lastAssociationTableBytes, newAssociationTableBytes);
+                    writeDataBlocks(systemTable.getAssociationTableAddress(), assocTableDiff);
+
+                    fireProgressStatusMessage(getLangString("writingCommObjectTable"));
+                    List<ByteArrayDiff.DataBlock> comObjTableDiff = ByteArrayDiff.getDiffData(lastCommObjectTableBytes, newCommObjectTableBytes);
+                    writeDataBlocks(systemTable.getAddressTableAddress(), comObjTableDiff);
+
+                } else {
+                    // do the whole memory
+                    fireProgressStatusMessage(getLangString("writingAddressTable"));
+                    memoryWrite(systemTable.getAddressTableAddress(), newAddressTableBytes);
+
+                    fireProgressStatusMessage(getLangString("writingAssociationTable"));
+                    memoryWrite(systemTable.getAssociationTableAddress(), newAssociationTableBytes);
+
+                    fireProgressStatusMessage(getLangString("writingCommObjectTable"));
+                    memoryWrite(systemTable.getCommobjectTableAddress(), newCommObjectTableBytes);
+                }
             }
 
             checkAbort();
 
             if (doParams) {
                 fireProgressStatusMessage(getLangString("writingParameterTable"));
-                memoryWrite(systemTable.getParameterTableAddress(), parameterTableBytes);
+                if (partial) {
+                    List<ByteArrayDiff.DataBlock> paramTableDiff = ByteArrayDiff.getDiffData(lastParameterTableBytes, newParameterTableBytes);
+                    writeDataBlocks(systemTable.getParameterTableAddress(), paramTableDiff);
+                } else {
+                    memoryWrite(systemTable.getParameterTableAddress(), newParameterTableBytes);
+                }
             }
 
             checkAbort();
@@ -182,6 +257,9 @@ public class DeviceManagement {
             fireProgressStatusMessage(getLangString("stoppingProgramming"));//Stopping programming...");
             stopProgMode(individualAddress);
             fireSingleStepDone();
+
+            // update the device memory in config section, as we now have successfully programmed the device
+            deviceConfigContainer.updateConfigDeviceMemory(systemTable);
 
             log.info("Restart device");
             fireProgressStatusMessage(getLangString("triggerDeviceRestart"));//Trigger device restart...");
@@ -195,6 +273,22 @@ public class DeviceManagement {
             throw new DeviceManagementException("Programming failed", ex);
         }
 
+    }
+
+    /**
+     * Writes diff data blocks to memory. This is used when doing partial
+     * programming to speed up the programming
+     *
+     * @param offset offset or index at which to start
+     * @param blocks blocks to write to memory at given offset
+     * @throws KnxException
+     */
+    private void writeDataBlocks(int offset, List<ByteArrayDiff.DataBlock> blocks) throws KnxException {
+
+        for (ByteArrayDiff.DataBlock block : blocks) {
+            log.debug("Writing partial data: final offset={} length={}", offset + block.getIndex(), block.getData().length);
+            memoryWrite(offset + block.getIndex(), block.getData());
+        }
     }
 
     /**
@@ -556,31 +650,47 @@ public class DeviceManagement {
         protocol.restart(individualAddress);
     }
 
+    /**
+     * Just write a new IA to a device identified by its current IA. The current
+     * IA may be null, but requires pressed prog-button on device
+     *
+     * @param deviceConfigContainer
+     * @param individualAddress IA to adress the device; may be null if
+     * progbutton is pressed
+     * @param newIndividualAddress new IA for device
+     * @throws KnxException
+     * @throws DeviceManagementException
+     */
     public void writeIndividualAddress(DeviceConfigContainer deviceConfigContainer, String individualAddress, String newIndividualAddress) throws KnxException, DeviceManagementException {
+        if (deviceConfigContainer != null) {
+            try {
+                deviceConfigContainer.setIndividualAddress(newIndividualAddress);
+            } catch (InvalidAddressFormatException ex) {
+                throw new DeviceManagementException("Given new individual address has invalid format", ex);
+            }
+        } else {
+            throw new DeviceManagementException("no device config container given");
+        }
+
         if (individualAddress != null) {
             startProgMode(individualAddress);
         }
         ensureProgButtonOneDevice();
         isProgramming = true;
 
-        byte[] memoryRead = memoryRead(SystemTable.SYSTEMTABLE_ADDRESS, SystemTable.SIZE);
-
-        SystemTable systemTable = new SystemTable(memoryRead);
+        // read current system table from device
+        SystemTable systemTable = new SystemTable(memoryRead(SystemTable.SYSTEMTABLE_ADDRESS, SystemTable.SIZE));
         log.debug("read system table: {}", systemTable);
+        // set new IA on working copy of system table
         systemTable.setIndividualAddress(newIndividualAddress);
         log.debug("updated system table: {}", systemTable);
 
-        if (deviceConfigContainer != null) {
-            KonnektingDevice konnektingDevice = deviceConfigContainer.getDevice();
-            DeviceMemory deviceMemory = konnektingDevice.getConfiguration().getDeviceMemory();
-            deviceMemory.setSystemTable(systemTable.getData());
-            deviceConfigContainer.updateDeviceMemory();
-        }
-
+        // if table has changed, write it to device
         if (systemTable.hasChanged()) {
             log.debug("Writing table");
             memoryWrite(SystemTable.SYSTEMTABLE_WRITE_ADDRESS, systemTable.getWriteData());
         }
+
         stopProgMode(newIndividualAddress);
         restart(newIndividualAddress);
     }

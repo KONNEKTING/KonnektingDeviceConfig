@@ -25,6 +25,7 @@ import de.konnekting.deviceconfig.utils.Helper;
 import de.konnekting.deviceconfig.utils.ReflectionIdComparator;
 import de.konnekting.mgnt.DeviceManagement;
 import de.konnekting.mgnt.DeviceManagementException;
+import de.konnekting.mgnt.SystemTable;
 import de.konnekting.xml.konnektingdevice.v0.CommObject;
 import de.konnekting.xml.konnektingdevice.v0.CommObjectConfiguration;
 import de.konnekting.xml.konnektingdevice.v0.CommObjectConfigurations;
@@ -58,8 +59,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import javax.xml.bind.JAXBException;
@@ -79,10 +78,21 @@ public class DeviceConfigContainer {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     private static final RootEventBus eventbus = RootEventBus.getDefault();
+
     private final KonnektingDevice device;
+
+    /* required to detect changes that needs to be written */
     private KonnektingDevice deviceLastSave;
+
     private File f;
     private boolean defaultsFilled = false;
+
+    // current, unwritten tables, initialized by setLimits() 
+    private byte[] systemTableBytes;
+    private byte[] addressTableBytes;
+    private byte[] associationTableBytes;
+    private byte[] commObjTableBytes;
+    private byte[] paramTableBytes;
 
     private final Comparator groupAddressComparator = new Comparator<String>() {
         @Override
@@ -110,6 +120,14 @@ public class DeviceConfigContainer {
     private int LIMIT_BYTES_ASSOCIATIONTABLE = -1;
     private int LIMIT_BYTES_COMMOBJECTTABLE = -1;
 
+    /*  dirty flag for device memory updates. Set to true by method "updateDeviceMemory" */
+    private boolean deviceMemoryUpdated = false;
+
+    /**
+     * Called by constructor to set limits based on system type
+     *
+     * @param systemType
+     */
     private void setLimits(int systemType) {
 
         // same for all system types
@@ -138,6 +156,26 @@ public class DeviceConfigContainer {
         LIMIT_BYTES_ADDRESSTABLE = 1 + (2 * LIMIT_ENTRIES_ADDRESSTABLE);
         LIMIT_BYTES_ASSOCIATIONTABLE = 1 + (2 * LIMIT_ENTRIES_ASSOCIATIONTABLE);
         LIMIT_BYTES_COMMOBJECTTABLE = 1 + LIMIT_ENTRIES_COMMOBJECTTABLE;
+
+        systemTableBytes = new byte[LIMIT_BYTES_SYSTEMTABLE];
+        addressTableBytes = new byte[LIMIT_BYTES_ADDRESSTABLE];
+        associationTableBytes = new byte[LIMIT_BYTES_ASSOCIATIONTABLE];
+        commObjTableBytes = new byte[LIMIT_BYTES_COMMOBJECTTABLE];
+
+        List<Parameter> params = getAllParameters();
+        int paramsCount = params.size();
+        if (paramsCount > LIMIT_ENTRIES_PARAMETERTABLE) {
+            throw new RuntimeException("Parameter limit exceeded: " + paramsCount + " of max. " + LIMIT_ENTRIES_PARAMETERTABLE);
+        } else {
+
+            // get size of param table
+            int paramTableSize = 0;
+            for (Parameter parameter : params) {
+                ParamType type = parameter.getValue().getType();
+                paramTableSize += Helper.getParameterSize(type);
+            }
+            paramTableBytes = new byte[paramTableSize];
+        }
 
     }
 
@@ -227,11 +265,8 @@ public class DeviceConfigContainer {
             }
         }
 
-        // update active/inactive dependencie check
-        updateDeviceMemory();
-
         if (dirty) {
-            log.info("Writing configuration due to dirty flag");
+            log.info("Writing defaults configuration due to dirty flag");
             writeConfig();
         }
     }
@@ -244,32 +279,46 @@ public class DeviceConfigContainer {
         writeConfig(f, true);
     }
 
-    public synchronized void writeConfig(File file, boolean rename) throws JAXBException, SAXException {
+    /**
+     * document me
+     *
+     * @param file File to write config into
+     * @param updateFilename if true, updates files according to device name
+     * @throws JAXBException
+     * @throws SAXException
+     */
+    public synchronized void writeConfig(File file, boolean updateFilename) throws JAXBException, SAXException {
         if (f == null) {
             log.debug("About to write removed file for {}, skipping", this);
         }
         this.f = file;
         log.debug("About to write config: {}", f.getName());
         fillDefaults();
-        updateDeviceMemory();
-        boolean equal = false;
 
+        // will be called after programming
+        //updateConfigDeviceMemory();
+        boolean hasChanged = false;
+
+        // get changes between current state and last save state
         ReflectionComparator reflectionComparator = createRefectionComparator();
         Difference difference = reflectionComparator.getDifference(device, deviceLastSave);
+
         if (difference != null) {
-            equal = false;
+            // if we have changes, configs are NOT equal
+            hasChanged = false;
         } else {
-            equal = true;
+            // no change = configs are equal
+            hasChanged = true;
         }
 
-        if (!equal) {
+        if (!hasChanged) {
             log.info("Saved changes for " + f.getName());
             KonnektingDeviceXmlService.validateWrite(device);
             KonnektingDeviceXmlService.writeConfiguration(file, device);
-            if (rename) {
-                renameFile();
+            if (updateFilename) {
+                updateFilename();
             }
-            deviceLastSave = deepCloneDevice();
+//            deviceLastSave = deepCloneDevice();
         } else {
             log.debug("No change detected for " + f.getName());
         }
@@ -708,12 +757,13 @@ public class DeviceConfigContainer {
     }
 
     /**
-     * Rename file matching to device name etc. if required, erlse just return
+     * Rename file matching to device description. This only if there actually
+     * IS a configuration AND if ti's a kconfig.xml file
      *
      * @throws JAXBException
      * @throws SAXException
      */
-    private void renameFile() throws JAXBException, SAXException {
+    private void updateFilename() throws JAXBException, SAXException {
         if (!hasConfiguration() || f.getName().endsWith(".kdevice.xml")) {
             return;
         }
@@ -894,7 +944,14 @@ public class DeviceConfigContainer {
         return true;
     }
 
-    public void updateDeviceMemory() {
+    /**
+     * Updates the device memory section in config part, based on the given
+     * settings. Calling this method only makes sense when device has been
+     * programmed. This is because the device memory section of configruation
+     * sections should only reflect the programmed status
+     * @param systemTable upated system table, generated during programming. 
+     */
+    public void updateConfigDeviceMemory(SystemTable systemTable) {
 
         if (f.getName().endsWith(".kdevice.xml")) {
             return;
@@ -907,18 +964,8 @@ public class DeviceConfigContainer {
             device.getConfiguration().setDeviceMemory(deviceMemory);
         }
 
-        /**
-         * System --> fixed size array
-         */
-        byte[] systemTableBytes = deviceMemory.getSystemTable();
-        if (systemTableBytes == null) {
-            systemTableBytes = new byte[LIMIT_BYTES_SYSTEMTABLE];
-            clearBytes(systemTableBytes);
-            deviceMemory.setSystemTable(systemTableBytes);
-            log.debug("using clear system table for now");
-        }
-        log.debug("Writing systemtable bytes ({} bytes): {}", systemTableBytes.length, Helper.bytesToHex(systemTableBytes, true));
-
+        deviceMemory.setSystemTable(systemTable.getData());
+        log.debug("Updating systemtable bytes ({} bytes): {}", systemTable.getData().length, Helper.bytesToHex(systemTable.getData(), true));
         /**
          * AddressTable --> fixed size table
          */
@@ -951,7 +998,7 @@ public class DeviceConfigContainer {
             addrTableIndex += 2;
             i++;
         }
-        log.debug("Writing addressTable bytes ({} bytes): {}", addressTable.length, Helper.bytesToHex(addressTable, true));
+        log.debug("Updating addressTable bytes ({} bytes): {}", addressTable.length, Helper.bytesToHex(addressTable, true));
         deviceMemory.setAddressTable(addressTable);
 
         /**
@@ -1017,9 +1064,9 @@ public class DeviceConfigContainer {
         }
         // insert size
         associationTable[0] = (byte) associationCount;
-        
+
         log.info("AssociationTable size={}", associationCount);
-        log.debug("Writing associationTable bytes ({} bytes): {}", associationTable.length, Helper.bytesToHex(associationTable, true));
+        log.debug("Updating associationTable bytes ({} bytes): {}", associationTable.length, Helper.bytesToHex(associationTable, true));
         deviceMemory.setAssociationTable(associationTable);
 
         /**
@@ -1058,7 +1105,7 @@ public class DeviceConfigContainer {
             }
 
         }
-        log.debug("Writing commObjTable bytes ({} bytes): {}", commObjTable.length, Helper.bytesToHex(commObjTable, true));
+        log.debug("Updating commObjTable bytes ({} bytes): {}", commObjTable.length, Helper.bytesToHex(commObjTable, true));
         deviceMemory.setCommObjectTable(commObjTable);
 
         /**
@@ -1094,45 +1141,273 @@ public class DeviceConfigContainer {
                     paramTableIndex += value.length; // increment index for next param/value
                 }
             }
-            log.debug("Writing paramTable bytes ({} bytes): {}", paramTable.length, Helper.bytesToHex(paramTable, true));
+            log.debug("Updating paramTable bytes ({} bytes): {}", paramTable.length, Helper.bytesToHex(paramTable, true));
             deviceMemory.setParameterTable(paramTable);
+        }
+        deviceMemoryUpdated = true;
+    }
+
+    class AssocTableEntry implements Comparable<AssocTableEntry> {
+
+        int addrId;
+        short comObjId;
+
+        public AssocTableEntry(int addrId, short comObjId) {
+            this.addrId = addrId;
+            this.comObjId = comObjId;
+        }
+
+        @Override
+        public int compareTo(AssocTableEntry o) {
+            if (addrId < o.addrId) {
+                return -1;
+            } else if (addrId > o.addrId) {
+                return +1;
+            } else {
+                return 0;
+            }
         }
 
     }
 
     /**
-     * fill array with 0xff
+     * Create a new "working copy" of XML Device Memory Section, based on the
+     * current settings of DeviceConfigurationContainer
+     *
+     * This can be used to create a new & up2date working copy memory image for
+     * the device for programming, without changing the device memory section of
+     * the XML.
+     */
+    public DeviceMemory createWorkingCopyDeviceMemory() {
+
+        DeviceMemory workingCopyDeviceMemory = new DeviceMemory();
+
+        if (f.getName().endsWith(".kdevice.xml")) {
+            // do nothing, just return null, as in this case we cannot provide device memory
+            return null;
+        }
+
+        // system table is read from device and new data is injected during programming.
+//        /**
+//         * System --> fixed size array
+//         */
+//        if (systemTableBytes == null) {
+//            systemTableBytes = new byte[LIMIT_BYTES_SYSTEMTABLE];
+//            clearBytes(systemTableBytes);
+//            log.debug("using clear system table for now");
+//        }
+        /**
+         * AddressTable --> fixed size table
+         */
+        clearBytes(addressTableBytes);
+
+        // use hashset to easily add GAs without duplicates
+        Set<String> addrSet = new HashSet<>();
+        List<CommObjectConfiguration> commObjectConfigurations = device.getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration();
+        for (CommObjectConfiguration commObjConfig : commObjectConfigurations) {
+            List<String> groupAddress = commObjConfig.getGroupAddress();
+            addrSet.addAll(groupAddress);
+        }
+
+        // convert hashset to arraylist and sort alphanumeric
+        List<String> addressTableList = new ArrayList<>();
+        addressTableList.addAll(addrSet);
+        Collections.sort(addressTableList, groupAddressComparator);
+
+        // insert size
+        addressTableBytes[0] = (byte) addressTableList.size();
+
+        // insert all GAs
+        int addrTableIndex = 1;
+        int i = 0;
+        for (String addr : addressTableList) {
+            log.info("AddressTable index={} addrID={} GA={}", addrTableIndex, i, addr);
+            byte[] ga = Helper.convertGaToBytes(addr);
+            System.arraycopy(ga, 0, addressTableBytes, addrTableIndex, 2);
+            addrTableIndex += 2;
+            i++;
+        }
+        workingCopyDeviceMemory.setAddressTable(addressTableBytes);
+
+        /**
+         * AssociationTable --> fixed size table
+         */
+        clearBytes(associationTableBytes);
+
+        // sort by CommObj ID
+        Collections.sort(commObjectConfigurations, new ReflectionIdComparator());
+
+        int associationCount = 0;
+        int assocTableIndex = 1;
+
+        List<AssocTableEntry> assocTable = new ArrayList<>();
+
+        for (CommObjectConfiguration commObjectConfiguration : commObjectConfigurations) {
+
+            List<String> associatedAddresses = commObjectConfiguration.getGroupAddress();
+
+            if (!associatedAddresses.isEmpty()) {
+                associationCount += associatedAddresses.size();
+                for (String addr : associatedAddresses) {
+                    int addrID = addressTableList.indexOf(addr);
+                    if (addrID == -1) {
+                        throw new RuntimeException("ComObj " + commObjectConfiguration.getId() + " has GA " + addr + " assigned, but GA is not in AddressTable!");
+                    }
+                    assocTable.add(new AssocTableEntry(addrID, commObjectConfiguration.getId()));
+
+                }
+            }
+        }
+
+        Collections.sort(assocTable);
+        for (AssocTableEntry assocTableEntry : assocTable) {
+            associationTableBytes[assocTableIndex] = (byte) assocTableEntry.addrId;
+            associationTableBytes[assocTableIndex + 1] = (byte) assocTableEntry.comObjId;
+            log.info("AssociationTable index={} addrID={} comObjID={}", assocTableIndex, assocTableEntry.addrId, assocTableEntry.comObjId);
+            assocTableIndex += 2;
+        }
+        // insert size
+        associationTableBytes[0] = (byte) associationCount;
+        workingCopyDeviceMemory.setAssociationTable(associationTableBytes);
+
+        log.info("AssociationTable count={}", associationCount);
+
+        /**
+         * CommObjectTable --> fixed size table
+         */
+        clearBytes(commObjTableBytes);
+
+        int comobjCount = getAllCommObjects().size();
+        if (comobjCount > LIMIT_ENTRIES_COMMOBJECTTABLE) {
+            throw new RuntimeException("CommObj limit exceeded: " + comobjCount + " of max. " + LIMIT_ENTRIES_COMMOBJECTTABLE);
+        } else {
+
+            // set size
+            commObjTableBytes[0] = (byte) comobjCount;
+
+            int commObjTableIndex = 1;
+
+            List<CommObject> commObjList = device.getDevice().getCommObjects().getCommObject();
+            Collections.sort(commObjList, new ReflectionIdComparator());
+
+            for (CommObject co : commObjList) {
+                byte flags = co.getFlags();
+                // start with default: all comm flags "off", see https://wiki.konnekting.de/index.php?title=KONNEKTING_Protocol_Specification_0x01#CommObject_Table
+                byte configbyte = (byte) 0x00; // 00000000 
+
+                CommObjectConfiguration conf = getCommObjectConfiguration(co.getId());
+                if (conf != null) {
+                    flags = conf.getFlags();
+                    configbyte = (byte) (flags & (byte) 0x3f); // apply flags
+                }
+                commObjTableBytes[commObjTableIndex] = configbyte;
+
+                log.info("CommObjectTable index={} coID={} configbyte={}, userflags={}", new Object[]{commObjTableIndex, co.getId(), Helper.bytesToHex(new byte[]{configbyte}), conf != null});
+                commObjTableIndex++;
+            }
+
+        }
+        workingCopyDeviceMemory.setCommObjectTable(commObjTableBytes);
+
+        /**
+         * ParameterTable --> dynamic size table (fixed on xml setup)
+         */
+        List<Parameter> params = getAllParameters();
+
+        // get size of param table
+        int paramTableSize = 0;
+        for (Parameter parameter : params) {
+            ParamType type = parameter.getValue().getType();
+            paramTableSize += Helper.getParameterSize(type);
+        }
+
+        if (paramTableSize > 0) {
+            List<ParameterConfiguration> parameterConfigurations = device.getConfiguration().getParameterConfigurations().getParameterConfiguration();
+            if (parameterConfigurations.size() != params.size()) {
+                throw new RuntimeException("The number of parameter configs do not match the number of available params!");
+            }
+            int paramTableIndex = 0;
+            for (ParameterConfiguration parameterConfiguration : parameterConfigurations) {
+                byte[] value = parameterConfiguration.getValue();
+                System.arraycopy(value, 0, paramTableBytes, paramTableIndex, value.length);
+
+                log.info("ParameterTable index={}, length={}, value={}", new Object[]{paramTableIndex, value.length, Helper.bytesToHex(value)});
+
+                paramTableIndex += value.length; // increment index for next param/value
+            }
+        }
+        workingCopyDeviceMemory.setParameterTable(paramTableBytes);
+        return workingCopyDeviceMemory;
+
+    }
+
+    /**
+     * fill array with 0xFF bytes
      *
      * @param bytearray
      */
     private void clearBytes(byte[] bytearray) {
         for (int i = 0; i < bytearray.length; i++) {
-            bytearray[i] = (byte) 0xff;
+            bytearray[i] = (byte) 0xFF;
         }
     }
 
     public static void main(String[] args) throws JAXBException, SAXException, KnxException, DeviceManagementException {
 
-        File fin = new File("test.kconfig.xml");
-        File fout = new File("testout.kconfig.xml");
+//        File fin = new File("KONNEKTING_M0dularisPlus_Testsuite_@_Beta5.kconfig.xml");
+        File fin = new File("testout.kconfig.xml");
         DeviceConfigContainer dcc = new DeviceConfigContainer(fin);
-        dcc.updateDeviceMemory();
-        dcc.writeConfig(fout, false);
 
-        dcc = new DeviceConfigContainer(fout);
         DeviceMemory deviceMemory = dcc.getDevice().getConfiguration().getDeviceMemory();
+
+        if (deviceMemory != null) {
+            System.out.println(">>>>>>>>>> Memory before change");
+            System.out.println("System           = " + Helper.bytesToHex(deviceMemory.getSystemTable(), true));
+            System.out.println("AddressTable     = " + Helper.bytesToHex(deviceMemory.getAddressTable(), true));
+            System.out.println("AssociationTable = " + Helper.bytesToHex(deviceMemory.getAssociationTable(), true));
+            System.out.println("CommObjectTable  = " + Helper.bytesToHex(deviceMemory.getCommObjectTable(), true));
+            System.out.println("ParameterTable   = " + Helper.bytesToHex(deviceMemory.getParameterTable(), true));
+        }
+
+//        String ia = dcc.getIndividualAddress();
+//        // test-toggle IA
+//        if ("1.1.5".equals(ia)) {
+//            System.out.println("Toggle IA to 1.1.6");
+//            ia="1.1.6";
+//        } else {
+//            System.out.println("Toggle IA to 1.1.5");
+//            ia = "1.1.5";
+//        }
+        // toggle changes ...
+        CommObjectConfiguration coc = dcc.getDevice().getConfiguration().getCommObjectConfigurations().getCommObjectConfiguration().get(0);
+        List<String> groupAddress = coc.getGroupAddress();
+        if (groupAddress.contains("1/1/1")) {
+            groupAddress.remove("1/1/1");
+        } else {
+            groupAddress.add("1/1/1");
+        }
+
+        // do partial programming
+        Knx knx = new Knx("1.1.1");
+        DeviceManagement mgmt = new DeviceManagement(knx);
+        System.out.println(">>>>>>>>>>>>>> Programming ");
+        mgmt.program(dcc, DeviceManagement.ProgrammingTask.PARTIAL);
+        System.out.println(">>>>>>>>>>>>>> Programming *DONE*");
+
+        // fake programming
+//        System.out.println(">>>>>>>>>>>>>> FAKE Programming *DONE*");
+//        dcc.updateConfigDeviceMemory();
+//        System.out.println(">>>>>>>>>>>>>> FAKE Programming *DONE*");
+        // check memory
+        deviceMemory = dcc.getDevice().getConfiguration().getDeviceMemory();
 
         System.out.println("System           = " + Helper.bytesToHex(deviceMemory.getSystemTable(), true));
         System.out.println("AddressTable     = " + Helper.bytesToHex(deviceMemory.getAddressTable(), true));
         System.out.println("AssociationTable = " + Helper.bytesToHex(deviceMemory.getAssociationTable(), true));
         System.out.println("CommObjectTable  = " + Helper.bytesToHex(deviceMemory.getCommObjectTable(), true));
         System.out.println("ParameterTable   = " + Helper.bytesToHex(deviceMemory.getParameterTable(), true));
+        dcc.writeConfig(new File("testout.kconfig.xml"), false);
 
-        Knx knx = new Knx("1.1.1");
-
-        DeviceManagement mgmt = new DeviceManagement(knx);
-
-        mgmt.program(dcc, true, false, false);
     }
 
 }
