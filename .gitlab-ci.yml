@@ -20,7 +20,7 @@ verify:
   except:
     - master
 
-# For `master` branch run `mvn deploy` automatically.
+# For `master` and `develop` branch run `mvn deploy` automatically.
 deploy:
   stage: deploy
   script:
@@ -30,3 +30,4 @@ deploy:
     - 'mvn $MAVEN_CLI_OPTS deploy -s ci_settings.xml'
   only:
     - master
+    - develop
