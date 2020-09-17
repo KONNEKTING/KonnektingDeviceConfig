@@ -20,6 +20,7 @@ package de.konnekting.mgnt;
 
 import de.konnekting.deviceconfig.DeviceConfigContainer;
 import de.konnekting.deviceconfig.exception.InvalidAddressFormatException;
+import de.konnekting.deviceconfig.exception.XMLFormatException;
 import de.konnekting.deviceconfig.utils.ByteArrayDiff;
 import de.konnekting.deviceconfig.utils.Helper;
 import de.konnekting.xml.konnektingdevice.v0.KonnektingDevice;
@@ -117,7 +118,7 @@ public class DeviceManagement {
                 partial = false;
                 break;
             case PARTIAL:
-                doIndividualAddress = true;
+                doIndividualAddress = false;
                 doCommObjects = true;
                 doParams = true;
                 partial = true;
@@ -176,11 +177,11 @@ public class DeviceManagement {
 
             try {
                 if (doIndividualAddress) {
+                    log.info("About to program with new individual address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
+                    fireProgressStatusMessage(getLangString("pleasePressProgButton"));//Please press 'program' button...
                     fireIncreaseMaxSteps(2);
                     startProgMode(null, device.getManufacturerId(), device.getDeviceId(), device.getRevision());
                 } else {
-                    log.info("About to program with individual address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
-                    fireProgressStatusMessage(getLangString("pleasePressProgButton"));//Please press 'program' button...
                     fireIncreaseMaxSteps(4);
                     startProgMode(individualAddress, device.getManufacturerId(), device.getDeviceId(), device.getRevision());
                 }
@@ -268,8 +269,9 @@ public class DeviceManagement {
 
             log.info("All done.");
             fireProgressStatusMessage(getLangString("done"));//All done.");
+            deviceConfigContainer.writeConfig();
 
-        } catch (KnxException | IllegalArgumentException ex) {
+        } catch (KnxException | IllegalArgumentException | XMLFormatException ex) {
             throw new DeviceManagementException("Programming failed", ex);
         }
 

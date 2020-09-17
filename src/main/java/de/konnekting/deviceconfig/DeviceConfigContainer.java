@@ -20,6 +20,7 @@ package de.konnekting.deviceconfig;
 
 import com.rits.cloning.Cloner;
 import de.konnekting.deviceconfig.exception.InvalidAddressFormatException;
+import de.konnekting.deviceconfig.exception.XMLFormatException;
 import de.konnekting.deviceconfig.utils.Bytes2ReadableValue;
 import de.konnekting.deviceconfig.utils.Helper;
 import de.konnekting.deviceconfig.utils.ReflectionIdComparator;
@@ -61,6 +62,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Level;
 import javax.xml.bind.JAXBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -179,16 +181,20 @@ public class DeviceConfigContainer {
 
     }
 
-    public DeviceConfigContainer(File f) throws JAXBException, SAXException {
+    public DeviceConfigContainer(File f) throws XMLFormatException {
         this.f = f;
-        device = KonnektingDeviceXmlService.readConfiguration(f);
-        deviceLastSave = deepCloneDevice();
+        try {
+            device = KonnektingDeviceXmlService.readConfiguration(f);
+            deviceLastSave = deepCloneDevice();
 
-        // calculate limits
-        short systemType = device.getDevice().getSystemType();
-        setLimits(systemType);
+            // calculate limits
+            short systemType = device.getDevice().getSystemType();
+            setLimits(systemType);
 
-        fillDefaults();
+            fillDefaults();
+        } catch (SAXException | JAXBException ex) {
+            throw new XMLFormatException(ex);
+        }
     }
 
     /**
@@ -198,7 +204,7 @@ public class DeviceConfigContainer {
      * @throws SAXException
      * @throws JAXBException
      */
-    private void fillDefaults() throws SAXException, JAXBException {
+    private void fillDefaults() throws XMLFormatException {
         if (f.getName().endsWith(".kdevice.xml")) {
             return;
         }
@@ -275,7 +281,7 @@ public class DeviceConfigContainer {
         return device;
     }
 
-    public void writeConfig() throws JAXBException, SAXException {
+    public void writeConfig() throws XMLFormatException {
         writeConfig(f, true);
     }
 
@@ -284,10 +290,9 @@ public class DeviceConfigContainer {
      *
      * @param file File to write config into
      * @param updateFilename if true, updates files according to device name
-     * @throws JAXBException
-     * @throws SAXException
+     * @throws XMLFormatException
      */
-    public synchronized void writeConfig(File file, boolean updateFilename) throws JAXBException, SAXException {
+    public synchronized void writeConfig(File file, boolean updateFilename) throws XMLFormatException {
         if (f == null) {
             log.debug("About to write removed file for {}, skipping", this);
         }
@@ -312,11 +317,15 @@ public class DeviceConfigContainer {
         }
 
         if (!hasChanged) {
-            log.info("Saved changes for " + f.getName());
-            KonnektingDeviceXmlService.validateWrite(device);
-            KonnektingDeviceXmlService.writeConfiguration(file, device);
-            if (updateFilename) {
-                updateFilename();
+            try {
+                log.info("Saved changes for " + f.getName());
+                KonnektingDeviceXmlService.validateWrite(device);
+                KonnektingDeviceXmlService.writeConfiguration(file, device);
+                if (updateFilename) {
+                    updateFilename();
+                }
+            } catch (SAXException | JAXBException ex) {
+                throw new XMLFormatException(ex);
             }
 //            deviceLastSave = deepCloneDevice();
         } else {
@@ -746,7 +755,7 @@ public class DeviceConfigContainer {
         return configuration != null && configuration.getIndividualAddress() != null && configuration.getIndividualAddress().getDescription() != null;
     }
 
-    public void removeConfig() throws JAXBException, SAXException {
+    public void removeConfig() throws XMLFormatException {
         device.setConfiguration(null);
         writeConfig();
     }
@@ -763,7 +772,7 @@ public class DeviceConfigContainer {
      * @throws JAXBException
      * @throws SAXException
      */
-    private void updateFilename() throws JAXBException, SAXException {
+    private void updateFilename() {
         if (!hasConfiguration() || f.getName().endsWith(".kdevice.xml")) {
             return;
         }
@@ -811,7 +820,7 @@ public class DeviceConfigContainer {
             File newFile = new File(projectDir, Helper.getTempFilename(".kconfig.xml"));
             Files.copy(f.toPath(), newFile.toPath(), REPLACE_EXISTING);
             return new DeviceConfigContainer(newFile);
-        } catch (SAXException | JAXBException ex) {
+        } catch (XMLFormatException ex) {
             throw new IOException("Error writing data before cloning.", ex);
         }
     }
@@ -949,7 +958,8 @@ public class DeviceConfigContainer {
      * settings. Calling this method only makes sense when device has been
      * programmed. This is because the device memory section of configruation
      * sections should only reflect the programmed status
-     * @param systemTable upated system table, generated during programming. 
+     *
+     * @param systemTable upated system table, generated during programming.
      */
     public void updateConfigDeviceMemory(SystemTable systemTable) {
 
@@ -1174,7 +1184,7 @@ public class DeviceConfigContainer {
      * Create a new "working copy" of XML Device Memory Section, based on the
      * current settings of DeviceConfigurationContainer
      *
-     * This can be used to create a new & up2date working copy memory image for
+     * This can be used to create a new %amp; up2date working copy memory image for
      * the device for programming, without changing the device memory section of
      * the XML.
      */
@@ -1352,7 +1362,7 @@ public class DeviceConfigContainer {
         }
     }
 
-    public static void main(String[] args) throws JAXBException, SAXException, KnxException, DeviceManagementException {
+    public static void main(String[] args) throws XMLFormatException, KnxException, DeviceManagementException {
 
 //        File fin = new File("KONNEKTING_M0dularisPlus_Testsuite_@_Beta5.kconfig.xml");
         File fin = new File("testout.kconfig.xml");
@@ -1406,7 +1416,6 @@ public class DeviceConfigContainer {
         System.out.println("AssociationTable = " + Helper.bytesToHex(deviceMemory.getAssociationTable(), true));
         System.out.println("CommObjectTable  = " + Helper.bytesToHex(deviceMemory.getCommObjectTable(), true));
         System.out.println("ParameterTable   = " + Helper.bytesToHex(deviceMemory.getParameterTable(), true));
-        dcc.writeConfig(new File("testout.kconfig.xml"), false);
 
     }
 
