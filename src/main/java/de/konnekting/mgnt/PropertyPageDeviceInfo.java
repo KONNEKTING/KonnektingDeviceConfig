@@ -18,9 +18,6 @@
  */
 package de.konnekting.mgnt;
 
-import de.konnekting.deviceconfig.utils.Helper;
-import de.konnekting.mgnt.protocol0x01.InvalidMessageException;
-import de.konnekting.mgnt.protocol0x01.MsgPropertyPageResponse;
 import static de.konnekting.deviceconfig.utils.Bytes2ReadableValue.*;
 
 /**
@@ -30,6 +27,7 @@ import static de.konnekting.deviceconfig.utils.Bytes2ReadableValue.*;
 public class PropertyPageDeviceInfo {
 
     public static final int PROPERTY_PAGE_NUM = 0x00;
+    private final byte systemtypeRaw;
     
     enum SystemType {
         SYSTEM_1, SYSTEM_2, SYSTEM_3
@@ -44,6 +42,7 @@ public class PropertyPageDeviceInfo {
         manufacturerId = convertUINT16(data[2], data[3]);
         deviceId = data[4]&0xFF;
         revision = data[5]&0xFF;
+        systemtypeRaw = data[6];
 
         switch (data[6]) {
             case (byte)0x00:
@@ -59,8 +58,12 @@ public class PropertyPageDeviceInfo {
                 throw new IllegalArgumentException("System type with " + String.format("0x%02x", data[6]) + " not known!");
         }
     }
+    
+    public byte getSystemTypeRaw() {
+        return systemtypeRaw;
+    }
 
-    public SystemType getSystemType() throws InvalidMessageException {
+    public SystemType getSystemType() {
         return systemType;
     }
 
