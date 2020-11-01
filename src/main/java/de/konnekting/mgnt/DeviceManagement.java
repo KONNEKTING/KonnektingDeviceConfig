@@ -180,10 +180,10 @@ public class DeviceManagement {
                     log.info("About to program with new individual address '" + individualAddress + "'. Please press 'program' button on target device NOW ...");
                     fireProgressStatusMessage(getLangString("pleasePressProgButton"));//Please press 'program' button...
                     fireIncreaseMaxSteps(2);
-                    startProgMode(null, device.getManufacturerId(), device.getDeviceId(), device.getRevision());
+                    startProgMode(null, device.getManufacturerId(), device.getDeviceId(), device.getRevision(), device.getSystemType());
                 } else {
                     fireIncreaseMaxSteps(4);
-                    startProgMode(individualAddress, device.getManufacturerId(), device.getDeviceId(), device.getRevision());
+                    startProgMode(individualAddress, device.getManufacturerId(), device.getDeviceId(), device.getRevision(), device.getSystemType());
                 }
             } catch (KnxException ex) {
                 // TODO fail!
@@ -421,8 +421,8 @@ public class DeviceManagement {
      * @throws KnxException
      * @throws DeviceManagementException
      */
-    private void startProgMode(String individualAddress) throws KnxException, DeviceManagementException {
-        startProgMode(individualAddress, -1, (short) -1, (short) -1);
+    private void startProgMode(String individualAddress, short systemType) throws KnxException, DeviceManagementException {
+        startProgMode(individualAddress, -1, (short) -1, (short) -1, systemType);
     }
 
     /**
@@ -435,7 +435,7 @@ public class DeviceManagement {
      * @param revision
      * @throws de.root1.slicknx.KnxException
      */
-    void startProgMode(String individualAddress, int manufacturerId, short deviceId, short revision) throws KnxException, DeviceManagementException {
+    void startProgMode(String individualAddress, int manufacturerId, short deviceId, short revision, short systemType) throws KnxException, DeviceManagementException {
 
         progressMaxSteps = 0;
         progressCurrent = 0;
@@ -469,23 +469,26 @@ public class DeviceManagement {
             ensureProgButtonOneDevice();
 
         }
-        if (manufacturerId != -1 && deviceId != -1 && revision != -1) {
+        if (manufacturerId != -1 && deviceId != -1 && revision != -1 && systemType != -1) {
 
             log.debug("Reading device info ...");
             PropertyPageDeviceInfo ppdi = readDeviceInfo(individualAddress);
             fireSingleStepDone();
 
             // check for correct device
-            if (ppdi.getManufacturerId() != manufacturerId || ppdi.getDeviceId() != deviceId || ppdi.getRevision() != revision) {
+            if (ppdi.getManufacturerId() != manufacturerId || ppdi.getDeviceId() != deviceId || ppdi.getRevision() != revision || ppdi.getSystemTypeRaw() != systemType) {
                 throw new DeviceManagementException("Device does not match to configuration.\n"
                         + " KONNEKTING reported: \n"
                         + "  manufacturer: " + String.format("0x%04x", ppdi.getManufacturerId()) + "\n"
                         + "  device: " + String.format("0x%02x", ppdi.getDeviceId()) + "\n"
                         + "  revision: " + String.format("0x%02x", ppdi.getRevision()) + "\n"
+                        + "  systemType: " + ppdi.getSystemType().name() + "/" + String.format("0x%02x", ppdi.getSystemTypeRaw())+ "\n"
                         + " Configuration requires:\n"
                         + "  manufacturer: " + String.format("0x%04x", manufacturerId) + "\n"
                         + "  device: " + String.format("0x%02x", deviceId) + "\n"
-                        + "  revision: " + String.format("0x%02x", revision));
+                        + "  revision: " + String.format("0x%02x", revision)
+                        + "  systemType: " + String.format("0x%02x", systemType) + "\n"
+                );
             }
             log.debug("Got device info: {}", ppdi);
         }
@@ -675,7 +678,7 @@ public class DeviceManagement {
         }
 
         if (individualAddress != null) {
-            startProgMode(individualAddress);
+            startProgMode(individualAddress, deviceConfigContainer.getDevice().getDevice().getSystemType());
         }
         ensureProgButtonOneDevice();
         isProgramming = true;
