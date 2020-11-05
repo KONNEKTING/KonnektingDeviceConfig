@@ -225,6 +225,7 @@ public class DeviceConfigContainer {
             }
 
             CommObjectConfigurations comObjectConfigurations = c.getCommObjectConfigurations();
+//            CommObjectConfigurations comObjectConfigurations = getOrCreateCommObjectConfigurations();
 
             if (comObjectConfigurations == null) {
                 comObjectConfigurations = new CommObjectConfigurations();
@@ -238,6 +239,7 @@ public class DeviceConfigContainer {
                 for (CommObject comObj : device.getDevice().getCommObjects().getCommObject()) {
                     CommObjectConfiguration comObjConf = new CommObjectConfiguration();
                     comObjConf.setId(comObj.getId());
+                    comObjConf.setFlags((comObj.getFlags()));
                     comObjectConfigurations.getCommObjectConfiguration().add(comObjConf);
                     dirty = true;
                 }
@@ -441,6 +443,8 @@ public class DeviceConfigContainer {
             for (CommObject co : getAllCommObjects()) {
                 CommObjectConfiguration coc = new CommObjectConfiguration();
                 coc.setId(co.getId());
+                coc.setFlags(co.getFlags());
+                commObjectConfigurations.getCommObjectConfiguration().add(coc);
             }
         }
         return commObjectConfigurations;
@@ -1365,7 +1369,7 @@ public class DeviceConfigContainer {
     public static void main(String[] args) throws XMLFormatException, KnxException, DeviceManagementException {
 
 //        File fin = new File("KONNEKTING_M0dularisPlus_Testsuite_@_Beta5.kconfig.xml");
-        File fin = new File("testout.kconfig.xml");
+        File fin = new File("test.kconfig.xml");
         DeviceConfigContainer dcc = new DeviceConfigContainer(fin);
 
         DeviceMemory deviceMemory = dcc.getDevice().getConfiguration().getDeviceMemory();
@@ -1398,11 +1402,11 @@ public class DeviceConfigContainer {
         }
 
         // do partial programming
-        Knx knx = new Knx("1.1.1");
-        DeviceManagement mgmt = new DeviceManagement(knx);
-        System.out.println(">>>>>>>>>>>>>> Programming ");
-        mgmt.program(dcc, DeviceManagement.ProgrammingTask.PARTIAL);
-        System.out.println(">>>>>>>>>>>>>> Programming *DONE*");
+//        Knx knx = new Knx("1.1.1");
+//        DeviceManagement mgmt = new DeviceManagement(knx);
+//        System.out.println(">>>>>>>>>>>>>> Programming ");
+////        mgmt.program(dcc, DeviceManagement.ProgrammingTask.PARTIAL);
+//        System.out.println(">>>>>>>>>>>>>> Programming *DONE*");
 
         // fake programming
 //        System.out.println(">>>>>>>>>>>>>> FAKE Programming *DONE*");
@@ -1411,11 +1415,13 @@ public class DeviceConfigContainer {
         // check memory
         deviceMemory = dcc.getDevice().getConfiguration().getDeviceMemory();
 
-        System.out.println("System           = " + Helper.bytesToHex(deviceMemory.getSystemTable(), true));
-        System.out.println("AddressTable     = " + Helper.bytesToHex(deviceMemory.getAddressTable(), true));
-        System.out.println("AssociationTable = " + Helper.bytesToHex(deviceMemory.getAssociationTable(), true));
-        System.out.println("CommObjectTable  = " + Helper.bytesToHex(deviceMemory.getCommObjectTable(), true));
-        System.out.println("ParameterTable   = " + Helper.bytesToHex(deviceMemory.getParameterTable(), true));
+//        System.out.println("System           = " + Helper.bytesToHex(deviceMemory.getSystemTable(), true));
+//        System.out.println("AddressTable     = " + Helper.bytesToHex(deviceMemory.getAddressTable(), true));
+//        System.out.println("AssociationTable = " + Helper.bytesToHex(deviceMemory.getAssociationTable(), true));
+//        System.out.println("CommObjectTable  = " + Helper.bytesToHex(deviceMemory.getCommObjectTable(), true));
+//        System.out.println("ParameterTable   = " + Helper.bytesToHex(deviceMemory.getParameterTable(), true));
+        
+        dcc.writeConfig(new File("testout.kdevice.xml"), false);
 
     }
 
