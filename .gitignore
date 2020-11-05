@@ -4,3 +4,4 @@ nb-configuration.xml
 /.project
 /.classpath
 /.settings/
+/testout.kdevice.xml
