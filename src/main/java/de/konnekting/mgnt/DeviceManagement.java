@@ -30,7 +30,6 @@ import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01;
 import de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.DataReadResponse;
 import de.konnekting.xml.konnektingdevice.v0.Device;
 import de.konnekting.xml.konnektingdevice.v0.DeviceMemory;
-import de.konnekting.xml.konnektingdevice.v0.IndividualAddress;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -40,7 +39,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.zip.CRC32;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,25 +144,43 @@ public class DeviceManagement {
 
             // --------------
             fireIncreaseMaxSteps(4);
+            CRC32 crc32 = new CRC32();
 
             fireProgressStatusMessage(getLangString("readingAddressTable"));
             byte[] lastAddressTableBytes = lastDeviceMemory == null ? new byte[]{} : lastDeviceMemory.getAddressTable();
             byte[] newAddressTableBytes = newDeviceMemory.getAddressTable();
+            crc32.update(newAddressTableBytes);
+            long crc32AddressTable = crc32.getValue();
+            log.debug("crc32AddressTable: {}", String.format("0x%04x", crc32AddressTable));
+            crc32.reset();
             fireSingleStepDone();
 
             fireProgressStatusMessage(getLangString("readingAssociationTable"));
             byte[] lastAssociationTableBytes = lastDeviceMemory == null ? new byte[]{} : lastDeviceMemory.getAssociationTable();
             byte[] newAssociationTableBytes = newDeviceMemory.getAssociationTable();
+            crc32.update(newAssociationTableBytes);
+            long crc32AssocTable = crc32.getValue();
+            log.debug("crc32AssocTable: {}", String.format("0x%04x", crc32AssocTable));
+            crc32.reset();
             fireSingleStepDone();
 
             fireProgressStatusMessage(getLangString("readingCommObjectTable"));
             byte[] lastCommObjectTableBytes = lastDeviceMemory == null ? new byte[]{} : lastDeviceMemory.getCommObjectTable();
             byte[] newCommObjectTableBytes = newDeviceMemory.getCommObjectTable();
+            crc32.update(newCommObjectTableBytes);
+            long crc32CommObjTable = crc32.getValue();
+            log.debug("crc32CommObjTable: {}", String.format("0x%04x", crc32CommObjTable));
+            crc32.reset();
             fireSingleStepDone();
 
             fireProgressStatusMessage(getLangString("readingParameterTable"));
             byte[] lastParameterTableBytes = lastDeviceMemory == null ? new byte[]{} : lastDeviceMemory.getParameterTable();
             byte[] newParameterTableBytes = newDeviceMemory.getParameterTable();
+            crc32.update(newParameterTableBytes);
+            long crc32ParamTable = crc32.getValue();
+            log.debug("crc32ParamTable: {}", String.format("0x%04x", crc32ParamTable));
+            crc32.reset();
+            
             fireSingleStepDone();
 
             if (lastDeviceMemory == null && partial) {
@@ -200,6 +216,12 @@ public class DeviceManagement {
             // set IA in system table            
             systemTable.setIndividualAddress(individualAddress);
             log.debug("read system table: {}", systemTable);
+            crc32.update(systemTable.getWriteData());
+            long crc32SystemRWTable = crc32.getValue();
+            log.debug("crc32systemRWTable: {}", String.format("0x%04x", crc32SystemRWTable));
+            crc32.reset();
+            
+            
 
             checkAbort();
 
@@ -207,6 +229,8 @@ public class DeviceManagement {
                 //Writing system table ... if changed. It's not required to write table partially, it's anyhow only 16 bytes
                 fireProgressStatusMessage(getLangString("writingSystemTable"));
                 memoryWrite(SystemTable.SYSTEMTABLE_WRITE_ADDRESS, systemTable.getWriteData());
+                fireProgressStatusMessage(getLangString("writingSystemTableChecksum"));
+                checksumSet(ChecksumIdentifier.SYSTEM_TABLE, crc32SystemRWTable);
             }
 
             checkAbort();
@@ -217,25 +241,37 @@ public class DeviceManagement {
                     fireProgressStatusMessage(getLangString("writingAddressTable"));
                     List<ByteArrayDiff.DataBlock> addressTableDiff = ByteArrayDiff.getDiffData(lastAddressTableBytes, newAddressTableBytes);
                     writeDataBlocks(systemTable.getAddressTableAddress(), addressTableDiff);
+                    fireProgressStatusMessage(getLangString("writingAddressTableChecksum"));
+                    checksumSet(ChecksumIdentifier.ADDRESS_TABLE, crc32AddressTable);
 
                     fireProgressStatusMessage(getLangString("writingAssociationTable"));
                     List<ByteArrayDiff.DataBlock> assocTableDiff = ByteArrayDiff.getDiffData(lastAssociationTableBytes, newAssociationTableBytes);
                     writeDataBlocks(systemTable.getAssociationTableAddress(), assocTableDiff);
+                    fireProgressStatusMessage(getLangString("writingAssociationTableChecksum"));
+                    checksumSet(ChecksumIdentifier.ASSOCIATION_TABLE, crc32AssocTable);
 
                     fireProgressStatusMessage(getLangString("writingCommObjectTable"));
                     List<ByteArrayDiff.DataBlock> comObjTableDiff = ByteArrayDiff.getDiffData(lastCommObjectTableBytes, newCommObjectTableBytes);
                     writeDataBlocks(systemTable.getAddressTableAddress(), comObjTableDiff);
+                    fireProgressStatusMessage(getLangString("writingCommObjectTableChecksum"));
+                    checksumSet(ChecksumIdentifier.COMMOBJECT_TABLE, crc32CommObjTable);                    
 
                 } else {
                     // do the whole memory
                     fireProgressStatusMessage(getLangString("writingAddressTable"));
                     memoryWrite(systemTable.getAddressTableAddress(), newAddressTableBytes);
+                    fireProgressStatusMessage(getLangString("writingAddressTableChecksum"));
+                    checksumSet(ChecksumIdentifier.ADDRESS_TABLE, crc32AddressTable);                    
 
                     fireProgressStatusMessage(getLangString("writingAssociationTable"));
                     memoryWrite(systemTable.getAssociationTableAddress(), newAssociationTableBytes);
+                    fireProgressStatusMessage(getLangString("writingAssociationTableChecksum"));
+                    checksumSet(ChecksumIdentifier.ASSOCIATION_TABLE, crc32AssocTable);                    
 
                     fireProgressStatusMessage(getLangString("writingCommObjectTable"));
                     memoryWrite(systemTable.getCommobjectTableAddress(), newCommObjectTableBytes);
+                    fireProgressStatusMessage(getLangString("writingCommObjectTableChecksum"));
+                    checksumSet(ChecksumIdentifier.COMMOBJECT_TABLE, crc32CommObjTable);                       
                 }
             }
 
@@ -249,6 +285,8 @@ public class DeviceManagement {
                 } else {
                     memoryWrite(systemTable.getParameterTableAddress(), newParameterTableBytes);
                 }
+                fireProgressStatusMessage(getLangString("writingParameterTableChecksum"));
+                checksumSet(ChecksumIdentifier.PARAMETER_TABLE, crc32ParamTable);       
             }
 
             checkAbort();
@@ -482,7 +520,7 @@ public class DeviceManagement {
                         + "  manufacturer: " + String.format("0x%04x", ppdi.getManufacturerId()) + "\n"
                         + "  device: " + String.format("0x%02x", ppdi.getDeviceId()) + "\n"
                         + "  revision: " + String.format("0x%02x", ppdi.getRevision()) + "\n"
-                        + "  systemType: " + ppdi.getSystemType().name() + "/" + String.format("0x%02x", ppdi.getSystemTypeRaw())+ "\n"
+                        + "  systemType: " + ppdi.getSystemType().name() + "/" + String.format("0x%02x", ppdi.getSystemTypeRaw()) + "\n"
                         + " Configuration requires:\n"
                         + "  manufacturer: " + String.format("0x%04x", manufacturerId) + "\n"
                         + "  device: " + String.format("0x%02x", deviceId) + "\n"
@@ -517,6 +555,15 @@ public class DeviceManagement {
         protocol.programmingModeWrite(individualAddress, false);
         fireSingleStepDone();
         isProgramming = false;
+    }
+    
+    private void checksumSet(ChecksumIdentifier identifier, long crc) throws KnxException {
+        if (!isProgramming) {
+            throw new IllegalStateException("Not in programming-state- Call startProgramming() first.");
+        }
+        protocol.checksumSet(identifier, crc);
+        fireIncreaseMaxSteps(1);
+        fireSingleStepDone();
     }
 
     private void memoryWrite(int addr, byte[] data) throws KnxException {

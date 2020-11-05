@@ -19,6 +19,7 @@
 package de.konnekting.mgnt.protocol0x01;
 
 import de.konnekting.deviceconfig.utils.Helper;
+import de.konnekting.mgnt.ChecksumIdentifier;
 import de.root1.slicknx.GroupAddressEvent;
 import de.root1.slicknx.GroupAddressListener;
 import de.root1.slicknx.Knx;
@@ -351,7 +352,7 @@ public class ProgProtocol0x01 {
         return msg.getData();
     }
     
-    public void checksumSet(MsgChecksumSet.ChecksumIdentifier identifier, long crc32) throws KnxException {
+    public void checksumSet(ChecksumIdentifier identifier, long crc32) throws KnxException {
         sendMessage(new MsgChecksumSet(identifier, crc32));
         expectAck(2 * WAIT_TIMEOUT); // writing to memory may take some time
     }

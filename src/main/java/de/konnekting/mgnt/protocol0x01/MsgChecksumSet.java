@@ -19,6 +19,7 @@
 package de.konnekting.mgnt.protocol0x01;
 
 import de.konnekting.deviceconfig.utils.ReadableValue2Bytes;
+import de.konnekting.mgnt.ChecksumIdentifier;
 import static de.konnekting.mgnt.protocol0x01.ProgProtocol0x01.MSGTYPE_CHECKSUM_SET;
 import de.root1.slicknx.KnxException;
 
@@ -28,24 +29,6 @@ import de.root1.slicknx.KnxException;
  */
 class MsgChecksumSet extends ProgMessage {
 
-    public enum ChecksumIdentifier {
-        SYSTEM_TABLE((byte) 0x00),
-        ADDRESS_TABLE((byte) 0x01),
-        ASSOCIATION_TABLE((byte) 0x02),
-        COMMOBJECT_TABLE((byte) 0x03),
-        PARAMETER_TABLE((byte) 0x04);
-
-        public final byte id;
-
-        private ChecksumIdentifier(byte id) {
-            this.id = id;
-        }
-
-        public byte getId() {
-            return id;
-        }
-
-    }
     private final ChecksumIdentifier identifier;
     private long crc32;
     private byte[] sendData;
