@@ -50,7 +50,7 @@ class MsgChecksumSet extends ProgMessage {
     @Override
     public String toString() {
         return "MsgChecksumSet{" + "identifier=" + identifier.name() + "#" + String.format("0x%02x", identifier.getId()) + ", " 
-                + crc32+"("+String.format("0x%04x", crc32) + ")}";
+                + "crc="+crc32+"/"+String.format("0x%04X", crc32) + "}";
     }
 
 }
