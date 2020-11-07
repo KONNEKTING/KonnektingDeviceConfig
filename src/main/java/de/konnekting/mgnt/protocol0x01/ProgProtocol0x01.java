@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Alexander Christian <alex(at)root1.de>. All rights reserved.
+ * Copyright (C) 2020 Alexander Christian <alex(at)root1.de>. All rights reserved.
  * 
  * This file is part of KONNEKTING DeviceConfig.
  *
@@ -19,6 +19,7 @@
 package de.konnekting.mgnt.protocol0x01;
 
 import de.konnekting.deviceconfig.utils.Helper;
+import de.konnekting.mgnt.ChecksumIdentifier;
 import de.root1.slicknx.GroupAddressEvent;
 import de.root1.slicknx.GroupAddressListener;
 import de.root1.slicknx.Knx;
@@ -77,6 +78,8 @@ public class ProgProtocol0x01 {
     
     public static final byte MSGTYPE_PROPERTY_PAGE_READ = 0x01;
     public static final byte MSGTYPE_PROPERTY_PAGE_RESPONSE = 0x02;
+    
+    public static final byte MSGTYPE_CHECKSUM_SET = 0x03;
     
     public static final byte MSGTYPE_UNLOAD = 0x08;
     public static final byte MSGTYPE_RESTART = 0x09;
@@ -347,6 +350,11 @@ public class ProgProtocol0x01 {
         sendMessage(new MsgPropertyPageRead(individualAddress, pagenum));
         MsgPropertyPageResponse msg = expectSingleMessage(MsgPropertyPageResponse.class);
         return msg.getData();
+    }
+    
+    public void checksumSet(ChecksumIdentifier identifier, long crc32) throws KnxException {
+        sendMessage(new MsgChecksumSet(identifier, crc32));
+        expectAck(2 * WAIT_TIMEOUT); // writing to memory may take some time
     }
     
     public void memoryWrite(int memoryAddress, byte[] data) throws KnxException {

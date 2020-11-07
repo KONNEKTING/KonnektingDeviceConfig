@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Alexander Christian <alex(at)root1.de>. All rights reserved.
+ * Copyright (C) 2020 Alexander Christian <alex(at)root1.de>. All rights reserved.
  * 
  * This file is part of KONNEKTING DeviceConfig.
  *
@@ -36,6 +36,10 @@ abstract class ProgMessage {
         this.data = message;
     }
 
+    /**
+     * Create prog message. All message bytes are initialized with UNUSED bytes.
+     * @param type 
+     */
     public ProgMessage(byte type) {
         data = new byte[14];
         data[0] = PROTOCOL_VERSION;

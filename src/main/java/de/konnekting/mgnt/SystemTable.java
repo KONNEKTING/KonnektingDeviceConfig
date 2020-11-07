@@ -35,7 +35,7 @@ public class SystemTable {
     /**
      * Size of system table
      */
-    public static final int SIZE = 32;
+    public static final int SIZE = 64;
     
     /**
      * Memory address of system table
@@ -44,7 +44,7 @@ public class SystemTable {
     /**
      * Memory address of writeable system table space
      */
-    public static final int SYSTEMTABLE_WRITE_ADDRESS = 16;
+    public static final int SYSTEMTABLE_WRITE_ADDRESS = 48;
 
     private byte[] data;
     
@@ -79,8 +79,28 @@ public class SystemTable {
         return data[2];
     }
     
+    public long getSystemTableCRC() {
+        return convertUINT32(data[11], data[12], data[13], data[14]);
+    }
+    
+    public long getAddressTableCRC() {
+        return convertUINT32(data[15], data[16], data[17], data[18]);
+    }
+    
+    public long getAssociationTableCRC() {
+        return convertUINT32(data[19], data[20], data[21], data[22]);
+    }
+    
+    public long getCommObjectTableCRC() {
+        return convertUINT32(data[23], data[24], data[25], data[26]);
+    }
+    
+    public long getParamTableCRC() {
+        return convertUINT32(data[27], data[28], data[29], data[30]);
+    }
+    
     public String getIndividualAddress() {
-        return Helper.convertBytesToIA(data[16], data[17]);
+        return Helper.convertBytesToIA(data[SYSTEMTABLE_WRITE_ADDRESS+0], data[SYSTEMTABLE_WRITE_ADDRESS+1]);
     }
     
     public void setIndividualAddress(String address) {
@@ -88,17 +108,22 @@ public class SystemTable {
             dirty.set();
         }
         byte[] ia = Helper.convertIaToBytes(address);
-        data[16] = ia[0];
-        data[17] = ia[1];
+        data[SYSTEMTABLE_WRITE_ADDRESS+0] = ia[0];
+        data[SYSTEMTABLE_WRITE_ADDRESS+1] = ia[1];
     }
     
+    /**
+     * All system table data
+     * @return 
+     */
     public byte[] getData() {
         return data;
     }
     
     public byte[] getWriteData() throws KnxException {
-        byte[] memData = new byte[16];
-        System.arraycopy(data, 16, memData, 0, 16);
+        int rwSize = SIZE-SYSTEMTABLE_WRITE_ADDRESS;
+        byte[] memData = new byte[rwSize];
+        System.arraycopy(data, SYSTEMTABLE_WRITE_ADDRESS, memData, 0, rwSize);
         return memData;
     }
     
