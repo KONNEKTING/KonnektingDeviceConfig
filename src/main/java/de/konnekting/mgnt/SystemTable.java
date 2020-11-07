@@ -79,6 +79,26 @@ public class SystemTable {
         return data[2];
     }
     
+    public long getSystemTableCRC() {
+        return convertUINT32(data[11], data[12], data[13], data[14]);
+    }
+    
+    public long getAddressTableCRC() {
+        return convertUINT32(data[15], data[16], data[17], data[18]);
+    }
+    
+    public long getAssociationTableCRC() {
+        return convertUINT32(data[19], data[20], data[21], data[22]);
+    }
+    
+    public long getCommObjectTableCRC() {
+        return convertUINT32(data[23], data[24], data[25], data[26]);
+    }
+    
+    public long getParamTableCRC() {
+        return convertUINT32(data[27], data[28], data[29], data[30]);
+    }
+    
     public String getIndividualAddress() {
         return Helper.convertBytesToIA(data[SYSTEMTABLE_WRITE_ADDRESS+0], data[SYSTEMTABLE_WRITE_ADDRESS+1]);
     }
