@@ -216,7 +216,12 @@ public class Helper {
         int middle = Integer.parseInt(split[1]); //0..7
         int sub = Integer.parseInt(split[2]); //0..255
 
-        if (main < 0 || main > 15) {
+        if (main == 15 && middle == 7 && sub == 255) {
+            LOG.error("Using KONNEKTING programming GA 15/7/255 is disallowed");
+            return false;
+        }
+
+        if (main < 0 || main > 31) {
             LOG.error("Main of given ga '" + ga + "' is not in range 0..15");
             return false;
         }
