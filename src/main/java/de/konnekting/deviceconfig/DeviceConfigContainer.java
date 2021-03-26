@@ -63,6 +63,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import javax.xml.bind.JAXBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -546,13 +547,14 @@ public class DeviceConfigContainer {
                 TestType test = dep.getTest();
                 Short testParamId = dep.getTestParamId();
                 byte[] testValue = dep.getTestValue();
+                String testList = dep.getTestList();
 
                 ParameterConfiguration parameterConfig = getParameterConfig(testParamId);
                 byte[] value = parameterConfig.getValue();
 
                 ParamType type = allParameters.get(testParamId).getValue().getType();
 
-                boolean enabled = testValue(test, testValue, value, type);
+                boolean enabled = testValue(test, testValue, testList, value, type);
                 log.info("Dependency test result: {}", enabled);
                 return enabled;
 
@@ -829,7 +831,7 @@ public class DeviceConfigContainer {
         }
     }
 
-    private boolean testValue(TestType test, byte[] testValue, byte[] value, ParamType valueType) {
+    private boolean testValue(TestType test, byte[] testValue, String testList, byte[] value, ParamType valueType) {
 
         if (valueType != ParamType.UINT_8) {
             log.warn("INVALID DEPENDENCY: only uint8-typed params are supported as dependant param. Test will fail.");
@@ -839,6 +841,7 @@ public class DeviceConfigContainer {
         Bytes2ReadableValue b2r = new Bytes2ReadableValue();
         short shortValue = b2r.convertUINT8(value);
         short shortTestValue = b2r.convertUINT8(testValue);
+        List<Short> shortTestList = Arrays.stream(testList.split("|")).map(s -> Short.parseShort(s)).collect(Collectors.toList());
 
         log.debug("Testing value {} against testvalue {} with test {}", shortValue, shortTestValue, test.toString());
 
@@ -867,6 +870,29 @@ public class DeviceConfigContainer {
             case LE:
                 testresult = (shortValue <= shortTestValue);
                 break;
+                
+            case IN:
+                testresult = shortTestList.contains(shortValue);
+                break;
+                
+            case NOTIN:
+                testresult = !shortTestList.contains(shortValue);
+                break;
+
+            case BETWEEN: {
+                short min = shortTestList.get(shortTestList.indexOf(Collections.min(shortTestList)));
+                short max = shortTestList.get(shortTestList.indexOf(Collections.max(shortTestList)));
+                testresult = shortValue >= min && shortValue <= max;
+                break;
+            }
+
+            case NOTBETWEEN: {
+                short min = shortTestList.get(shortTestList.indexOf(Collections.min(shortTestList)));
+                short max = shortTestList.get(shortTestList.indexOf(Collections.max(shortTestList)));
+                testresult = shortValue < min || shortValue > max;
+                break;
+            }
+                
         }
         return testresult;
     }
@@ -896,13 +922,14 @@ public class DeviceConfigContainer {
                 TestType test = dep.getTest();
                 Short testParamId = dep.getTestParamId();
                 byte[] testValue = dep.getTestValue();
+                String testList = dep.getTestList();
 
                 ParameterConfiguration parameterConfig = getParameterConfig(testParamId);
                 byte[] value = parameterConfig.getValue();
 
                 ParamType type = allParameters.get(testParamId).getValue().getType();
 
-                boolean enabled = testValue(test, testValue, value, type);
+                boolean enabled = testValue(test, testValue, testList, value, type);
                 log.info("Dependency test result: {}", enabled);
                 return enabled;
 
@@ -939,13 +966,14 @@ public class DeviceConfigContainer {
                 TestType test = dep.getTest();
                 Short testParamId = dep.getTestParamId();
                 byte[] testValue = dep.getTestValue();
+                String testList = dep.getTestList();
 
                 ParameterConfiguration parameterConfig = getParameterConfig(testParamId);
                 byte[] value = parameterConfig.getValue();
 
                 ParamType type = allParameters.get(testParamId).getValue().getType();
 
-                boolean enabled = testValue(test, testValue, value, type);
+                boolean enabled = testValue(test, testValue, testList, value, type);
                 log.info("Dependency test result: {}", enabled);
                 return enabled;
 
