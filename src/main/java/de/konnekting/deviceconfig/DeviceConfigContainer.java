@@ -296,8 +296,12 @@ public class DeviceConfigContainer {
      * @throws XMLFormatException
      */
     public synchronized void writeConfig(File file, boolean updateFilename) throws XMLFormatException {
+        if (file==null) {
+            throw new IllegalArgumentException("Given file must not be null");
+        }
         if (f == null) {
             log.debug("About to write removed file for {}, skipping", this);
+            return;
         }
         this.f = file;
         log.debug("About to write config: {}", f.getName());
