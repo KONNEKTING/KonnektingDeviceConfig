@@ -46,13 +46,6 @@
             <artifactId>unitils-core</artifactId>
             <version>3.4.2</version>
         </dependency>
-        
-<!--        <dependency>
-            <groupId>uk.com.robust-it</groupId>
-            <artifactId>cloning</artifactId>
-            <version>1.9.12</version>
-        </dependency>-->
-        
         <dependency>
             <groupId>io.github.kostaskougios</groupId>
             <artifactId>cloning</artifactId>
