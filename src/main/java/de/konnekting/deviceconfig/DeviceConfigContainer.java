@@ -845,7 +845,7 @@ public class DeviceConfigContainer {
         Bytes2ReadableValue b2r = new Bytes2ReadableValue();
         short shortValue = b2r.convertUINT8(value);
         short shortTestValue = b2r.convertUINT8(testValue);
-        List<Short> shortTestList = Arrays.stream(testList.split("|")).map(s -> Short.parseShort(s)).collect(Collectors.toList());
+        List<Short> shortTestList = testList.isEmpty() ? new ArrayList<Short>() : Arrays.stream(testList.split("|")).map(s -> Short.parseShort(s)).collect(Collectors.toList());
 
         log.debug("Testing value {} against testvalue {} with test {}", shortValue, shortTestValue, test.toString());
 
