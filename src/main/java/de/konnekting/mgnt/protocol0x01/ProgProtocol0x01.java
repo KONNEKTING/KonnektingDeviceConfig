@@ -28,6 +28,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -166,7 +167,7 @@ public class ProgProtocol0x01 {
                     if (msg != null) {
                         synchronized (receivedMessages) {
                             receivedMessages.add(msg);
-                            plog.info("Received message {} from {}. receivedMessages={}", msg, event.getSource(), receivedMessages.size());
+                            plog.info("Received message {} from {}. receivedMessages#={} msgs={}", msg, event.getSource(), receivedMessages.size(), receivedMessages.stream().map(Object::toString).collect(Collectors.joining(", ")));
                             receivedMessages.notifyAll();
                         }
                     }
